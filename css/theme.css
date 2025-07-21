@@ -9,7 +9,7 @@ body {
 
 .wrap {
   width: 90%;
-  max-width: 45em;
+  max-width: 70em;
   margin: 0 auto;
 }
 
@@ -656,4 +656,9 @@ pre .emphasis {
 }
 pre .strong {
   font-weight: 600;
+}
+/* 让首页文章标题居中 */
+.post-title, .post-title-link {
+  text-align: center;
+  display: block;
 }
