@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>LoT LAB@ECNU</title>
+    <title>LoT LAB @ ECNU</title>
     <url>/2025/04/19/main_page/</url>
-    <content><![CDATA[Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.
+    <content><![CDATA[We are the Language of Thought Lab at East China Normal University (ECNU), led by Qianli Yang.  
+Our research explores the computational mechanisms of general intelligence in the brain — combining neuroscience, artificial intelligence, and cognitive science to understand how minds perceive, reason, and learn.
+Join us as we uncover the principles of thinking, through the lens of computational neuroscience.
 ]]></content>
       <categories>
         <category>team</category>
