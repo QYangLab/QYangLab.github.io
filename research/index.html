@@ -1,121 +1,60 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><style>
-.flex-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5em;
-  margin: 1em 0;
-  flex-wrap: wrap;
-}
-.flex-row .flex-text {
-  flex: 1 1 250px;
-  min-width: 200px;
-}
-.flex-row .flex-img {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 340px;
-  width: 100%;
-}
-.flex-row .flex-img img {
-  max-width: 100%;
-  height: auto;
+.img-float-right {
+  float: right;
+  margin: 0 0 1.5em 4em; /* 上 右 下 左 */
+  width: 450px;
+  max-width: 45%;
   border-radius: 6px;
+  vertical-align: top;
   box-shadow: 0 1px 6px rgba(0,0,0,0.07);
 }
-.flex-row .img-caption {
-  margin-top: 0.2em;
-  font-size: 0.95em;
+.img-caption {
   color: #666;
+  font-size: 0.95em;
   text-align: center;
-}
-.flex-text > :first-child {
-  margin-top: 0 !important;
+  margin-bottom: 1em;
 }
 @media (max-width: 700px) {
-  .flex-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .flex-row .flex-img {
+  .img-float-right {
+    float: none;
+    display: block;
+    margin: 1em auto;
+    width: 100%;
     max-width: 100%;
   }
 }
 </style>
 
+<hr>
+<h3 id="Research-Overview"><a href="#Research-Overview" class="headerlink" title="Research Overview"></a>Research Overview</h3><img src="../images/framework.jpg" class="img-float-right" alt="World Model Illustration" />
+Understanding the brain’s algorithm for general intelligence requires a unified framework that connects physical perception, probabilistic reasoning, and symbolic thought. At LoT Lab, we integrate neuroscience, AI, and cognitive modeling to uncover how the brain builds internal models, solves complex problems, and constructs compositional representations for generalization.
 
-<div class="flex-row">
-  <div class="flex-text">
-    <h3>Research Overview</h3>
-    <p>
-      Understanding the brain’s algorithm for general intelligence requires a unified framework that connects physical perception, probabilistic reasoning, and symbolic thought. At LoT Lab, we integrate neuroscience, AI, and cognitive modeling to uncover how the brain builds internal models, solves complex problems, and constructs compositional representations for generalization.
-    </p>
-  </div>
-  <div class="flex-img">
-    <img src="../images/framework.jpg" alt="World Model Illustration">
-    <div class="img-caption">
-      <i></i>
-    </div>
-  </div>
-</div>
+<div class="img-caption"><i></i></div>
+<div style="clear:both;"></div>
 
 <hr>
-<div class="flex-row">
-  <div class="flex-text">
-    <h3>1. Neural Computation of Physical World Models</h3>
-    <p>
-      Understanding and interacting with a dynamic physical world—full of forces, collisions, and causal regularities—is a hallmark of intelligence. Yet, how does the brain build internal models of these physical dynamics?
+<h3 id="1-Neural-Computation-of-Physical-World-Models"><a href="#1-Neural-Computation-of-Physical-World-Models" class="headerlink" title="1. Neural Computation of Physical World Models"></a>1. Neural Computation of Physical World Models</h3><img src="../images/physical perception.png" class="img-float-right" alt="World Model Illustration" />
+Understanding and interacting with a dynamic physical world—full of forces, collisions, and causal regularities—is a hallmark of intelligence. Yet, how does the brain build internal models of these physical dynamics?
 
-<p>We study how neural systems encode and compute over structured representations of the physical world using <strong>virtual environments with controllable physics</strong> (e.g., gravity, friction, collision). By combining high-resolution neural recordings with flexible task design, we aim to uncover how <strong>neural dynamics mirror physical dynamics</strong>, and how the brain learns world models that support prediction, simulation, and planning.<br>    </p><br>    <blockquote></p>
-<!--     This research connects neuroscience with one of AI's grand challenges: learning generalizable, causal models of the world for embodied intelligence.
--->    </blockquote>
-  </div>
-  <div class="flex-img">
-    <img src="../images/physical perception.png" alt="World Model Illustration">
-    <div class="img-caption">
-     <i></i>
-    </div>
-  </div>
-</div>
+<p>We study how neural systems encode and compute over structured representations of the physical world using <strong>virtual environments with controllable physics</strong> (e.g., gravity, friction, collision). By combining high-resolution neural recordings with flexible task design, we aim to uncover how <strong>neural dynamics mirror physical dynamics</strong>, and how the brain learns world models that support prediction, simulation, and planning.</p>
+<div class="img-caption"><i></i></div>
+<div style="clear:both;"></div>
 
 <hr>
-<div class="flex-row">
-  <div class="flex-text">
-    <h3>2. Bayesian Brain for Flexible Problem Solving</h3>
-    <p>
-      Solving complex, uncertain problems remains a frontier for both brains and machines. While modern AI uses reinforcement learning and search algorithms, the brain appears to solve such problems with remarkable efficiency and flexibility—and often under severe resource constraints.
+<h3 id="2-Bayesian-Brain-for-Flexible-Problem-Solving"><a href="#2-Bayesian-Brain-for-Flexible-Problem-Solving" class="headerlink" title="2. Bayesian Brain for Flexible Problem Solving"></a>2. Bayesian Brain for Flexible Problem Solving</h3><img src="../images/bayesian_brain.png" class="img-float-right" alt="World Model Illustration" />
+Solving complex, uncertain problems remains a frontier for both brains and machines. While modern AI uses reinforcement learning and search algorithms, the brain appears to solve such problems with remarkable efficiency and flexibility—and often under severe resource constraints.
 
-<p>We investigate how the brain approximates <strong>Bayesian inference</strong> in dynamic, multi-agent, and partially observable environments. Unlike static probabilistic models, real-world decision-making involves <strong>interacting sources of uncertainty</strong>—from environment dynamics, rewards, and policies to the intentions of others. We develop behavioral paradigms and computational models to reverse-engineer the brain’s <strong>structured and approximate inference algorithms</strong> for creative problem-solving.<br>    </p><br>    <blockquote></p>
-<!--     This work speaks directly to the future of AI: how to build agents that reason under uncertainty, learn structured strategies, and adapt in social and interactive settings.
--->    </blockquote>
-  </div>
-  <div class="flex-img">
-    <img src="../images/bayesian_brain.png" alt="World Model Illustration">
-    <div class="img-caption">
-     <i></i>
-    </div>
-  </div>
-</div>
-
+<p>We investigate how the brain approximates <strong>Bayesian inference</strong> in dynamic, multi-agent, and partially observable environments. Unlike static probabilistic models, real-world decision-making involves <strong>interacting sources of uncertainty</strong>—from environment dynamics, rewards, and policies to the intentions of others. We develop behavioral paradigms and computational models to reverse-engineer the brain’s <strong>structured and approximate inference algorithms</strong> for creative problem-solving.</p>
+<div class="img-caption"><i></i></div>
+<div style="clear:both;"></div>
 
 <hr>
-<div class="flex-row">
-  <div class="flex-text">
-    <h3>3. Language of Thought for General Intelligence</h3>
-    <p>
-      Can the brain’s ability to generalize across perception, decision-making, and abstract reasoning be explained by an internal **language of thought**—a symbolic, compositional, and probabilistic system for representing knowledge?
+<h3 id="3-Language-of-Thought-for-General-Intelligence"><a href="#3-Language-of-Thought-for-General-Intelligence" class="headerlink" title="3. Language of Thought for General Intelligence"></a>3. Language of Thought for General Intelligence</h3><img src="../images/lot_diagram.pdf" class="img-float-right" alt="World Model Illustration" />
+Can the brain’s ability to generalize across perception, decision-making, and abstract reasoning be explained by an internal **language of thought**—a symbolic, compositional, and probabilistic system for representing knowledge?
 
-<p>We design a series of cognitive games with varying <strong>logical structure and uncertainty</strong>, playable by humans, animals, and AI agents. These tasks reveal how the brain constructs and manipulates <strong>structured mental programs</strong> to solve diverse problems. Our framework, the <strong>Probabilistic Language of Thought (PLoT)</strong>, combines symbolic representations with Bayesian inference to model how concepts are formed, reused, and generalized.<br>    </p><br>    <blockquote></p>
-<!--     This direction tackles a core question in AI and cognitive science: what internal structure enables systematic and compositional thinking—and how can we discover and test it?
--->    </blockquote>
-  </div>
-  <div class="flex-img">
-    <img src="../images/lot_diagram.pdf" alt="World Model Illustration">
-    <div class="img-caption">
-     <i></i>
-    </div>
-  </div>
-</div>
+<p>We design a series of cognitive games with varying <strong>logical structure and uncertainty</strong>, playable by humans, animals, and AI agents. These tasks reveal how the brain constructs and manipulates <strong>structured mental programs</strong> to solve diverse problems. Our framework, the <strong>Probabilistic Language of Thought (PLoT)</strong>, combines symbolic representations with Bayesian inference to model how concepts are formed, reused, and generalized.</p>
+<div class="img-caption"><i></i></div>
+<div style="clear:both;"></div>
 
 <hr>
 </div></article></div></main><footer><div class="copyright"><p>&copy; 2025 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {

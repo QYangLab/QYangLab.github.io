@@ -8,8 +8,8 @@ body {
 }
 
 .wrap {
-  width: 90%;
-  max-width: 70em;
+  width: 70%;
+  max-width: 50em;
   margin: 0 auto;
 }
 
@@ -151,6 +151,29 @@ header .branding {
     transform: rotate(10deg);
   }
 }
+img.img-float-right {
+  float: right !important;
+  margin: 0 0 1.5em 4em !important; /* 左边距 4em，随意调大 */
+  width: 500px !important;
+  max-width: 45% !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07) !important;
+}
+.img-caption {
+  color: #666;
+  font-size: 0.95em;
+  text-align: center;
+  margin-bottom: 1em;
+}
+@media (max-width: 700px) {
+  .img-float-right {
+    float: none;
+    display: block;
+    margin: 1em auto;
+    width: 100%;
+    max-width: 100%;
+  }
+}
 
 .logo-image {
   height: 5em;
@@ -265,32 +288,32 @@ header .nav-list-item a {
 .post-content h1,
 .post-block .post-title {
   margin-top: 2em;
-  font-size: 3em;
+  font-size: 2em;
 }
 
 .post-content h2 {
   margin-top: 1.8em;
-  font-size: 2.8em;
+  font-size: 1.8em;
 }
 
 .post-content h3 {
   margin-top: 1.6em;
-  font-size: 2.6em;
+  font-size: 1.6em;
 }
 
 .post-content h4 {
   margin-top: 1.4em;
-  font-size: 2.4em;
+  font-size: 1.4em;
 }
 
 .post-content h5 {
   margin-top: 1.2em;
-  font-size: 2.2em;
+  font-size: 1.2em;
 }
 
 .post-content h6 {
   margin-top: 1em;
-  font-size: 2em;
+  font-size: 1em;
 }
 
 .post-content a {
