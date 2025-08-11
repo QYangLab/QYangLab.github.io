@@ -12,6 +12,18 @@ body {
   max-width: 50em;
   margin: 0 auto;
 }
+.centered-image {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin: 20px 0 !important;
+}
+
+.centered-image img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+}
 
 ul {
   margin: 1rem 0;
