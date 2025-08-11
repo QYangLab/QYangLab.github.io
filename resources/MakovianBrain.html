@@ -1,6 +1,8 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title>resources • LoT Lab</title><meta name="description" content="resources - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><h1 id="最聪明的脑子也是马尔可夫的"><a href="#最聪明的脑子也是马尔可夫的" class="headerlink" title="最聪明的脑子也是马尔可夫的"></a>最聪明的脑子也是马尔可夫的</h1><p>最近读了 Steven Strogatz 写的教材 <strong>《NONLINEAR DYNAMICS AND CHAOS》</strong>。看到 <strong>8.7 节 Poincaré Map</strong> 和 <strong>9.4 节 Lorenz Map</strong>，深深体悟到最聪明的脑⼦也是在⽤⻢尔可夫系统在思考低维的时序变化。</p>
 <p><strong>Lorenz Map</strong> 是洛伦兹为了找出混沌中的规律，他提取了每次 <code>z(t)</code> 的局部最⼤值 <code>z_n</code>，并作出 <code>z_n+1</code> 对 <code>z_n</code> 的图像——⼏乎形成⼀条单值曲线（Lorenz map）。</p>
-<img src="../images/blog-images/lorenzmap.png" class="img-float-right" alt="Lorenz Map" />
+<div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+  <img src="../images/blog-images/lorenzmap.png" alt="Lorenz Map" />
+</div>
 
 <blockquote>
 <p><em>It therefore seems that some single feature of a given circuit should predict the same feature of the following circuit.</em><br>——Lorenz, E. N. (1963). <em>Deterministic Nonperiodic Flow</em>. <em>Journal of the Atmospheric Sciences</em>, 20(2), 130–141.</p>
@@ -14,7 +16,9 @@
 <p>这种⽅法在捕捉全局统计特性和直接预测⽅⾯很有效，但不容易看清系统为何会有某种不稳定或模式。</p>
 <p>洛伦兹的策略⼏乎是逆向的：他不是要模拟真实天⽓，⽽是⽤极有限的⾃由度去挖掘导致不可预测性的最⼩机制。</p>
 <p>与此相类似的是法国数学家 <strong>Henri Poincaré</strong> 在 19 世纪末提出的 <strong>Poincaré Map</strong>。在⾼维连续流⾥，直接分析轨迹很复杂，如果我们在相空间⾥选取⼀个适当的截⾯（surface of section），只记录轨迹每次穿过截⾯的点，就能得到⼀个低维的离散映射来描述动⼒学。</p>
-<img src="../images/blog-images/pangjialai.png" class="img-float-right" alt="poincare map" />
+<div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+  <img src="../images/blog-images/pangjialai.png" alt="Lorenz Map" />
+</div>
 
 <p>毫⽆疑问，以上两种⽅法的创作者都是最聪明⼈类的代表，但即使如此，他在表达⼀个知识的理解的时候，还是在⽤⻢尔可夫的近似，去寻找低维的特征，去解释复杂系统的最重要性质。</p>
 <hr>
