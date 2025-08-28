@@ -172,35 +172,39 @@ header {
     height: auto !important;
   }
 
-  /* 导航容器：一行，刚好 100% */
+  /* 导航容器：水平一行，正好100% */
   .nav.nav-list {
     display: flex !important;
     flex-wrap: nowrap !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    box-sizing: border-box !important; /* 防止超出屏幕 */
-    overflow: hidden !important;
-  }
-
-  /* 每个栏目：固定 20% 宽度 */
-  .nav.nav-list .nav-list-item {
-    flex: 0 0 20% !important;
-    width: 20% !important;
-    text-align: center;
-    list-style: none;
     box-sizing: border-box !important;
   }
 
-  /* 链接：完整显示 + 自动缩放字体 */
+  /* 每个栏目：精确20%宽度，去掉间距 */
+  .nav.nav-list .nav-list-item {
+    flex: 0 0 20% !important;   /* 占20% */
+    max-width: 20% !important;
+    min-width: 0 !important;    /* 允许压缩 */
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    text-align: center;
+    box-sizing: border-box !important;
+  }
+
+  /* 链接：字体缩放，避免溢出 */
   .nav.nav-list .nav-list-link {
     display: block;
-    width: 100%;
-    font-size: min(3vw, 13px);   /* 根据屏幕缩小，最大13px */
+    width: 100% !important;
+    margin: 0 !important;
     padding: 4px 2px !important;
-    white-space: nowrap !important;  /* 不换行 */
-    overflow: visible !important;    /* 不隐藏 */
-    text-overflow: unset !important; /* 不省略 */
+    font-size: clamp(9px, 2.5vw, 13px); /* 自动缩放，最小9px */
+    line-height: 1.2;
+    white-space: nowrap !important;    /* 不换行 */
+    overflow: hidden;                  /* 防止溢出 */
+    text-overflow: ellipsis;           /* 最后兜底：挤不下时省略 */
   }
 
   /* 标题缩小 */
