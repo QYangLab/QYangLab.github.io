@@ -126,52 +126,43 @@ header {
 }
 
 @media screen and (max-width: 600px) {
-  /* 全局字体大小和边距 */
-  html, body, div, section, article {
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 2px !important;
-    padding-right: 2px !important;
-  }
-
-  /* 文章正文容器 */
-  .post-body,
-  .article-entry,
-  .content {
+  /* 全局字体和行高 */
+  html, body {
     font-size: 14px !important;
     line-height: 1.6 !important;
     margin: 0 !important;
-    padding: 0 4px !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
-  /* 大的包裹容器（常见于主题） */
+  /* 常见容器覆盖 */
   .container,
   .wrap,
-  .main-inner,
   .main,
+  .main-inner,
+  .content,
+  .post,
+  .post-body,
+  .article-entry,
+  .page,
+  .page-content,
   .body-inner {
-    max-width: 100% !important;  /* 不再限制宽度 */
-    margin: 0 !important;        /* 去掉居中留白 */
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     padding-left: 4px !important;
     padding-right: 4px !important;
+    box-sizing: border-box !important; /* 避免 padding 撑大 */
   }
 
-  /* 标题整体缩小 */
-  h1 {
-    font-size: 1.3rem !important;
-  }
-  h2 {
-    font-size: 1.2rem !important;
-  }
-  h3 {
-    font-size: 1.1rem !important;
-  }
-  h4, h5, h6 {
-    font-size: 1rem !important;
-  }
+  /* 标题缩小 */
+  h1 { font-size: 1.3rem !important; }
+  h2 { font-size: 1.2rem !important; }
+  h3 { font-size: 1.1rem !important; }
+  h4, h5, h6 { font-size: 1rem !important; }
 
-  /* 图片适配屏幕 */
+  /* 图片自适应 */
   img {
     max-width: 100% !important;
     height: auto !important;
