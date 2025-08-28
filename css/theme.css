@@ -172,6 +172,16 @@ header {
     height: auto !important;
   }
 
+  .nav a {
+    font-size: 13px !important;   /* 缩小字体 */
+    padding: 4px 6px !important;  /* 缩小内边距 */
+  }
+
+  .nav {
+    white-space: nowrap;          /* 不换行 */
+    overflow-x: auto;             /* 超出时横向滚动 */
+  }
+
   /* 标题缩小 */
   h1 { font-size: 1.3rem !important; }
   h2 { font-size: 1.2rem !important; }
