@@ -172,28 +172,34 @@ header {
     height: auto !important;
   }
 
+  /* 导航容器：一行，刚好 100% */
   .nav.nav-list {
     display: flex !important;
-    flex-wrap: nowrap !important;   /* 禁止换行 */
+    flex-wrap: nowrap !important;
     width: 100% !important;
-    padding: 0;
-    margin: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important; /* 防止超出屏幕 */
+    overflow: hidden !important;
   }
 
-  /* 每个栏目：等分屏幕宽度 */
+  /* 每个栏目：固定 20% 宽度 */
   .nav.nav-list .nav-list-item {
-    flex: 1 1 20% !important;       /* 每个占20%宽度 */
+    flex: 0 0 20% !important;
+    width: 20% !important;
     text-align: center;
     list-style: none;
+    box-sizing: border-box !important;
   }
 
-  /* 链接：字体随着宽度缩小，始终完整显示 */
+  /* 链接：完整显示 + 自动缩放字体 */
   .nav.nav-list .nav-list-link {
     display: block;
-    font-size: calc(10px + 0.5vw);   /* 随屏幕缩小 */
+    width: 100%;
+    font-size: min(3vw, 13px);   /* 根据屏幕缩小，最大13px */
     padding: 4px 2px !important;
     white-space: nowrap !important;  /* 不换行 */
-    overflow: visible !important;    /* 不隐藏文字 */
+    overflow: visible !important;    /* 不隐藏 */
     text-overflow: unset !important; /* 不省略 */
   }
 
