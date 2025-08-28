@@ -1,7 +1,7 @@
 body {
   color: #222831;
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: 0.9rem !important;
+  line-height: 1.6 !important;
   background-color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell,
     "Helvetica Neue", sans-serif;
@@ -135,7 +135,7 @@ header {
   }
 
   .post-title {
-    font-size: 1.2rem;
+    font-size: 1.2rem !important;
   }
 
   .content {
