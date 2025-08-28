@@ -150,10 +150,11 @@ header {
   .body-inner {
     width: 100% !important;
     max-width: 100% !important;
-    margin: 0 !important;
-    padding-left: 4px !important;
-    padding-right: 4px !important;
-    box-sizing: border-box !important; /* 避免 padding 撑大 */
+    margin-left: 0 !important;
+    margin-right: 0 !important;   /* 去掉右边多余空白 */
+    padding-left: 6px !important; /* 左边留一点 */
+    padding-right: 6px !important;/* 右边和左边一样留一点 */
+    box-sizing: border-box !important;
   }
 
   /* 标题缩小 */
