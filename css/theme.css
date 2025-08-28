@@ -127,17 +127,13 @@ header {
 
 @media screen and (max-width: 600px) {
   /* 全局缩小字体 */
-  html {
-    font-size: 14px !important;
-  }
-
-  body {
+  html, body {
     font-size: 14px !important;
     line-height: 1.6 !important;
-    padding: 0 8px !important;
+    padding: 0 8px !important; /* 缩小左右边距 */
   }
 
-  /* 文章正文 */
+  /* 正文容器 */
   .post-body,
   .article-entry,
   .content {
@@ -146,14 +142,21 @@ header {
     padding: 0 6px !important;
   }
 
-  /* 标题缩小 */
-  .post-title,
-  h1, h2, h3, h4, h5, h6 {
-    font-size: 1.2rem !important;
-    margin: 0.6em 0 !important;
+  /* 标题整体缩小 */
+  h1 {
+    font-size: 1.3rem !important; /* 约 18~20px */
+  }
+  h2 {
+    font-size: 1.2rem !important; /* 约 16~18px */
+  }
+  h3 {
+    font-size: 1.1rem !important; /* 约 15~16px */
+  }
+  h4, h5, h6 {
+    font-size: 1rem !important;   /* 约 14~15px */
   }
 
-  /* 图片自适应屏幕 */
+  /* 图片适配屏幕 */
   img {
     max-width: 100% !important;
     height: auto !important;
