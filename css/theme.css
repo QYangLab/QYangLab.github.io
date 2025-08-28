@@ -157,6 +157,21 @@ header {
     box-sizing: border-box !important;
   }
 
+  /* Brewski 顶部 Logo 缩小 */
+  .logo img {
+    max-height: 32px !important;  /* 控制 Logo 高度 */
+    width: auto !important;       /* 宽度自适应 */
+  }
+  .logo {
+    max-height: 32px !important;  /* 限制容器高度 */
+  }
+
+  /* Brewski 顶部 Logo 居中 */
+  .header .logo img {
+    display: block;
+    margin: 0 auto; /* 居中 */
+  }
+
   /* 标题缩小 */
   h1 { font-size: 1.3rem !important; }
   h2 { font-size: 1.2rem !important; }
