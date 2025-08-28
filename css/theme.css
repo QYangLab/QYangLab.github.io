@@ -131,15 +131,17 @@ header {
   }
 
   body {
-    font-size: 0.9rem; /* 小屏字体稍微缩小 */
+    font-size: 14px !important; /* 小屏字体稍微缩小 */
+    line-height: 1.6 !important;
+    padding: 0 10px !important;
   }
 
   .post-title {
-    font-size: 1.2rem !important;
+    font-size: 18px !important;
   }
 
   .content {
-    padding: 0 1rem; /* 减少左右边距 */
+    padding: 0 5px !important; /* 减少左右边距 */
   }
 }
 
