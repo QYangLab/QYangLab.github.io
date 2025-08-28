@@ -172,11 +172,10 @@ header {
     height: auto !important;
   }
 
-  /* 导航容器：严格一行 */
   .nav.nav-list {
     display: flex !important;
     flex-wrap: nowrap !important;
-    justify-content: space-between !important; /* 平均分布 */
+    justify-content: space-around !important; /* 单词之间间距相等 */
     align-items: center;
     width: 100% !important;
     margin: 0 !important;
@@ -184,11 +183,8 @@ header {
     box-sizing: border-box !important;
   }
 
-  /* 每个栏目：严格等分20% */
   .nav.nav-list .nav-list-item {
-    flex: 0 0 20% !important;   /* 占20% */
-    max-width: 20% !important;
-    min-width: 0 !important;    /* 必须允许压缩 */
+    flex: 0 1 auto !important;   /* 宽度随文字自适应 */
     margin: 0 !important;
     padding: 0 !important;
     list-style: none !important;
@@ -196,17 +192,14 @@ header {
     box-sizing: border-box !important;
   }
 
-  /* 链接：完整显示，不省略 */
   .nav.nav-list .nav-list-link {
     display: block;
-    width: 100% !important;
+    font-size: clamp(7px, 2.5vw, 13px); /* 自动缩放字体 */
     margin: 0 !important;
-    padding: 4px 2px !important;
-    font-size: clamp(7px, 2.5vw, 13px); /* 自动缩放，最小7px */
-    line-height: 1.2;
-    white-space: nowrap !important;    /* 不换行 */
-    overflow: visible !important;      /* 不隐藏 */
-    text-overflow: unset !important;   /* 不省略 */
+    padding: 4px 6px !important;        /* 给单词一点呼吸空间 */
+    white-space: nowrap !important;     /* 不换行 */
+    overflow: visible !important;
+    text-overflow: unset !important;
   }
 
   /* 标题缩小 */
