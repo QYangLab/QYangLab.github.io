@@ -172,14 +172,24 @@ header {
     height: auto !important;
   }
 
-  .nav a {
-    font-size: 13px !important;   /* 缩小字体 */
-    padding: 4px 6px !important;  /* 缩小内边距 */
+  /* 缩小字体和间距 */
+  .nav.nav-list .nav-list-link {
+    font-size: 13px !important;   /* 字体缩小 */
+    padding: 4px 6px !important;  /* 文字内边距缩小 */
   }
 
-  .nav {
-    white-space: nowrap;          /* 不换行 */
-    overflow-x: auto;             /* 超出时横向滚动 */
+  /* 保证横排，不换行 */
+  .nav.nav-list {
+    display: flex !important;     /* 横向排列 */
+    flex-wrap: nowrap !important; /* 禁止换行 */
+    overflow-x: auto !important;  /* 超出时横向滚动 */
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
+  }
+
+  /* 每个栏目保持紧凑 */
+  .nav.nav-list .nav-list-item {
+    flex: 0 0 auto !important;    /* 不自动拉伸，保持最小宽度 */
   }
 
   /* 标题缩小 */
