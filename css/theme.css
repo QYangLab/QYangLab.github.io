@@ -172,27 +172,27 @@ header {
     height: auto !important;
   }
 
-  /* 导航容器：一行，强制压缩 */
+  /* 导航容器：一行，平均分布 */
   .nav.nav-list {
     display: flex !important;
-    flex-wrap: nowrap !important;   /* 禁止换行 */
-    justify-content: space-between; /* 平均分布 */
+    flex-wrap: nowrap !important;       /* 禁止换行 */
+    justify-content: space-between;     /* 平均分布 */
   }
 
   /* 每个栏目：自动压缩 */
   .nav.nav-list .nav-list-item {
-    flex: 1 1 auto !important;      /* 自动分配宽度，保证在一行 */
-    text-align: center;             /* 居中 */
+    flex: 1 1 auto !important;          /* 自动分配宽度 */
+    text-align: center;
   }
 
-  /* 链接：缩小字体和内边距 */
+  /* 链接：字体随屏幕宽度缩放 */
   .nav.nav-list .nav-list-link {
     display: block;
-    font-size: 12px !important;     /* 再小一点字体，避免超出 */
-    padding: 4px 2px !important;    /* 内边距缩小 */
-    white-space: nowrap !important; /* 文字不换行 */
-    overflow: hidden;               /* 防止超出 */
-    text-overflow: ellipsis;        /* 超长时省略号 */
+    font-size: clamp(10px, 3vw, 14px);  /* 智能缩放：最小10px，最大14px */
+    padding: 4px 2px !important;        /* 内边距缩小 */
+    white-space: nowrap !important;     /* 始终不换行 */
+    overflow: hidden;
+    text-overflow: ellipsis;            /* 超长时省略号 */
   }
 
   /* 标题缩小 */
