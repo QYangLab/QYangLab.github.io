@@ -126,22 +126,37 @@ header {
 }
 
 @media screen and (max-width: 600px) {
-  header {
-    justify-content: center;
+  /* 全局缩小字体 */
+  html {
+    font-size: 14px !important;
   }
 
   body {
-    font-size: 14px !important; /* 小屏字体稍微缩小 */
+    font-size: 14px !important;
     line-height: 1.6 !important;
-    padding: 0 10px !important;
+    padding: 0 8px !important;
   }
 
-  .post-title {
-    font-size: 18px !important;
-  }
-
+  /* 文章正文 */
+  .post-body,
+  .article-entry,
   .content {
-    padding: 0 5px !important; /* 减少左右边距 */
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    padding: 0 6px !important;
+  }
+
+  /* 标题缩小 */
+  .post-title,
+  h1, h2, h3, h4, h5, h6 {
+    font-size: 1.2rem !important;
+    margin: 0.6em 0 !important;
+  }
+
+  /* 图片自适应屏幕 */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
   }
 }
 
