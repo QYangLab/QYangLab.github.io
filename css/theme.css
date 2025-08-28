@@ -129,6 +129,18 @@ header {
   header {
     justify-content: center;
   }
+
+  body {
+    font-size: 0.9rem; /* 小屏字体稍微缩小 */
+  }
+
+  .post-title {
+    font-size: 1.2rem;
+  }
+
+  .content {
+    padding: 0 1rem; /* 减少左右边距 */
+  }
 }
 
 header .branding {
