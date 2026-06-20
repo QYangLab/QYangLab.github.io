@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo 12：节奏迭代复现</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-strong: #ffffff;
+      --text: #182033;
+      --muted: #687086;
+      --border: #dfe5f2;
+      --primary: #2563eb;
+      --primary-strong: #1d4ed8;
+      --primary-soft: #dbeafe;
+      --accent: #f97316;
+      --accent-soft: #ffedd5;
+      --good: #0f9f6e;
+      --warn: #b45309;
+      --danger: #dc2626;
+      --shadow: 0 16px 45px rgba(24, 32, 51, 0.10);
+      --radius: 20px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #0d1220;
+        --panel: rgba(17, 24, 39, 0.90);
+        --panel-strong: #111827;
+        --text: #eef2ff;
+        --muted: #a5adbf;
+        --border: #2b3548;
+        --primary: #60a5fa;
+        --primary-strong: #93c5fd;
+        --primary-soft: rgba(37, 99, 235, 0.18);
+        --accent: #fb923c;
+        --accent-soft: rgba(249, 115, 22, 0.18);
+        --good: #34d399;
+        --warn: #f59e0b;
+        --danger: #f87171;
+        --shadow: 0 18px 55px rgba(0, 0, 0, 0.32);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 360px; }
+
+    body {
+      margin: 0;
+      min-width: 360px;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(37, 99, 235, 0.14), transparent 32rem),
+        radial-gradient(circle at 85% 5%, rgba(249, 115, 22, 0.14), transparent 28rem),
+        var(--bg);
+    }
+
+    .page {
+      width: min(1240px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 24px 0 34px;
+    }
+
+    header.hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--primary-strong);
+      background: var(--primary-soft);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      max-width: 900px;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.75fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-header h2,
+    .card-header h3 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .card-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .card-body { padding: 18px 20px 20px; }
+
+    .viz-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .simplex-frame {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42));
+      overflow: hidden;
+      position: relative;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .simplex-frame { background: linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.36)); }
+    }
+
+    svg { display: block; width: 100%; height: auto; }
+
+    .rhythm-strip {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel-strong);
+      padding: 16px;
+    }
+
+    .strip-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .timeline {
+      position: relative;
+      height: 66px;
+      border-radius: 16px;
+      background:
+        linear-gradient(90deg, rgba(37,99,235,0.10), rgba(249,115,22,0.12)),
+        repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), rgba(104,112,134,0.20) calc(25% - 1px), rgba(104,112,134,0.20) 25%);
+      border: 1px dashed rgba(104,112,134,0.35);
+      overflow: hidden;
+    }
+
+    .interval-bar {
+      position: absolute;
+      top: 39px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.32);
+      transform: translateX(0);
+    }
+
+    .beat-dot {
+      position: absolute;
+      top: 19px;
+      width: 22px;
+      height: 22px;
+      margin-left: -11px;
+      border-radius: 50%;
+      border: 3px solid var(--primary);
+      background: var(--panel-strong);
+      box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.28);
+      transition: transform 130ms ease, background 130ms ease, box-shadow 180ms ease;
+    }
+
+    .beat-dot.accent { border-color: var(--accent); }
+    .beat-dot.pulse {
+      transform: scale(1.42);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 12px rgba(249, 115, 22, 0.18);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      cursor: pointer;
+      color: var(--text);
+      background: var(--panel-strong);
+      box-shadow: 0 6px 14px rgba(24, 32, 51, 0.06);
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, opacity 120ms ease;
+      font-weight: 700;
+    }
+
+    button:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--primary); }
+    button:active:not(:disabled) { transform: translateY(0); }
+    button:disabled { cursor: not-allowed; opacity: 0.52; }
+
+    .primary {
+      color: #fff;
+      border-color: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+    }
+
+    .accent {
+      color: #fff;
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+    }
+
+    .danger-lite {
+      color: var(--danger);
+      border-color: rgba(220,38,38,0.35);
+      background: rgba(220,38,38,0.08);
+    }
+
+    .tap-button {
+      grid-column: 1 / -1;
+      border-style: dashed;
+      font-size: 15px;
+    }
+
+    .control-group {
+      padding: 14px 0;
+      border-top: 1px solid var(--border);
+    }
+    .control-group:first-of-type { border-top: 0; padding-top: 0; }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .control-label span:last-child {
+      color: var(--primary-strong);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+    }
+
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 11px;
+      color: var(--text);
+      background: var(--panel-strong);
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 12px 13px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--primary-soft);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .status strong { color: var(--primary-strong); }
+
+    .diag-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel-strong);
+      min-height: 78px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric .value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .metric .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      font-family: var(--mono);
+    }
+
+    .table-wrap {
+      max-height: 318px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel-strong);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 650px;
+    }
+
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child, td:first-child,
+    th:nth-child(6), td:nth-child(6) { text-align: left; }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--panel-strong);
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+
+    .hints {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .hint-card ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    footer {
+      margin-top: 18px;
+      padding: 16px 18px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      line-height: 1.7;
+      box-shadow: var(--shadow);
+    }
+
+    .kbd {
+      display: inline-flex;
+      min-width: 28px;
+      justify-content: center;
+      padding: 2px 7px;
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 7px;
+      background: var(--panel-strong);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; }
+    .swatch.line { height: 3px; border: 0; border-radius: 999px; background: currentColor; }
+    .swatch.cross { position: relative; border: 0; width: 16px; height: 16px; }
+    .swatch.cross::before, .swatch.cross::after {
+      content: "";
+      position: absolute;
+      top: 7px;
+      left: 1px;
+      width: 14px;
+      height: 2px;
+      background: currentColor;
+    }
+    .swatch.cross::before { transform: rotate(45deg); }
+    .swatch.cross::after { transform: rotate(-45deg); }
+
+    @media (max-width: 980px) {
+      header.hero { grid-template-columns: 1fr; }
+      .top-actions { justify-content: flex-start; }
+      .grid { grid-template-columns: 1fr; }
+      .hints { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .page { width: min(100% - 18px, 1240px); padding-top: 14px; }
+      .card-header, .card-body { padding-left: 14px; padding-right: 14px; }
+      .button-row, .diag-grid, .select-row { grid-template-columns: 1fr; }
+      .top-actions button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <div class="eyebrow">第十二章 Demo 9 · Iterated reproduction</div>
+        <h1>Demo 12：节奏迭代复现</h1>
+        <p class="lead">
+          系统播放一个由 4 个拍点组成的节奏；三个拍间隔被归一化为和为 1 的点。你用
+          <span class="kbd">Space</span> 复现 4 拍后，复现结果会成为下一轮输入。重复 10–15 轮，观察轨迹是否向整数比吸引子靠拢。
+        </p>
+      </div>
+      <div class="top-actions">
+        <button id="exportBtn" class="primary" type="button">导出 CSV</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2>单纯形轨迹与当前节奏</h2>
+            <p>三角形内每个点代表 <strong>i₁+i₂+i₃=1</strong> 的三拍间隔比例；颜色从蓝到橙表示迭代轮次。</p>
+          </div>
+          <div class="legend" aria-label="图例">
+            <span class="legend-item"><span class="swatch" style="color: var(--primary)"></span>复现点</span>
+            <span class="legend-item"><span class="swatch line" style="color: var(--primary)"></span>迭代路径</span>
+            <span class="legend-item"><span class="swatch cross" style="color: var(--danger)"></span>整数比吸引子</span>
+          </div>
+        </div>
+        <div class="card-body viz-wrap">
+          <div class="simplex-frame">
+            <svg id="simplexSvg" viewBox="0 0 680 560" role="img" aria-label="节奏间隔三角形单纯形"></svg>
+          </div>
+          <div class="rhythm-strip">
+            <div class="strip-title">
+              <span>当前将被播放的 4 拍节奏</span>
+              <span id="durationLabel">总时长 -- ms</span>
+            </div>
+            <div id="timeline" class="timeline" aria-label="当前节奏时间轴"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="card-header">
+          <div>
+            <h3>控制台</h3>
+            <p>先播放/观察，再按“记录复现”，随后敲 4 次空格。</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="button-row">
+            <button id="playBtn" class="primary" type="button">开始/播放本轮节奏</button>
+            <button id="recordBtn" class="accent" type="button">记录复现</button>
+            <button id="simulateBtn" type="button">模拟复现本轮</button>
+            <button id="autoSimBtn" type="button">模拟到结束</button>
+            <button id="tapBtn" class="tap-button" type="button" disabled>点此敲击（等同 Space）</button>
+            <button id="resetBtn" class="danger-lite" type="button">重置</button>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="tempoSlider">
+              <span>播放速度 / Tempo</span><span id="tempoValue">108 BPM</span>
+            </label>
+            <input id="tempoSlider" type="range" min="60" max="180" step="1" value="108">
+          </div>
+
+          <div class="control-group">
+            <div class="select-row">
+              <label>
+                <span class="control-label"><span>总轮数</span></span>
+                <select id="roundLimitSelect">
+                  <option value="10">10 轮</option>
+                  <option value="12" selected>12 轮</option>
+                  <option value="15">15 轮</option>
+                </select>
+              </label>
+              <label>
+                <span class="control-label"><span>模拟文化先验</span></span>
+                <select id="cultureSelect">
+                  <option value="balanced" selected>均衡整数比</option>
+                  <option value="western">强 1:1:1 / 1:1:2</option>
+                  <option value="weak">弱吸引（跨文化变体）</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div id="status" class="status" role="status" aria-live="polite">
+            准备就绪：点击 <strong>开始/播放本轮节奏</strong>，然后记录你的 4 次敲击。
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <section class="hints">
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h3>诊断</h3>
+            <p>距离以归一化三维向量的欧氏距离计算；数值越小，越接近某个整数比吸引子。</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="diag-grid">
+            <div class="metric">
+              <div class="label">进度</div>
+              <div id="roundMetric" class="value">0 / 12</div>
+              <div class="sub">复现轮次</div>
+            </div>
+            <div class="metric">
+              <div class="label">当前比例</div>
+              <div id="ratioMetric" class="value">--</div>
+              <div id="intervalMetric" class="sub">i₁=--, i₂=--, i₃=--</div>
+            </div>
+            <div class="metric">
+              <div class="label">最近整数比吸引子</div>
+              <div id="nearestMetric" class="value">--</div>
+              <div id="distanceMetric" class="sub">距离 --</div>
+            </div>
+            <div class="metric">
+              <div class="label">记录状态</div>
+              <div id="tapMetric" class="value">0 / 4</div>
+              <div class="sub">空格键时间戳差值会被归一化</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card hint-card">
+        <div class="card-header">
+          <div>
+            <h3>观察提示</h3>
+            <p>把每一次复现看作从上一个节奏到下一个节奏的随机转移。</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li>迭代复现会逐步收敛到先验中的整数比吸引子。</li>
+            <li>文化差异可以通过改变吸引子权重来表达：某些群体的整数比偏好更弱或权重不同。</li>
+            <li>每一次复现都是马尔可夫链中的一次转移：下一轮只依赖当前输入节奏与人的复现噪声。</li>
+          </ul>
+        </div>
+      </section>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <div class="card-header">
+        <div>
+          <h3>历史表</h3>
+          <p>包含初始输入（第 0 轮）与每次复现；CSV 将导出 round,i1,i2,i3,nearest_attractor,distance,timestamps。</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>轮次</th>
+                <th>i₁</th>
+                <th>i₂</th>
+                <th>i₃</th>
+                <th>近似比</th>
+                <th>nearest_attractor</th>
+                <th>distance</th>
+                <th>timestamps (ms)</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <h2>文献与案例意图</h2>
+      <p><strong>对应章节:</strong> §3.2 迭代复现；<strong>对应文献:</strong> Jacoby2017IntegerRatio, Jacoby2024GlobalRhythm, XuGriffiths2010Serial.</p>
+      <p><strong>完整引用:</strong></p>
+      <ol>
+        <li>Jacoby, Nori, and Josh H. McDermott. 2017. <cite>Integer ratio priors on musical rhythm revealed cross-culturally by iterated reproduction</cite>. <em>Current Biology</em> 27(3): 359–370. https://doi.org/10.1016/j.cub.2016.12.031.</li>
+        <li>Jacoby, Nori, Rainer Polak, Jessica A. Grahn, Daniel J. Cameron, Kyung Myun Lee, Ricardo Godoy, Eduardo A. Undurraga, Tomas Huanca, Timon Thalwitzer, Noumouke Doumbia, and others. 2024. <cite>Commonality and variation in mental representations of music revealed by a cross-cultural comparison of rhythm priors in 15 countries</cite>. <em>Nature Human Behaviour</em>. https://doi.org/10.1038/s41562-023-01800-9.</li>
+        <li>Xu, Jing, and Thomas L. Griffiths. 2010. <cite>A rational analysis of the effects of memory biases on serial reproduction</cite>. <em>Cognitive Psychology</em> 60(2): 107–126. https://doi.org/10.1016/j.cogpsych.2009.09.002.</li>
+      </ol>
+      <p><strong>案例想表达的想法:</strong> 迭代复现把一个人的输出当成下一个人的输入，长期轨迹会被群体内部的先验吸引。节奏越来越靠近 1:1:1、1:1:2 等整数比，不是因为外部世界规定这些比例，而是因为记忆、再现和文化经验共同定义了心理空间中的吸引子。这个 demo 想让学生把“文化差异”与“共享先验骨架”同时看成可由采样链揭示的结构。</p>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const TAU = Math.PI * 2;
+      const vertices = {
+        i1: { x: 340, y: 62, label: 'i₁ 长' },
+        i2: { x: 78, y: 510, label: 'i₂ 长' },
+        i3: { x: 602, y: 510, label: 'i₃ 长' }
+      };
+
+      const attractors = [
+        { name: '1:1:1', ints: [1, 1, 1], weight: 1.00 },
+        { name: '1:1:2', ints: [1, 1, 2], weight: 0.88 },
+        { name: '2:1:1', ints: [2, 1, 1], weight: 0.76 },
+        { name: '1:2:1', ints: [1, 2, 1], weight: 0.76 }
+      ].map(a => ({ ...a, vec: normalize(a.ints) }));
+
+      const cultureProfiles = {
+        balanced: { weights: [1.0, 0.9, 0.82, 0.82], strength: 0.46, noise: 0.045, sigma: 0.24 },
+        western: { weights: [1.25, 1.05, 0.65, 0.65], strength: 0.58, noise: 0.035, sigma: 0.25 },
+        weak: { weights: [0.72, 0.68, 0.62, 0.62], strength: 0.25, noise: 0.060, sigma: 0.30 }
+      };
+
+      const els = {
+        svg: document.getElementById('simplexSvg'),
+        timeline: document.getElementById('timeline'),
+        durationLabel: document.getElementById('durationLabel'),
+        playBtn: document.getElementById('playBtn'),
+        recordBtn: document.getElementById('recordBtn'),
+        simulateBtn: document.getElementById('simulateBtn'),
+        autoSimBtn: document.getElementById('autoSimBtn'),
+        tapBtn: document.getElementById('tapBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        exportBtn: document.getElementById('exportBtn'),
+        tempoSlider: document.getElementById('tempoSlider'),
+        tempoValue: document.getElementById('tempoValue'),
+        roundLimitSelect: document.getElementById('roundLimitSelect'),
+        cultureSelect: document.getElementById('cultureSelect'),
+        status: document.getElementById('status'),
+        roundMetric: document.getElementById('roundMetric'),
+        ratioMetric: document.getElementById('ratioMetric'),
+        intervalMetric: document.getElementById('intervalMetric'),
+        nearestMetric: document.getElementById('nearestMetric'),
+        distanceMetric: document.getElementById('distanceMetric'),
+        tapMetric: document.getElementById('tapMetric'),
+        historyBody: document.getElementById('historyBody')
+      };
+
+      let audioCtx = null;
+      let currentInput = randomRhythm();
+      let history = [];
+      let completedRounds = 0;
+      let maxRounds = Number(els.roundLimitSelect.value);
+      let isRecording = false;
+      let tapTimes = [];
+      let visualTimers = [];
+
+      function normalize(values) {
+        const safe = values.map(v => Math.max(0.0001, Number(v) || 0.0001));
+        const sum = safe.reduce((a, b) => a + b, 0);
+        return safe.map(v => v / sum);
+      }
+
+      function randomRhythm() {
+        // Dirichlet-like start, gently pulled away from degenerate very-short intervals.
+        const e = [-Math.log(Math.random()), -Math.log(Math.random()), -Math.log(Math.random())];
+        const raw = normalize(e);
+        return normalize(raw.map(v => 0.72 * v + 0.28 / 3));
+      }
+
+      function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+
+      function gaussian() {
+        const u1 = Math.max(1e-9, Math.random());
+        const u2 = Math.random();
+        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(TAU * u2);
+      }
+
+      function baryToPoint(v) {
+        return {
+          x: v[0] * vertices.i1.x + v[1] * vertices.i2.x + v[2] * vertices.i3.x,
+          y: v[0] * vertices.i1.y + v[1] * vertices.i2.y + v[2] * vertices.i3.y
+        };
+      }
+
+      function pointString(p) { return `${p.x.toFixed(2)},${p.y.toFixed(2)}`; }
+
+      function makeSvg(tag, attrs = {}, parent = els.svg) {
+        const node = document.createElementNS(SVG_NS, tag);
+        for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
+        parent.appendChild(node);
+        return node;
+      }
+
+      function distance(a, b) {
+        return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+      }
+
+      function nearestAttractor(vec) {
+        let best = attractors[0];
+        let bestD = Infinity;
+        attractors.forEach(a => {
+          const d = distance(vec, a.vec);
+          if (d < bestD) { best = a; bestD = d; }
+        });
+        return { name: best.name, distance: bestD, vec: best.vec };
+      }
+
+      function approximateRatio(vec) {
+        let best = { ints: [1, 1, 1], d: Infinity };
+        for (let a = 1; a <= 5; a++) {
+          for (let b = 1; b <= 5; b++) {
+            for (let c = 1; c <= 5; c++) {
+              const n = normalize([a, b, c]);
+              const d = distance(vec, n);
+              if (d < best.d) best = { ints: [a, b, c], d };
+            }
+          }
+        }
+        const g = gcd(gcd(best.ints[0], best.ints[1]), best.ints[2]);
+        return best.ints.map(x => x / g).join(':');
+      }
+
+      function gcd(a, b) {
+        while (b) [a, b] = [b, a % b];
+        return a;
+      }
+
+      function totalDurationMs() {
+        const bpm = Number(els.tempoSlider.value);
+        return 3 * 60000 / bpm;
+      }
+
+      function intervalsToOnsets(intervals, duration = totalDurationMs()) {
+        const d = intervals.map(v => v * duration);
+        return [0, d[0], d[0] + d[1], d[0] + d[1] + d[2]];
+      }
+
+      function formatTimestamps(times) {
+        if (!times || times.length === 0) return '';
+        return times.map(t => Math.round(t)).join('|');
+      }
+
+      function entryFor(round, intervals, source, timestamps) {
+        const near = nearestAttractor(intervals);
+        return {
+          round,
+          i1: intervals[0],
+          i2: intervals[1],
+          i3: intervals[2],
+          intervals: [...intervals],
+          ratio: approximateRatio(intervals),
+          nearest: near.name,
+          distance: near.distance,
+          source,
+          timestamps: timestamps ? [...timestamps] : []
+        };
+      }
+
+      function reset() {
+        stopRecording(false);
+        currentInput = randomRhythm();
+        completedRounds = 0;
+        maxRounds = Number(els.roundLimitSelect.value);
+        history = [entryFor(0, currentInput, 'initial', [])];
+        clearVisualTimers();
+        setStatus('准备就绪：点击 <strong>开始/播放本轮节奏</strong>，然后记录你的 4 次敲击。');
+        renderAll();
+      }
+
+      function setStatus(html) {
+        els.status.innerHTML = html;
+      }
+
+      function clearVisualTimers() {
+        visualTimers.forEach(id => window.clearTimeout(id));
+        visualTimers = [];
+        document.querySelectorAll('.beat-dot.pulse').forEach(el => el.classList.remove('pulse'));
+      }
+
+      function renderAll() {
+        renderSimplex();
+        renderTimeline();
+        renderDiagnostics();
+        renderTable();
+        updateButtons();
+      }
+
+      function renderSimplex() {
+        els.svg.textContent = '';
+        makeSvg('rect', { x: 0, y: 0, width: 680, height: 560, fill: 'transparent' });
+
+        const defs = makeSvg('defs');
+        const grad = makeSvg('linearGradient', { id: 'pathGrad', x1: '0%', y1: '0%', x2: '100%', y2: '100%' }, defs);
+        makeSvg('stop', { offset: '0%', 'stop-color': '#2563eb' }, grad);
+        makeSvg('stop', { offset: '100%', 'stop-color': '#f97316' }, grad);
+
+        const tri = [vertices.i1, vertices.i2, vertices.i3].map(pointString).join(' ');
+        makeSvg('polygon', { points: tri, fill: 'rgba(37,99,235,0.035)', stroke: 'currentColor', 'stroke-width': 0, opacity: 0.01 });
+
+        renderGrid();
+        renderHeatmap();
+
+        makeSvg('polygon', {
+          points: tri,
+          fill: 'none',
+          stroke: 'rgba(104,112,134,0.65)',
+          'stroke-width': 2.4,
+          'stroke-linejoin': 'round'
+        });
+
+        // Axis labels.
+        labelAt(vertices.i1.x, vertices.i1.y - 24, vertices.i1.label, 'middle', '700', 'var(--primary-strong)');
+        labelAt(vertices.i2.x - 16, vertices.i2.y + 30, vertices.i2.label, 'end', '700', 'var(--primary-strong)');
+        labelAt(vertices.i3.x + 16, vertices.i3.y + 30, vertices.i3.label, 'start', '700', 'var(--primary-strong)');
+
+        // Attractor crosses and labels.
+        attractors.forEach(a => {
+          const p = baryToPoint(a.vec);
+          const g = makeSvg('g', { 'aria-label': `吸引子 ${a.name}` });
+          makeSvg('line', { x1: p.x - 9, y1: p.y - 9, x2: p.x + 9, y2: p.y + 9, stroke: 'var(--danger)', 'stroke-width': 3, 'stroke-linecap': 'round' }, g);
+          makeSvg('line', { x1: p.x - 9, y1: p.y + 9, x2: p.x + 9, y2: p.y - 9, stroke: 'var(--danger)', 'stroke-width': 3, 'stroke-linecap': 'round' }, g);
+          labelAt(p.x + 12, p.y - 12, a.name, 'start', '800', 'var(--danger)', 13);
+        });
+
+        if (history.length > 1) {
+          const d = history.map(h => baryToPoint(h.intervals)).map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+          makeSvg('path', { d, fill: 'none', stroke: 'url(#pathGrad)', 'stroke-width': 3.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.9 });
+        }
+
+        history.forEach((h, idx) => {
+          const p = baryToPoint(h.intervals);
+          const t = history.length <= 1 ? 0 : idx / (history.length - 1);
+          const color = idx === 0 ? 'var(--muted)' : `hsl(${218 - 194 * t}, ${80 - 10 * t}%, ${52 + 2 * t}%)`;
+          makeSvg('circle', {
+            cx: p.x,
+            cy: p.y,
+            r: idx === history.length - 1 ? 8.5 : 6.8,
+            fill: idx === 0 ? 'var(--panel-strong)' : color,
+            stroke: idx === history.length - 1 ? 'var(--accent)' : 'var(--panel-strong)',
+            'stroke-width': idx === 0 ? 2.5 : 2,
+            opacity: idx === 0 ? 0.95 : 0.98
+          });
+          if (idx === history.length - 1 || idx === 0 || idx % 3 === 0) {
+            labelAt(p.x, p.y - 12, String(h.round), 'middle', '800', idx === 0 ? 'var(--muted)' : 'var(--text)', 11);
+          }
+        });
+      }
+
+      function renderGrid() {
+        const fractions = [0.25, 0.5, 0.75];
+        fractions.forEach(f => {
+          drawConstLine([f, 0, 1 - f], [f, 1 - f, 0], f);
+          drawConstLine([0, f, 1 - f], [1 - f, f, 0], f);
+          drawConstLine([0, 1 - f, f], [1 - f, 0, f], f);
+        });
+      }
+
+      function drawConstLine(a, b, fraction) {
+        const p1 = baryToPoint(a);
+        const p2 = baryToPoint(b);
+        makeSvg('line', {
+          x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+          stroke: 'rgba(104,112,134,0.22)',
+          'stroke-width': fraction === 0.5 ? 1.3 : 1,
+          'stroke-dasharray': fraction === 0.5 ? '5 5' : '2 6'
+        });
+      }
+
+      function renderHeatmap() {
+        if (history.length < 2) return;
+        const points = history.map(h => baryToPoint(h.intervals));
+        const step = 1 / 18;
+        const bandwidth = 44;
+        for (let a = 0; a <= 1.0001; a += step) {
+          for (let b = 0; b <= 1.0001 - a; b += step) {
+            const c = 1 - a - b;
+            if (c < -1e-8) continue;
+            const p = baryToPoint([a, b, c]);
+            let density = 0;
+            points.forEach(q => {
+              const ds = (p.x - q.x) ** 2 + (p.y - q.y) ** 2;
+              density += Math.exp(-ds / (2 * bandwidth * bandwidth));
+            });
+            density /= points.length;
+            if (density > 0.08) {
+              makeSvg('circle', {
+                cx: p.x,
+                cy: p.y,
+                r: 7 + 16 * clamp01(density),
+                fill: 'var(--accent)',
+                opacity: (0.03 + 0.18 * clamp01(density)).toFixed(3)
+              });
+            }
+          }
+        }
+      }
+
+      function labelAt(x, y, text, anchor = 'middle', weight = '600', fill = 'var(--muted)', size = 12) {
+        const node = makeSvg('text', {
+          x, y,
+          'text-anchor': anchor,
+          'font-size': size,
+          'font-weight': weight,
+          fill,
+          'paint-order': 'stroke',
+          stroke: 'var(--panel-strong)',
+          'stroke-width': 4,
+          'stroke-linejoin': 'round'
+        });
+        node.textContent = text;
+      }
+
+      function renderTimeline() {
+        els.timeline.textContent = '';
+        const onsets = intervalsToOnsets(currentInput);
+        const total = onsets[3];
+        els.durationLabel.textContent = `总时长 ${Math.round(total)} ms`;
+
+        for (let i = 0; i < 3; i++) {
+          const left = 4 + 92 * (onsets[i] / total);
+          const width = 92 * ((onsets[i + 1] - onsets[i]) / total);
+          const bar = document.createElement('div');
+          bar.className = 'interval-bar';
+          bar.style.left = `${left}%`;
+          bar.style.width = `${Math.max(2, width)}%`;
+          bar.title = `i${i + 1}: ${currentInput[i].toFixed(3)}`;
+          els.timeline.appendChild(bar);
+        }
+
+        onsets.forEach((t, idx) => {
+          const dot = document.createElement('div');
+          dot.className = `beat-dot${idx === 0 ? ' accent' : ''}`;
+          dot.style.left = `${4 + 92 * (t / total)}%`;
+          dot.dataset.beat = String(idx);
+          dot.title = `第 ${idx + 1} 拍`;
+          els.timeline.appendChild(dot);
+        });
+      }
+
+      function renderDiagnostics() {
+        const near = nearestAttractor(currentInput);
+        els.roundMetric.textContent = `${completedRounds} / ${maxRounds}`;
+        els.ratioMetric.textContent = approximateRatio(currentInput);
+        els.intervalMetric.textContent = `i₁=${currentInput[0].toFixed(3)}, i₂=${currentInput[1].toFixed(3)}, i₃=${currentInput[2].toFixed(3)}`;
+        els.nearestMetric.textContent = near.name;
+        els.distanceMetric.textContent = `距离 ${near.distance.toFixed(4)}`;
+        els.tapMetric.textContent = `${tapTimes.length} / 4`;
+      }
+
+      function renderTable() {
+        els.historyBody.textContent = '';
+        history.forEach(h => {
+          const tr = document.createElement('tr');
+          const cells = [
+            h.round === 0 ? '0（初始）' : String(h.round),
+            h.i1.toFixed(4),
+            h.i2.toFixed(4),
+            h.i3.toFixed(4),
+            h.ratio,
+            h.nearest,
+            h.distance.toFixed(5),
+            formatTimestamps(h.timestamps)
+          ];
+          cells.forEach(text => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            tr.appendChild(td);
+          });
+          els.historyBody.appendChild(tr);
+        });
+      }
+
+      function updateButtons() {
+        const done = completedRounds >= maxRounds;
+        els.playBtn.disabled = isRecording;
+        els.recordBtn.disabled = done;
+        els.simulateBtn.disabled = isRecording || done;
+        els.autoSimBtn.disabled = isRecording || done;
+        els.tapBtn.disabled = !isRecording;
+        els.recordBtn.textContent = isRecording ? '停止记录' : '记录复现';
+      }
+
+      async function ensureAudioContext() {
+        if (!('AudioContext' in window) && !('webkitAudioContext' in window)) return null;
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new Ctx();
+        }
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        return audioCtx;
+      }
+
+      function scheduleClick(ctx, when, accent) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(accent ? 920 : 660, when);
+        gain.gain.setValueAtTime(0.0001, when);
+        gain.gain.exponentialRampToValueAtTime(accent ? 0.34 : 0.24, when + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.075);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(when);
+        osc.stop(when + 0.085);
+      }
+
+      async function playCurrentRhythm() {
+        if (isRecording) return;
+        clearVisualTimers();
+        const duration = totalDurationMs();
+        const onsets = intervalsToOnsets(currentInput, duration);
+        let audioOk = false;
+        try {
+          const ctx = await ensureAudioContext();
+          if (ctx) {
+            const startAt = ctx.currentTime + 0.12;
+            onsets.forEach((ms, idx) => scheduleClick(ctx, startAt + ms / 1000, idx === 0));
+            audioOk = true;
+          }
+        } catch (err) {
+          audioOk = false;
+        }
+
+        onsets.forEach((ms, idx) => {
+          const id = window.setTimeout(() => pulseBeat(idx), 120 + ms);
+          visualTimers.push(id);
+        });
+        const endTimer = window.setTimeout(() => clearVisualTimers(), 120 + duration + 260);
+        visualTimers.push(endTimer);
+
+        const fallback = audioOk ? '' : '（浏览器未提供 Web Audio API 或音频被拦截：请看下方闪烁拍点）';
+        setStatus(`正在播放第 <strong>${completedRounds + 1}</strong> 轮输入节奏 ${fallback}。播放后点击“记录复现”并敲 4 次空格。`);
+      }
+
+      function pulseBeat(idx) {
+        const dot = els.timeline.querySelector(`[data-beat="${idx}"]`);
+        if (!dot) return;
+        dot.classList.add('pulse');
+        window.setTimeout(() => dot.classList.remove('pulse'), 170);
+      }
+
+      function startRecording() {
+        if (completedRounds >= maxRounds) {
+          setStatus('本条链已经完成。可导出 CSV，或点击“重置”开始新链。');
+          return;
+        }
+        clearVisualTimers();
+        isRecording = true;
+        tapTimes = [];
+        renderDiagnostics();
+        updateButtons();
+        setStatus(`记录中：请按 <span class="kbd">Space</span> 四次复现你刚听/看到的节奏。当前 0/4。`);
+      }
+
+      function stopRecording(showMessage = true) {
+        isRecording = false;
+        tapTimes = [];
+        renderDiagnostics();
+        updateButtons();
+        if (showMessage) setStatus('已停止记录。你可以重新播放或再次开始记录。');
+      }
+
+      function registerTap(time) {
+        if (!isRecording) return;
+        if (tapTimes.length > 0 && time - tapTimes[tapTimes.length - 1] < 80) return;
+        tapTimes.push(time);
+        pulseBeat(Math.min(tapTimes.length - 1, 3));
+        renderDiagnostics();
+        if (tapTimes.length < 4) {
+          setStatus(`记录中：已捕捉 <strong>${tapTimes.length}/4</strong> 拍。继续按 Space。`);
+          return;
+        }
+        finalizeManualReproduction();
+      }
+
+      function finalizeManualReproduction() {
+        const rel = tapTimes.map(t => t - tapTimes[0]);
+        const diffs = [tapTimes[1] - tapTimes[0], tapTimes[2] - tapTimes[1], tapTimes[3] - tapTimes[2]];
+        if (diffs.some(d => d <= 0)) {
+          stopRecording(false);
+          setStatus('记录失败：时间戳顺序异常，请重新记录。');
+          return;
+        }
+        const intervals = normalize(diffs);
+        isRecording = false;
+        tapTimes = [];
+        acceptReproduction(intervals, rel, 'manual');
+      }
+
+      function acceptReproduction(intervals, timestamps, source) {
+        if (completedRounds >= maxRounds) return;
+        completedRounds += 1;
+        currentInput = normalize(intervals);
+        history.push(entryFor(completedRounds, currentInput, source, timestamps));
+        const near = nearestAttractor(currentInput);
+        renderAll();
+        const sourceText = source === 'manual' ? '你的复现' : '模拟复现';
+        if (completedRounds >= maxRounds) {
+          setStatus(`${sourceText}已写入第 <strong>${completedRounds}</strong> 轮；链已完成。最近吸引子为 <strong>${near.name}</strong>，距离 ${near.distance.toFixed(4)}。可导出 CSV。`);
+        } else {
+          setStatus(`${sourceText}已成为下一轮输入。最近吸引子为 <strong>${near.name}</strong>，距离 ${near.distance.toFixed(4)}。继续播放第 ${completedRounds + 1} 轮。`);
+        }
+      }
+
+      function chooseWeighted(items) {
+        const total = items.reduce((s, it) => s + it.weight, 0);
+        let r = Math.random() * total;
+        for (const it of items) {
+          r -= it.weight;
+          if (r <= 0) return it;
+        }
+        return items[items.length - 1];
+      }
+
+      function simulatedReproduction() {
+        if (completedRounds >= maxRounds || isRecording) return;
+        const profile = cultureProfiles[els.cultureSelect.value] || cultureProfiles.balanced;
+        const candidates = attractors.map((a, idx) => {
+          const d = distance(currentInput, a.vec);
+          const local = Math.exp(-(d * d) / (2 * profile.sigma * profile.sigma));
+          return { attractor: a, weight: profile.weights[idx] * (0.12 + local) };
+        });
+        const chosen = chooseWeighted(candidates).attractor;
+        const pull = Math.max(0.05, Math.min(0.82, profile.strength + 0.10 * gaussian()));
+        const noisy = currentInput.map((v, i) => {
+          const base = (1 - pull) * v + pull * chosen.vec[i];
+          return Math.max(0.025, base + profile.noise * gaussian());
+        });
+        const intervals = normalize(noisy);
+        const tempoJitter = Math.max(0.72, Math.min(1.35, 1 + 0.055 * gaussian()));
+        const timestamps = intervalsToOnsets(intervals, totalDurationMs() * tempoJitter);
+        acceptReproduction(intervals, timestamps, 'simulated');
+      }
+
+      function autoSimulateToEnd() {
+        if (isRecording) return;
+        let guard = 0;
+        while (completedRounds < maxRounds && guard < 20) {
+          simulatedReproduction();
+          guard += 1;
+        }
+      }
+
+      function exportCsv() {
+        const header = ['round', 'i1', 'i2', 'i3', 'nearest_attractor', 'distance', 'timestamps'];
+        const rows = history.map(h => [
+          h.round,
+          h.i1.toFixed(8),
+          h.i2.toFixed(8),
+          h.i3.toFixed(8),
+          h.nearest,
+          h.distance.toFixed(8),
+          formatTimestamps(h.timestamps)
+        ]);
+        const csv = [header, ...rows].map(row => row.map(csvEscape).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rhythm_iterated_reproduction_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function csvEscape(value) {
+        const s = String(value ?? '');
+        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+        return s;
+      }
+
+      els.playBtn.addEventListener('click', playCurrentRhythm);
+      els.recordBtn.addEventListener('click', () => isRecording ? stopRecording() : startRecording());
+      els.tapBtn.addEventListener('click', () => registerTap(performance.now()));
+      els.simulateBtn.addEventListener('click', simulatedReproduction);
+      els.autoSimBtn.addEventListener('click', autoSimulateToEnd);
+      els.resetBtn.addEventListener('click', reset);
+      els.exportBtn.addEventListener('click', exportCsv);
+      els.tempoSlider.addEventListener('input', () => {
+        els.tempoValue.textContent = `${els.tempoSlider.value} BPM`;
+        renderTimeline();
+      });
+      els.roundLimitSelect.addEventListener('change', () => {
+        maxRounds = Number(els.roundLimitSelect.value);
+        if (completedRounds > maxRounds) {
+          setStatus('总轮数小于当前已完成轮数；请导出后重置，或调回更大的总轮数。');
+        }
+        renderDiagnostics();
+        updateButtons();
+      });
+      els.cultureSelect.addEventListener('change', () => {
+        setStatus('已切换模拟文化先验。手动复现不受影响；“模拟复现本轮”会使用新的吸引子权重。');
+      });
+
+      window.addEventListener('keydown', evt => {
+        const tag = (evt.target && evt.target.tagName || '').toLowerCase();
+        const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || evt.target?.isContentEditable;
+        if ((evt.code === 'Space' || evt.key === ' ') && isRecording && !typing) {
+          evt.preventDefault();
+          registerTap(performance.now());
+        }
+      });
+
+      reset();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 10：锚定有限步 MH</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --line: #cbd5e1;
+  --soft-line: #e2e8f0;
+  --blue: #2563eb;
+  --blue-soft: #dbeafe;
+  --red: #ef4444;
+  --red-soft: #fee2e2;
+  --green: #16a34a;
+  --green-soft: #dcfce7;
+  --gold: #d97706;
+  --gold-soft: #ffedd5;
+  --purple: #7c3aed;
+  --purple-soft: #ede9fe;
+  --shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
+}
+* { box-sizing: border-box; }
+html { min-width: 360px; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.10), transparent 32rem),
+    var(--bg);
+  color: var(--text);
+  line-height: 1.58;
+}
+main { max-width: 1320px; margin: 0 auto; padding: 28px 20px 64px; }
+h1, h2, h3, p { margin-top: 0; }
+p { color: var(--muted); }
+.card, .hero, .formula-bar, footer {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+}
+.hero {
+  padding: 28px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+.hero h1 { font-size: clamp(1.35rem, 2.5vw, 2rem); line-height: 1.2; margin-bottom: 10px; }
+.hero p { max-width: 860px; margin-bottom: 0; font-size: 0.98rem; }
+.hero-actions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.formula-bar {
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.formula-bar b { color: var(--text); }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(330px, 0.85fr);
+  gap: 18px;
+  align-items: start;
+}
+.card { padding: 20px; margin-bottom: 18px; }
+.card h2 { font-size: 1.05rem; margin-bottom: 8px; }
+.small { font-size: 0.86rem; color: var(--muted); }
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 650;
+  background: #f1f5f9; color: var(--muted); border: 1px solid var(--soft-line);
+}
+.badge.blue { background: var(--blue-soft); color: #1d4ed8; border-color: #bfdbfe; }
+.badge.green { background: var(--green-soft); color: #15803d; border-color: #bbf7d0; }
+.badge.gold { background: var(--gold-soft); color: #b45309; border-color: #fed7aa; }
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.control {
+  border: 1px solid var(--soft-line);
+  border-radius: 16px;
+  padding: 13px;
+  background: #fbfdff;
+}
+.control-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+.control label, .control-title { font-weight: 700; font-size: 0.9rem; }
+.value-pill {
+  min-width: 58px;
+  text-align: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 800;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+input[type="range"] { width: 100%; accent-color: var(--blue); }
+.segmented { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
+}
+button:hover { background: #f1f5f9; border-color: #94a3b8; }
+button:active { transform: translateY(1px) scale(0.98); }
+button.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+button.primary:hover { background: #1d4ed8; }
+button.danger { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+button.danger:hover { background: #ffedd5; }
+button.ghost { background: #f8fafc; }
+button.active { background: var(--blue); color: white; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.action-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+.plot-wrap {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: white;
+}
+svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0 12px; font-size: 0.82rem; color: var(--muted); }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 18px; height: 4px; border-radius: 999px; background: var(--blue); }
+.legend-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--red); }
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; }
+.stat-box {
+  border: 1px solid var(--soft-line);
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 13px;
+  min-height: 84px;
+}
+.stat-box .label { color: var(--muted); font-size: 0.76rem; letter-spacing: 0.03em; text-transform: uppercase; font-weight: 800; margin-bottom: 6px; }
+.stat-box .value { font-size: clamp(1.18rem, 3vw, 1.55rem); line-height: 1.1; font-weight: 850; color: var(--blue); }
+.stat-box .sub { color: var(--muted); font-size: 0.78rem; margin-top: 5px; }
+.step-log {
+  margin-top: 12px;
+  border: 1px solid var(--soft-line);
+  background: #fbfdff;
+  border-radius: 16px;
+  padding: 12px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.79rem;
+  color: var(--muted);
+  line-height: 1.75;
+}
+.step-log b { color: var(--text); }
+.step-log .accept { color: var(--green); font-weight: 800; }
+.step-log .reject { color: var(--red); font-weight: 800; }
+.diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.hint-card {
+  background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+  border-left: 5px solid var(--purple);
+}
+.hint-card h2 { color: #5b21b6; }
+.hint-card ul { margin: 10px 0 0; padding-left: 1.25rem; color: #4c1d95; }
+.hint-card li { margin: 7px 0; }
+footer {
+  margin-top: 18px;
+  padding: 16px 20px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+footer b { color: var(--text); }
+.toast {
+  position: fixed; right: 20px; bottom: 20px;
+  max-width: min(420px, calc(100vw - 40px));
+  background: #0f172a; color: white;
+  border-radius: 14px; padding: 12px 14px;
+  box-shadow: 0 20px 50px rgba(15,23,42,.25);
+  opacity: 0; transform: translateY(10px); pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  z-index: 10;
+  font-size: .9rem;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+@media (max-width: 1040px) {
+  .layout { grid-template-columns: 1fr; }
+  .diagnostic-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  main { padding: 16px 12px 48px; }
+  .hero { grid-template-columns: 1fr; padding: 22px; }
+  .hero-actions { justify-content: flex-start; }
+  .controls-grid, .diagnostic-grid, .stats-grid { grid-template-columns: 1fr; }
+  .card { padding: 16px; border-radius: 18px; }
+  button { padding: 8px 12px; font-size: 0.84rem; }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #020617;
+    --card: #0f172a;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --line: #334155;
+    --soft-line: #1e293b;
+    --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    --blue-soft: rgba(37,99,235,.18);
+    --green-soft: rgba(22,163,74,.18);
+    --gold-soft: rgba(217,119,6,.18);
+    --purple-soft: rgba(124,58,237,.18);
+  }
+  body { background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30rem), var(--bg); }
+  .control, .stat-box, .step-log { background: #111c2e; }
+  .plot-wrap, button { background: #0b1220; }
+  button:hover { background: #162238; }
+  .formula-bar { background: #0f172a; }
+  .hint-card { background: linear-gradient(135deg, rgba(91,33,182,.28), rgba(37,99,235,.16)); }
+  .hint-card ul { color: #c4b5fd; }
+  .hint-card h2 { color: #ddd6fe; }
+}
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div>
+      <h1>Demo 10：锚定有限步 MH</h1>
+      <p>在资源理性解释中，锚定不是一个神秘偏差，而是从显式锚点出发、只运行有限步的 Metropolis-Hastings 调整链。链尚未充分燃烧时，最终估计仍保留起点记忆；步数足够多时，不同锚点都会收敛到同一个后验。</p>
+      <div class="badge-row">
+        <span class="badge blue">教学目标：锚定 = 未充分 burn-in 的有限 MH 链</span>
+        <span class="badge green">真实后验中心：28%</span>
+        <span class="badge gold">情境：非洲国家在联合国所占比例</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button id="export-csv" class="ghost">导出 CSV</button>
+    </div>
+  </section>
+
+  <div class="formula-bar">
+    <b>任务：</b>估计“非洲国家在联合国所占比例”。
+    <b>目标后验：</b>Beta-like 分布，均值约 28%。
+    <b>提议：</b>x′ = clip(x + ε, 0, 100), ε ~ N(0, σ<sub>q</sub><sup>2</sup>)。
+    <b>接受率：</b>α = min{1, p(x′)/p(x)}。本页用纯前端 SVG/JS 实现，无外部依赖。
+  </div>
+
+  <section class="card">
+    <h2>控制面板</h2>
+    <p class="small">先给一个低锚点或高锚点，再限制“思考/调整”步数。观察最终回答 x<sub>T</sub> 如何被锚点拉偏。</p>
+    <div class="controls-grid">
+      <div class="control">
+        <div class="control-head">
+          <label for="anchor-slider">锚点 x<sub>0</sub></label>
+          <span class="value-pill" id="anchor-value">10%</span>
+        </div>
+        <input id="anchor-slider" type="range" min="0" max="100" step="1" value="10">
+        <div class="action-row" style="margin-top:8px;">
+          <button id="random-anchor" class="ghost">随机分配 10% / 65%</button>
+          <button id="low-anchor" class="ghost">低锚点</button>
+          <button id="high-anchor" class="ghost">高锚点</button>
+        </div>
+      </div>
+
+      <div class="control">
+        <div class="control-head">
+          <span class="control-title">调整步数预算</span>
+          <span class="value-pill" id="budget-value">20 步</span>
+        </div>
+        <div class="segmented" id="budget-buttons">
+          <button data-steps="1">1</button>
+          <button data-steps="5">5</button>
+          <button class="active" data-steps="20">20</button>
+          <button data-steps="100">100</button>
+          <button data-steps="Infinity">∞</button>
+        </div>
+        <input id="budget-slider" type="range" min="1" max="300" step="1" value="20" aria-label="自定义调整步数">
+        <div class="small">∞ 在可视化中用 800 步近似“充分燃烧”。</div>
+      </div>
+
+      <div class="control">
+        <div class="control-head">
+          <label for="sigma-slider">提议宽度 σ<sub>q</sub></label>
+          <span class="value-pill" id="sigma-value">8.0</span>
+        </div>
+        <input id="sigma-slider" type="range" min="1" max="30" step="0.5" value="8">
+        <div class="small">太小：链移动慢；太大：拒绝率高。中间值通常混合更快。</div>
+      </div>
+
+      <div class="control">
+        <div class="control-head">
+          <label for="time-cost-slider">时间成本 / 步</label>
+          <span class="value-pill" id="time-cost-value">0.03</span>
+        </div>
+        <input id="time-cost-slider" type="range" min="0" max="0.3" step="0.01" value="0.03">
+        <div class="control-head" style="margin-top:12px;">
+          <label for="error-cost-slider">错误成本权重</label>
+          <span class="value-pill" id="error-cost-value">0.08</span>
+        </div>
+        <input id="error-cost-slider" type="range" min="0.01" max="0.30" step="0.01" value="0.08">
+      </div>
+    </div>
+    <div class="action-row">
+      <button id="run-one" class="primary">运行一条链</button>
+      <button id="run-100">运行 100 次重复</button>
+      <button id="reset" class="danger">重置</button>
+    </div>
+  </section>
+
+  <section class="layout">
+    <div class="card">
+      <h2>主可视化：从锚点出发的 MH 调整轨迹</h2>
+      <p class="small">横轴是估计值（%），纵轴是迭代步 t。红点是“最终回答”；下方面积曲线是目标后验。</p>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-swatch" style="background:#2563eb"></span>链轨迹 x<sub>t</sub></span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#d97706;border-top:2px dashed #d97706"></span>锚点</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#16a34a"></span>后验中心 28%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>最终回答</span>
+      </div>
+      <div class="plot-wrap">
+        <svg id="trajectory-svg" viewBox="0 0 760 560" role="img" aria-label="MH 链轨迹和目标后验曲线"></svg>
+      </div>
+    </div>
+
+    <aside class="card">
+      <h2>即时诊断</h2>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="label">最终估计</div>
+          <div class="value" id="stat-final">—</div>
+          <div class="sub" id="stat-final-sub">点击“运行一条链”</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">相对 28% 偏差</div>
+          <div class="value" id="stat-bias">—</div>
+          <div class="sub">正值表示高估，负值表示低估</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">接受率</div>
+          <div class="value" id="stat-accept">—</div>
+          <div class="sub" id="stat-accept-sub">MH 提议被接受的比例</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">期望损失</div>
+          <div class="value" id="stat-loss">—</div>
+          <div class="sub">错误成本 × 平方误差 + 时间成本</div>
+        </div>
+      </div>
+      <div class="step-log" id="step-log">
+        <b>最近一步：</b>尚未运行。<br>
+        <span>提示：低/高锚点在步数很少时会给出系统性不同的终点。</span>
+      </div>
+    </aside>
+  </section>
+
+  <section class="diagnostic-grid">
+    <div class="card">
+      <h2>100 次重复：最终估计分布</h2>
+      <p class="small">同一锚点、同一预算下重复运行，查看最终回答的变异性。</p>
+      <div class="plot-wrap"><svg id="hist-svg" viewBox="0 0 420 300" aria-label="最终估计直方图"></svg></div>
+    </div>
+    <div class="card">
+      <h2>偏差 vs. 锚点</h2>
+      <p class="small">横轴是锚点，纵轴是多次重复的平均最终估计；斜率越大，锚定越强。</p>
+      <div class="plot-wrap"><svg id="bias-svg" viewBox="0 0 420 300" aria-label="平均最终估计与锚点关系图"></svg></div>
+    </div>
+    <div class="card">
+      <h2>误差—时间权衡</h2>
+      <p class="small">更多步数降低锚点偏差，但也消耗时间；资源理性解常位于折中点。</p>
+      <div class="plot-wrap"><svg id="loss-svg" viewBox="0 0 420 300" aria-label="预期损失与步数预算关系图"></svg></div>
+    </div>
+  </section>
+
+  <section class="card hint-card">
+    <h2>观察提示</h2>
+    <ul>
+      <li>低锚点（如 10%）和高锚点（如 65%）在 1–20 步时会把有限链终点拉向不同方向。</li>
+      <li>把预算调到 100 或 ∞：如果提议宽度合适，不同起点逐渐忘记锚点，收敛到 28% 附近。</li>
+      <li>最优调整步数不一定无限大：当时间成本上升时，误差—时间曲线的最小值会左移。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <h2>文献与案例意图</h2>
+    <p><b>对应章节:</b> §3.2 有限样本行为偏差；<b>对应文献:</b> LiederGriffithsGoodman2012Anchoring, Lieder2018Anchoring。</p>
+    <p><b>完整引用:</b></p>
+    <ol>
+      <li>Lieder, Falk, Thomas L. Griffiths, and Noah D. Goodman. 2012. <cite>Burn-in, bias, and the rationality of anchoring</cite>. <em>Advances in Neural Information Processing Systems</em> 25: 2690–2698.</li>
+      <li>Lieder, Falk, Thomas L. Griffiths, Quentin J. M. Huys, and Noah D. Goodman. 2018. <cite>The anchoring bias reflects rational use of cognitive resources</cite>. <em>Psychonomic Bulletin &amp; Review</em> 25(1): 322–349. https://doi.org/10.3758/s13423-017-1286-8.</li>
+    </ol>
+    <p><b>案例想表达的想法:</b> 锚定效应可以被看作“从锚点出发但还没充分 burn-in 的 MH 链”。如果调整步数少，链的终点自然保留初始锚点痕迹；如果步数多，估计才逐渐忘记锚点并靠近目标后验。论文的关键启发是，不足调整未必只是非理性错误，也可能是在时间成本和准确性收益之间做出的资源理性折中。</p>
+    <p>说明：边界处的 clip 提议用于教学可视化；核心现象是有限步链对初值的保留。</p>
+  </footer>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const TRUE_MEAN = 28;
+  const BETA_A = 8.4;
+  const BETA_B = 21.6;
+  const INF_STEPS = 800;
+  const MAX_EXPORT_ROWS_WARN = 90000;
+
+  const state = {
+    anchor: 10,
+    steps: 20,
+    stepsLabel: '20 步',
+    sigma: 8,
+    timeCost: 0.03,
+    errorCost: 0.08,
+    currentChain: null,
+    repeatChains: [],
+    finalRepeats: [],
+    biasCurve: [],
+    lossCurve: [],
+    csvRows: [],
+    nextRepeatId: 1
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function pct(v, digits = 1) { return Number.isFinite(v) ? `${v.toFixed(digits)}%` : '—'; }
+  function randn() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  function logTarget(x) {
+    const p = clamp(x / 100, 1e-6, 1 - 1e-6);
+    return (BETA_A - 1) * Math.log(p) + (BETA_B - 1) * Math.log(1 - p);
+  }
+
+  function targetDensityScaled(xs) {
+    const vals = xs.map(logTarget);
+    const m = Math.max(...vals);
+    return vals.map(v => Math.exp(v - m));
+  }
+
+  function mhStep(x, sigma) {
+    const proposal = clamp(x + randn() * sigma, 0, 100);
+    const logA = logTarget(proposal) - logTarget(x);
+    const alpha = Math.min(1, Math.exp(Math.min(40, logA)));
+    const u = Math.random();
+    const accepted = u < alpha;
+    return { x: accepted ? proposal : x, proposal, alpha, u, accepted };
+  }
+
+  function runChain(anchor, steps, sigma, repeatId, keepRows) {
+    let x = clamp(anchor, 0, 100);
+    const points = [{ step: 0, x, accepted: true, proposal: '', alpha: '', u: '' }];
+    let acceptedCount = 0;
+    const rows = [];
+    for (let t = 1; t <= steps; t++) {
+      const s = mhStep(x, sigma);
+      x = s.x;
+      if (s.accepted) acceptedCount++;
+      points.push({ step: t, x, proposal: s.proposal, alpha: s.alpha, u: s.u, accepted: s.accepted });
+    }
+    const final = x;
+    const acceptanceRate = steps > 0 ? acceptedCount / steps : 0;
+
+    if (keepRows) {
+      rows.push({ repeat: repeatId, step: 0, x: anchor, anchor, proposal: '', alpha: '', u: '', accepted: '', final });
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i];
+        rows.push({
+          repeat: repeatId,
+          step: p.step,
+          x: p.x,
+          anchor,
+          proposal: p.proposal,
+          alpha: p.alpha,
+          u: p.u,
+          accepted: p.accepted ? 1 : 0,
+          final
+        });
+      }
+    }
+    return { repeatId, anchor, steps, sigma, points, final, acceptanceRate, acceptedCount, rows };
+  }
+
+  function simulateFinal(anchor, steps, sigma) {
+    let x = anchor;
+    let acc = 0;
+    for (let t = 0; t < steps; t++) {
+      const s = mhStep(x, sigma);
+      x = s.x;
+      if (s.accepted) acc++;
+    }
+    return { final: x, acceptanceRate: steps ? acc / steps : 0 };
+  }
+
+  function mean(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : NaN; }
+  function sd(arr) {
+    if (arr.length < 2) return NaN;
+    const m = mean(arr);
+    return Math.sqrt(arr.reduce((s, x) => s + (x - m) ** 2, 0) / (arr.length - 1));
+  }
+
+  function setSvg(svg, content) { svg.innerHTML = content; }
+  function linePath(points) {
+    return points.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
+  }
+  function areaPath(points, baseY) {
+    if (!points.length) return '';
+    return `M${points[0][0].toFixed(2)},${baseY.toFixed(2)} ` +
+      points.map((p, i) => `${i ? 'L' : 'L'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ') +
+      ` L${points[points.length - 1][0].toFixed(2)},${baseY.toFixed(2)} Z`;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function drawTrajectory() {
+    const svg = $('trajectory-svg');
+    const W = 760, H = 560;
+    const left = 58, top = 26, plotW = 642, plotH = 330;
+    const denTop = 438, denH = 80;
+    const xScale = x => left + (x / 100) * plotW;
+    const maxStep = Math.max(1, state.currentChain ? state.currentChain.steps : state.steps);
+    const yScale = t => top + (t / maxStep) * plotH;
+    const bg = '#ffffff';
+    const grid = '#e2e8f0';
+    const axis = '#64748b';
+    let html = `<rect width="${W}" height="${H}" rx="18" fill="${bg}"/>`;
+    html += `<defs>
+      <clipPath id="trajClip"><rect x="${left}" y="${top}" width="${plotW}" height="${plotH}"/></clipPath>
+      <linearGradient id="posteriorFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#93c5fd" stop-opacity="0.65"/><stop offset="100%" stop-color="#93c5fd" stop-opacity="0.08"/></linearGradient>
+    </defs>`;
+
+    [0, 25, 50, 75, 100].forEach(v => {
+      const x = xScale(v);
+      html += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + plotH}" stroke="${grid}" stroke-width="1"/>`;
+      html += `<text x="${x}" y="${top + plotH + 24}" text-anchor="middle" font-size="12" fill="${axis}">${v}%</text>`;
+    });
+    const yTicks = uniqueTicks([0, Math.round(maxStep / 4), Math.round(maxStep / 2), Math.round(maxStep * 3 / 4), maxStep]);
+    yTicks.forEach(t => {
+      const y = yScale(t);
+      html += `<line x1="${left}" y1="${y}" x2="${left + plotW}" y2="${y}" stroke="${grid}" stroke-width="1"/>`;
+      html += `<text x="${left - 10}" y="${y + 4}" text-anchor="end" font-size="12" fill="${axis}">${t}</text>`;
+    });
+    html += `<rect x="${left}" y="${top}" width="${plotW}" height="${plotH}" fill="none" stroke="#94a3b8"/>`;
+    html += `<text x="${left + plotW / 2}" y="${top + plotH + 48}" text-anchor="middle" font-size="13" fill="#334155" font-weight="700">估计值 x（%）</text>`;
+    html += `<text x="17" y="${top + plotH / 2}" text-anchor="middle" font-size="13" fill="#334155" font-weight="700" transform="rotate(-90,17,${top + plotH / 2})">迭代步 t</text>`;
+
+    const anchorX = xScale(state.anchor);
+    const trueX = xScale(TRUE_MEAN);
+    html += `<line x1="${anchorX}" y1="${top}" x2="${anchorX}" y2="${top + plotH}" stroke="#d97706" stroke-width="2" stroke-dasharray="7 6"/>`;
+    html += `<line x1="${trueX}" y1="${top}" x2="${trueX}" y2="${top + plotH}" stroke="#16a34a" stroke-width="2" stroke-dasharray="3 5"/>`;
+    html += `<text x="${anchorX}" y="${top - 8}" text-anchor="middle" font-size="12" fill="#b45309" font-weight="700">锚点 ${state.anchor}%</text>`;
+    html += `<text x="${trueX}" y="${top - 8}" text-anchor="middle" font-size="12" fill="#15803d" font-weight="700">28%</text>`;
+
+    if (state.currentChain) {
+      const pts = state.currentChain.points.map(p => [xScale(p.x), yScale(p.step)]);
+      html += `<path d="${linePath(pts)}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#trajClip)"/>`;
+      const stride = Math.max(1, Math.ceil(pts.length / 120));
+      state.currentChain.points.forEach((p, i) => {
+        if (i % stride !== 0 && i !== state.currentChain.points.length - 1 && i !== 0) return;
+        const r = i === 0 ? 4.8 : 2.4;
+        const fill = i === 0 ? '#d97706' : (p.accepted ? '#2563eb' : '#94a3b8');
+        html += `<circle cx="${xScale(p.x)}" cy="${yScale(p.step)}" r="${r}" fill="${fill}" opacity="0.78" clip-path="url(#trajClip)"/>`;
+      });
+      const last = state.currentChain.points[state.currentChain.points.length - 1];
+      html += `<circle cx="${xScale(last.x)}" cy="${yScale(last.step)}" r="8" fill="#ef4444" stroke="white" stroke-width="3" clip-path="url(#trajClip)"/>`;
+      html += `<text x="${clamp(xScale(last.x) + 12, left + 6, left + plotW - 82)}" y="${clamp(yScale(last.step) - 8, top + 14, top + plotH - 8)}" font-size="12" fill="#b91c1c" font-weight="800">最终 ${last.x.toFixed(1)}%</text>`;
+    } else {
+      const y = yScale(0);
+      html += `<circle cx="${anchorX}" cy="${y}" r="7" fill="#d97706" stroke="white" stroke-width="3"/>`;
+      html += `<text x="${left + plotW / 2}" y="${top + plotH / 2}" text-anchor="middle" font-size="16" fill="#64748b">点击“运行一条链”显示轨迹</text>`;
+    }
+
+    // Posterior density below, sharing the same x-axis.
+    html += `<text x="${left}" y="${denTop - 18}" font-size="13" fill="#334155" font-weight="800">目标后验 p(x)：中心约 28%</text>`;
+    html += `<line x1="${left}" y1="${denTop + denH}" x2="${left + plotW}" y2="${denTop + denH}" stroke="#94a3b8"/>`;
+    [0, 25, 50, 75, 100].forEach(v => {
+      const x = xScale(v);
+      html += `<line x1="${x}" y1="${denTop + denH}" x2="${x}" y2="${denTop + denH + 5}" stroke="#94a3b8"/>`;
+      html += `<text x="${x}" y="${denTop + denH + 22}" text-anchor="middle" font-size="11" fill="#64748b">${v}</text>`;
+    });
+    const xs = Array.from({ length: 201 }, (_, i) => i / 2);
+    const dens = targetDensityScaled(xs);
+    const dPts = xs.map((x, i) => [xScale(x), denTop + denH - dens[i] * denH]);
+    html += `<path d="${areaPath(dPts, denTop + denH)}" fill="url(#posteriorFill)"/>`;
+    html += `<path d="${linePath(dPts)}" fill="none" stroke="#2563eb" stroke-width="2.2"/>`;
+    html += `<line x1="${trueX}" y1="${denTop}" x2="${trueX}" y2="${denTop + denH}" stroke="#16a34a" stroke-width="2" stroke-dasharray="3 5"/>`;
+    html += `<line x1="${anchorX}" y1="${denTop}" x2="${anchorX}" y2="${denTop + denH}" stroke="#d97706" stroke-width="2" stroke-dasharray="7 6"/>`;
+    html += `<text x="${left + plotW}" y="${denTop - 2}" text-anchor="end" font-size="11" fill="#64748b">密度（相对尺度）</text>`;
+    setSvg(svg, html);
+  }
+
+  function uniqueTicks(arr) {
+    const out = [];
+    arr.forEach(v => { if (!out.includes(v)) out.push(v); });
+    return out;
+  }
+
+  function drawHist() {
+    const svg = $('hist-svg');
+    const W = 420, H = 300, l = 48, r = 18, t = 24, b = 42;
+    const w = W - l - r, h = H - t - b;
+    let html = `<rect width="${W}" height="${H}" rx="16" fill="#ffffff"/>`;
+    html += axesFrame(l, t, w, h, '最终估计 (%)', '次数');
+    if (!state.finalRepeats.length) {
+      html += `<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="#64748b">点击“运行 100 次重复”</text>`;
+      setSvg(svg, html); return;
+    }
+    const bins = 20;
+    const counts = Array(bins).fill(0);
+    state.finalRepeats.forEach(x => counts[Math.min(bins - 1, Math.floor(x / (100 / bins)))]++);
+    const maxC = Math.max(1, ...counts);
+    const bw = w / bins;
+    counts.forEach((c, i) => {
+      const bh = c / maxC * h;
+      const x = l + i * bw;
+      html += `<rect x="${x + 1}" y="${t + h - bh}" width="${Math.max(1, bw - 2)}" height="${bh}" fill="#93c5fd" stroke="#2563eb" stroke-width="0.5"/>`;
+    });
+    const xScale = x => l + x / 100 * w;
+    html += verticalMark(xScale(TRUE_MEAN), t, h, '#16a34a', '28%');
+    html += verticalMark(xScale(state.anchor), t, h, '#d97706', '锚');
+    const m = mean(state.finalRepeats), s = sd(state.finalRepeats);
+    html += `<text x="${l + 8}" y="${t + 18}" font-size="12" fill="#334155" font-weight="800">均值 ${m.toFixed(1)}%，SD ${s.toFixed(1)}%</text>`;
+    setSvg(svg, html);
+  }
+
+  function drawBias() {
+    const svg = $('bias-svg');
+    const W = 420, H = 300, l = 48, r = 18, t = 24, b = 42;
+    const w = W - l - r, h = H - t - b;
+    let html = `<rect width="${W}" height="${H}" rx="16" fill="#ffffff"/>`;
+    html += axesFrame(l, t, w, h, '锚点 (%)', '平均最终估计 (%)');
+    const xS = x => l + x / 100 * w;
+    const yS = y => t + h - y / 100 * h;
+    // Diagonal and target horizontal line.
+    html += `<path d="M${xS(0)},${yS(0)} L${xS(100)},${yS(100)}" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="5 5" fill="none"/>`;
+    html += `<line x1="${l}" y1="${yS(TRUE_MEAN)}" x2="${l + w}" y2="${yS(TRUE_MEAN)}" stroke="#16a34a" stroke-width="2" stroke-dasharray="3 5"/>`;
+    html += `<text x="${l + w - 4}" y="${yS(TRUE_MEAN) - 5}" text-anchor="end" font-size="11" fill="#15803d" font-weight="800">充分混合后应水平接近 28%</text>`;
+    if (!state.biasCurve.length) {
+      html += `<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="#64748b">正在计算偏差曲线…</text>`;
+      setSvg(svg, html); return;
+    }
+    const pts = state.biasCurve.map(d => [xS(d.anchor), yS(d.meanFinal)]);
+    html += `<path d="${linePath(pts)}" fill="none" stroke="#2563eb" stroke-width="2.6"/>`;
+    state.biasCurve.forEach((d, i) => {
+      if (i % 2 !== 0) return;
+      html += `<circle cx="${xS(d.anchor)}" cy="${yS(d.meanFinal)}" r="3.2" fill="#2563eb"/>`;
+    });
+    html += `<circle cx="${xS(state.anchor)}" cy="${yS(currentMeanFinalForAnchor())}" r="6" fill="#ef4444" stroke="white" stroke-width="2"/>`;
+    setSvg(svg, html);
+  }
+
+  function currentMeanFinalForAnchor() {
+    if (state.finalRepeats.length) return mean(state.finalRepeats);
+    if (state.currentChain) return state.currentChain.final;
+    const close = state.biasCurve.reduce((best, d) => Math.abs(d.anchor - state.anchor) < Math.abs(best.anchor - state.anchor) ? d : best, state.biasCurve[0] || { anchor: state.anchor, meanFinal: state.anchor });
+    return close.meanFinal;
+  }
+
+  function drawLoss() {
+    const svg = $('loss-svg');
+    const W = 420, H = 300, l = 48, r = 18, t = 24, b = 44;
+    const w = W - l - r, h = H - t - b;
+    let html = `<rect width="${W}" height="${H}" rx="16" fill="#ffffff"/>`;
+    html += axesFrame(l, t, w, h, '预算', '期望损失', false);
+    if (!state.lossCurve.length) {
+      html += `<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="#64748b">正在计算权衡曲线…</text>`;
+      setSvg(svg, html); return;
+    }
+    const maxLoss = Math.max(...state.lossCurve.map(d => d.loss), 1);
+    const minLoss = Math.min(...state.lossCurve.map(d => d.loss));
+    const pad = (maxLoss - minLoss) * 0.12 || 1;
+    const yMin = Math.max(0, minLoss - pad), yMax = maxLoss + pad;
+    const xS = i => l + (i / (state.lossCurve.length - 1 || 1)) * w;
+    const yS = y => t + h - (y - yMin) / (yMax - yMin) * h;
+    const pts = state.lossCurve.map((d, i) => [xS(i), yS(d.loss)]);
+    html += `<path d="${linePath(pts)}" fill="none" stroke="#7c3aed" stroke-width="2.6"/>`;
+    const currentSteps = effectiveSteps();
+    state.lossCurve.forEach((d, i) => {
+      const isCurrent = d.steps === currentSteps || (d.label === '∞' && currentSteps === INF_STEPS);
+      html += `<circle cx="${xS(i)}" cy="${yS(d.loss)}" r="${isCurrent ? 6 : 4}" fill="${isCurrent ? '#ef4444' : '#7c3aed'}" stroke="white" stroke-width="2"/>`;
+      html += `<text x="${xS(i)}" y="${t + h + 20}" text-anchor="middle" font-size="11" fill="#64748b">${d.label}</text>`;
+    });
+    const best = state.lossCurve.reduce((a, b) => a.loss < b.loss ? a : b);
+    html += `<text x="${l + 8}" y="${t + 18}" font-size="12" fill="#334155" font-weight="800">当前成本下最优约：${best.label} 步</text>`;
+    setSvg(svg, html);
+  }
+
+  function axesFrame(l, t, w, h, xLabel, yLabel, showPercentTicks = true) {
+    let html = '';
+    for (let i = 0; i <= 4; i++) {
+      const x = l + i / 4 * w;
+      const y = t + i / 4 * h;
+      html += `<line x1="${x}" y1="${t}" x2="${x}" y2="${t + h}" stroke="#e2e8f0"/>`;
+      html += `<line x1="${l}" y1="${y}" x2="${l + w}" y2="${y}" stroke="#e2e8f0"/>`;
+    }
+    html += `<rect x="${l}" y="${t}" width="${w}" height="${h}" fill="none" stroke="#94a3b8"/>`;
+    html += `<text x="${l + w / 2}" y="${t + h + 36}" text-anchor="middle" font-size="12" fill="#334155" font-weight="700">${esc(xLabel)}</text>`;
+    html += `<text x="14" y="${t + h / 2}" text-anchor="middle" font-size="12" fill="#334155" font-weight="700" transform="rotate(-90,14,${t + h / 2})">${esc(yLabel)}</text>`;
+    if (showPercentTicks) {
+      [0, 25, 50, 75, 100].forEach(v => {
+        const x = l + v / 100 * w;
+        html += `<text x="${x}" y="${t + h + 16}" text-anchor="middle" font-size="10" fill="#64748b">${v}</text>`;
+      });
+    }
+    return html;
+  }
+
+  function verticalMark(x, t, h, color, label) {
+    return `<line x1="${x}" y1="${t}" x2="${x}" y2="${t + h}" stroke="${color}" stroke-width="2" stroke-dasharray="4 4"/>` +
+           `<text x="${x + 4}" y="${t + 14}" font-size="10" fill="${color}" font-weight="800">${label}</text>`;
+  }
+
+  function effectiveSteps() {
+    return state.steps === Infinity ? INF_STEPS : state.steps;
+  }
+
+  function updateLabels() {
+    $('anchor-value').textContent = pct(state.anchor, 0);
+    $('sigma-value').textContent = state.sigma.toFixed(1);
+    $('time-cost-value').textContent = state.timeCost.toFixed(2);
+    $('error-cost-value').textContent = state.errorCost.toFixed(2);
+    $('budget-value').textContent = state.steps === Infinity ? '∞（800步）' : `${state.steps} 步`;
+  }
+
+  function updateStats() {
+    if (!state.currentChain) {
+      $('stat-final').textContent = '—';
+      $('stat-final-sub').textContent = '点击“运行一条链”';
+      $('stat-bias').textContent = '—';
+      $('stat-accept').textContent = '—';
+      $('stat-accept-sub').textContent = 'MH 提议被接受的比例';
+      $('stat-loss').textContent = '—';
+      $('step-log').innerHTML = '<b>最近一步：</b>尚未运行。<br><span>提示：低/高锚点在步数很少时会给出系统性不同的终点。</span>';
+      return;
+    }
+    const ch = state.currentChain;
+    const bias = ch.final - TRUE_MEAN;
+    $('stat-final').textContent = pct(ch.final, 1);
+    $('stat-final-sub').textContent = `锚点 ${ch.anchor.toFixed(0)}%，预算 ${state.steps === Infinity ? '∞' : ch.steps} 步`;
+    $('stat-bias').textContent = `${bias >= 0 ? '+' : ''}${bias.toFixed(1)}%`;
+    $('stat-accept').textContent = pct(ch.acceptanceRate * 100, 0);
+    $('stat-accept-sub').textContent = `${ch.acceptedCount}/${ch.steps} 个提议被接受`;
+    const loss = state.errorCost * (bias ** 2) + state.timeCost * ch.steps;
+    $('stat-loss').textContent = loss.toFixed(2);
+    const last = ch.points[ch.points.length - 1];
+    if (last.step === 0) return;
+    const status = last.accepted ? '<span class="accept">接受</span>' : '<span class="reject">拒绝</span>';
+    $('step-log').innerHTML = `<b>最近一步 t=${last.step}：</b> ` +
+      `x′=${last.proposal.toFixed(2)}%，α=${last.alpha.toFixed(3)}，u=${last.u.toFixed(3)} → ${status}<br>` +
+      `<b>解释：</b>有限链终点 x<sub>T</sub>=${ch.final.toFixed(2)}%，仍可能保留锚点 x<sub>0</sub>=${ch.anchor.toFixed(0)}% 的影响。`;
+  }
+
+  function renderAll() {
+    updateLabels();
+    updateStats();
+    drawTrajectory();
+    drawHist();
+    drawBias();
+    drawLoss();
+  }
+
+  function recomputeBiasCurve() {
+    const anchors = [];
+    for (let a = 0; a <= 100; a += 10) anchors.push(a);
+    const steps = effectiveSteps();
+    const reps = steps >= 500 ? 30 : 45;
+    state.biasCurve = anchors.map(anchor => {
+      const finals = [];
+      let acc = 0;
+      for (let i = 0; i < reps; i++) {
+        const r = simulateFinal(anchor, steps, state.sigma);
+        finals.push(r.final); acc += r.acceptanceRate;
+      }
+      return { anchor, meanFinal: mean(finals), bias: mean(finals) - TRUE_MEAN, acceptanceRate: acc / reps };
+    });
+  }
+
+  function recomputeLossCurve() {
+    const options = [
+      { label: '1', steps: 1 },
+      { label: '5', steps: 5 },
+      { label: '20', steps: 20 },
+      { label: '100', steps: 100 },
+      { label: '∞', steps: INF_STEPS }
+    ];
+    const reps = 90;
+    state.lossCurve = options.map(opt => {
+      const finals = [];
+      for (let i = 0; i < reps; i++) finals.push(simulateFinal(state.anchor, opt.steps, state.sigma).final);
+      const mse = mean(finals.map(x => (x - TRUE_MEAN) ** 2));
+      const loss = state.errorCost * mse + state.timeCost * opt.steps;
+      return { ...opt, mse, loss, meanFinal: mean(finals) };
+    });
+  }
+
+  function rerunDiagnosticsOnly() {
+    recomputeBiasCurve();
+    recomputeLossCurve();
+    drawBias();
+    drawLoss();
+    updateStats();
+  }
+
+  function clearRunResults() {
+    state.currentChain = null;
+    state.repeatChains = [];
+    state.finalRepeats = [];
+  }
+
+  function runOne() {
+    const steps = effectiveSteps();
+    const id = state.nextRepeatId++;
+    const chain = runChain(state.anchor, steps, state.sigma, id, true);
+    state.currentChain = chain;
+    state.csvRows.push(...chain.rows);
+    state.finalRepeats = [];
+    state.repeatChains = [];
+    recomputeBiasCurve();
+    recomputeLossCurve();
+    renderAll();
+  }
+
+  function runRepeats(n = 100) {
+    const steps = effectiveSteps();
+    const chains = [];
+    const finals = [];
+    let acc = 0;
+    const allRows = [];
+    for (let i = 0; i < n; i++) {
+      const id = state.nextRepeatId++;
+      const ch = runChain(state.anchor, steps, state.sigma, id, true);
+      chains.push(ch); finals.push(ch.final); acc += ch.acceptanceRate;
+      allRows.push(...ch.rows);
+    }
+    state.repeatChains = chains;
+    state.finalRepeats = finals;
+    state.currentChain = chains[chains.length - 1];
+    state.csvRows.push(...allRows);
+    recomputeBiasCurve();
+    recomputeLossCurve();
+    renderAll();
+    toast(`已完成 ${n} 次重复。平均终点 ${mean(finals).toFixed(1)}%，平均接受率 ${(acc/n*100).toFixed(0)}%。`);
+  }
+
+  function resetAll() {
+    state.currentChain = null;
+    state.repeatChains = [];
+    state.finalRepeats = [];
+    state.csvRows = [];
+    state.nextRepeatId = 1;
+    recomputeBiasCurve();
+    recomputeLossCurve();
+    renderAll();
+    toast('已重置当前会话数据。');
+  }
+
+  function exportCsv() {
+    if (!state.csvRows.length) {
+      toast('还没有可导出的链数据；请先运行一条链或 100 次重复。');
+      return;
+    }
+    if (state.csvRows.length > MAX_EXPORT_ROWS_WARN) {
+      toast(`正在导出 ${state.csvRows.length.toLocaleString()} 行，可能需要几秒。`);
+    }
+    const header = ['repeat','step','x','anchor','proposal','alpha','u','accepted','final'];
+    const lines = [header.join(',')];
+    state.csvRows.forEach(row => {
+      lines.push(header.map(k => csvCell(row[k])).join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `anchoring_mh_${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function csvCell(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'number') return Number.isFinite(v) ? String(+v.toFixed(8)) : '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  function bindEvents() {
+    $('anchor-slider').addEventListener('input', (e) => {
+      state.anchor = +e.target.value;
+      clearRunResults();
+      updateLabels();
+      drawTrajectory();
+      drawHist();
+      updateStats();
+      // Cheaply update cost curve on release/change; avoid recomputing while dragging.
+    });
+    $('anchor-slider').addEventListener('change', () => { rerunDiagnosticsOnly(); drawHist(); });
+    $('low-anchor').addEventListener('click', () => setAnchor(10));
+    $('high-anchor').addEventListener('click', () => setAnchor(65));
+    $('random-anchor').addEventListener('click', () => {
+      const a = Math.random() < 0.5 ? 10 : 65;
+      setAnchor(a);
+      toast(`随机分配到${a === 10 ? '低' : '高'}锚点：${a}%`);
+    });
+    $('budget-buttons').querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $('budget-buttons').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const v = btn.dataset.steps;
+        state.steps = v === 'Infinity' ? Infinity : +v;
+        clearRunResults();
+        if (state.steps !== Infinity) $('budget-slider').value = state.steps;
+        updateLabels();
+        rerunDiagnosticsOnly();
+        drawTrajectory(); drawHist();
+      });
+    });
+    $('budget-slider').addEventListener('input', (e) => {
+      state.steps = +e.target.value;
+      clearRunResults();
+      $('budget-buttons').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      updateLabels();
+      drawTrajectory();
+      drawHist();
+      updateStats();
+    });
+    $('budget-slider').addEventListener('change', () => { rerunDiagnosticsOnly(); drawHist(); });
+    $('sigma-slider').addEventListener('input', (e) => {
+      state.sigma = +e.target.value;
+      clearRunResults();
+      updateLabels();
+      drawTrajectory();
+      drawHist();
+      updateStats();
+    });
+    $('sigma-slider').addEventListener('change', () => { rerunDiagnosticsOnly(); });
+    $('time-cost-slider').addEventListener('input', (e) => {
+      state.timeCost = +e.target.value;
+      updateLabels();
+      recomputeLossCurve(); drawLoss(); updateStats();
+    });
+    $('error-cost-slider').addEventListener('input', (e) => {
+      state.errorCost = +e.target.value;
+      updateLabels();
+      recomputeLossCurve(); drawLoss(); updateStats();
+    });
+    $('run-one').addEventListener('click', runOne);
+    $('run-100').addEventListener('click', () => runRepeats(100));
+    $('reset').addEventListener('click', resetAll);
+    $('export-csv').addEventListener('click', exportCsv);
+  }
+
+  function setAnchor(a) {
+    state.anchor = a;
+    $('anchor-slider').value = a;
+    clearRunResults();
+    updateLabels();
+    rerunDiagnosticsOnly();
+    drawTrajectory(); drawHist();
+  }
+
+  // Initial render with diagnostic curves so the page is informative before any run.
+  bindEvents();
+  recomputeBiasCurve();
+  recomputeLossCurve();
+  renderAll();
+})();
+</script>
+</body>
+</html>

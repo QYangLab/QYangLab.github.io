@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 7-1：Rescorla-Wagner vs Bayesian Cue Learning</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:13px;color:var(--muted)}
+.ctrl-group input[type=range]{width:150px}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px}
+.stats{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px}
+.stat{text-align:center;padding:8px 16px;background:var(--accent-soft);border-radius:14px;min-width:80px}
+.stat .val{font-size:1.2em;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:12px;color:var(--muted)}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 7-1：Rescorla-Wagner vs Bayesian Cue Learning</h1>
+    <p>被试学习 cue 是否预测 reward。Rescorla-Wagner 用固定学习率更新，Bayesian learner 维护完整的 Beta 后验分布。两者如何在 trial-by-trial 更新上产生差异？</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#f97316"></span>RW: \(V_{t+1} = V_t + \alpha(r_t - V_t)\)</span>
+      <span class="badge"><span class="dot" style="background:#2563eb"></span>Bayesian: \(Beta(\alpha + k, \beta + n - k)\)</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[V_{t+1} = V_t + \alpha(r_t - V_t) \qquad \text{vs} \qquad p(\theta \mid D) = Beta(a + k, b + n - k)\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>参数控制</h2>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>真实 reward 概率: <strong id="v-pr">0.70</strong></label>
+        <input type="range" id="sl-pr" min="0.1" max="0.9" value="0.7" step="0.05">
+      </div>
+      <div class="ctrl-group">
+        <label>RW 学习率 \(\alpha\): <strong id="v-lr">0.15</strong></label>
+        <input type="range" id="sl-lr" min="0.01" max="0.5" value="0.15" step="0.01">
+      </div>
+      <div class="ctrl-group">
+        <label>先验强度 \(a_0 + b_0\): <strong id="v-ps">2</strong></label>
+        <input type="range" id="sl-ps" min="2" max="20" value="2" step="1">
+      </div>
+      <div style="display:flex;gap:8px;align-items:end">
+        <button class="primary" id="btn-add1">+ 1 trial</button>
+        <button class="primary" id="btn-add10">+ 10 trials</button>
+        <button class="secondary" id="btn-reset">重置</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="val" id="st-n">0</div><div class="lbl">Trials</div></div>
+      <div class="stat"><div class="val" id="st-rw">0.50</div><div class="lbl">RW 值</div></div>
+      <div class="stat"><div class="val" id="st-bm">0.50</div><div class="lbl">Bayes 均值</div></div>
+      <div class="stat"><div class="val" id="st-bsd">—</div><div class="lbl">Bayes SD</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Trial-by-Trial 学习曲线</h2>
+    <svg id="svg-main" width="100%" viewBox="0 0 860 340" style="display:block"></svg>
+  </div>
+
+  <div class="card">
+    <h2>当前 Beta 后验分布</h2>
+    <svg id="svg-post" width="100%" viewBox="0 0 860 200" style="display:block"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>Bayesian learner 的不确定性带（蓝色区域）随数据增加而收窄——它"知道自己越来越确定"。RW 没有不确定性表征。当先验强度增大时，Bayesian 更新变慢，需要更多数据克服先验。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    学习可以看作参数推断；固定学习率和 Bayesian uncertainty 给出不同更新方式。参考：Rescorla & Wagner (1972); Dayan & Daw (2008); Kruschke (2008). 本 demo 说明 Chapter 7 "学习即推断"的核心观点。
+  </div>
+</main>
+
+<script>
+const W=860,H=340,PAD={l:60,r:30,t:20,b:50};
+let rewards=[], rwVals=[0.5], bayesMeans=[0.5], bayesSDs=[];
+let aPost, bPost;
+
+function resetAll(){
+  const ps=+document.getElementById('sl-ps').value;
+  rewards=[];rwVals=[0.5];
+  aPost=ps/2; bPost=ps/2;
+  bayesMeans=[aPost/(aPost+bPost)];
+  bayesSDs=[Math.sqrt(aPost*bPost/((aPost+bPost)**2*(aPost+bPost+1)))];
+  draw();
+}
+
+function addTrials(n){
+  const pr=+document.getElementById('sl-pr').value;
+  const lr=+document.getElementById('sl-lr').value;
+  for(let i=0;i<n;i++){
+    const r=Math.random()<pr?1:0;
+    rewards.push(r);
+    // RW update
+    const vOld=rwVals[rwVals.length-1];
+    rwVals.push(vOld+lr*(r-vOld));
+    // Bayesian update
+    if(r===1)aPost++;else bPost++;
+    bayesMeans.push(aPost/(aPost+bPost));
+    bayesSDs.push(Math.sqrt(aPost*bPost/((aPost+bPost)**2*(aPost+bPost+1))));
+  }
+  draw();
+}
+
+function draw(){
+  updateStats();drawMain();drawPosterior();
+}
+
+function updateStats(){
+  document.getElementById('st-n').textContent=rewards.length;
+  document.getElementById('st-rw').textContent=rwVals[rwVals.length-1].toFixed(3);
+  document.getElementById('st-bm').textContent=bayesMeans[bayesMeans.length-1].toFixed(3);
+  document.getElementById('st-bsd').textContent=bayesSDs.length?bayesSDs[bayesSDs.length-1].toFixed(3):'—';
+}
+
+function drawMain(){
+  const svg=document.getElementById('svg-main');
+  const pw=W-PAD.l-PAD.r, ph=H-PAD.t-PAD.b;
+  const N=rewards.length;
+  const xScale=t=>PAD.l+(t/Math.max(N,1))*pw;
+  const yScale=v=>PAD.t+ph-(v)*ph;
+  let html='';
+  // axes
+  html+=`<line x1="${PAD.l}" y1="${H-PAD.b}" x2="${W-PAD.r}" y2="${H-PAD.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  html+=`<line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${H-PAD.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  [0,.25,.5,.75,1].forEach(v=>{
+    html+=`<line x1="${PAD.l}" y1="${yScale(v)}" x2="${W-PAD.r}" y2="${yScale(v)}" stroke="#f1f5f9" stroke-width="1"/>`;
+    html+=`<text x="${PAD.l-6}" y="${yScale(v)+4}" text-anchor="end" font-size="11" fill="#94a3b8">${v.toFixed(2)}</text>`;
+  });
+  html+=`<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="13" fill="#475569">Trial</text>`;
+
+  // True reward probability line
+  const pr=+document.getElementById('sl-pr').value;
+  html+=`<line x1="${PAD.l}" y1="${yScale(pr)}" x2="${W-PAD.r}" y2="${yScale(pr)}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+  html+=`<text x="${W-PAD.r+4}" y="${yScale(pr)+4}" font-size="11" fill="#94a3b8">true</text>`;
+
+  if(N>0){
+    // reward markers
+    rewards.forEach((r,t)=>{
+      const x=xScale(t+1);
+      html+=`<circle cx="${x}" cy="${H-PAD.b+16}" r="4" fill="${r?'#16a34a':'#dc2626'}" opacity=".7"/>`;
+    });
+
+    // Bayesian uncertainty band
+    let bandTop='', bandBot='';
+    for(let t=0;t<=N;t++){
+      const x=xScale(t);
+      const m=bayesMeans[t], s=bayesSDs[t]||0;
+      bandTop+=(t===0?'M':'L')+x.toFixed(1)+','+yScale(Math.min(1,m+2*s)).toFixed(1);
+      bandBot=(t===0?'M':'L')+x.toFixed(1)+','+yScale(Math.max(0,m-2*s)).toFixed(1)+bandBot;
+    }
+    // reverse bandBot
+    const botParts=[];
+    for(let t=N;t>=0;t--){
+      const x=xScale(t);
+      const m=bayesMeans[t], s=bayesSDs[t]||0;
+      botParts.push('L'+x.toFixed(1)+','+yScale(Math.max(0,m-2*s)).toFixed(1));
+    }
+    html+=`<path d="${bandTop}${botParts.join('')}Z" fill="rgba(37,99,235,0.12)"/>`;
+
+    // Bayesian mean curve
+    let bPath='';
+    for(let t=0;t<=N;t++){bPath+=(t===0?'M':'L')+xScale(t).toFixed(1)+','+yScale(bayesMeans[t]).toFixed(1)}
+    html+=`<path d="${bPath}" fill="none" stroke="#2563eb" stroke-width="2.5"/>`;
+
+    // RW curve
+    let rPath='';
+    for(let t=0;t<=N;t++){rPath+=(t===0?'M':'L')+xScale(t).toFixed(1)+','+yScale(rwVals[t]).toFixed(1)}
+    html+=`<path d="${rPath}" fill="none" stroke="#f97316" stroke-width="2.5"/>`;
+
+    // Prediction error markers for RW
+    rewards.forEach((r,t)=>{
+      const pe=r-rwVals[t];
+      if(Math.abs(pe)>0.1){
+        const x=xScale(t+1);
+        html+=`<line x1="${x}" y1="${yScale(rwVals[t])}" x2="${x}" y2="${yScale(rwVals[t]+pe)}" stroke="#f97316" stroke-width="1.5" opacity=".4" marker-end="url(#pe-arrow)"/>`;
+      }
+    });
+    html+=`<defs><marker id="pe-arrow" viewBox="0 0 6 6" refX="6" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L6,3L0,6Z" fill="#f97316" opacity=".4"/></marker></defs>`;
+  }
+
+  // Legend
+  html+=`<rect x="${PAD.l+10}" y="${PAD.t+5}" width="12" height="3" fill="#f97316" rx="1"/>`;
+  html+=`<text x="${PAD.l+26}" y="${PAD.t+10}" font-size="12" fill="#f97316">RW 值</text>`;
+  html+=`<rect x="${PAD.l+90}" y="${PAD.t+5}" width="12" height="3" fill="#2563eb" rx="1"/>`;
+  html+=`<text x="${PAD.l+106}" y="${PAD.t+10}" font-size="12" fill="#2563eb">Bayes 均值 ± 2SD</text>`;
+
+  svg.innerHTML=html;
+}
+
+function drawPosterior(){
+  const svg=document.getElementById('svg-post');
+  const W2=860,H2=200,pad={l:60,r:30,t:10,b:40};
+  const pw=W2-pad.l-pad.r, ph=H2-pad.t-pad.b;
+
+  // Beta PDF
+  function lnGamma(z){if(z<0.5)return Math.log(Math.PI/Math.sin(Math.PI*z))-lnGamma(1-z);z-=1;let x=0.99999999999980993;const g=7;const c=[676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];for(let i=0;i<g+1;i++)x+=c[i]/(z+i+1);const t=z+g+0.5;return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x)}
+  function betaPdf(x,a,b){if(x<=0||x>=1)return 0;return Math.exp((a-1)*Math.log(x)+(b-1)*Math.log(1-x)-lnGamma(a)-lnGamma(b)+lnGamma(a+b))}
+
+  const nPts=200;
+  const xs=Array.from({length:nPts},(_,i)=>(i+0.5)/nPts);
+  const ys=xs.map(x=>betaPdf(x,aPost,bPost));
+  const yMax=Math.max(...ys)*1.15||1;
+
+  const xScale=v=>pad.l+v*pw;
+  const yScale=v=>pad.t+ph-v/yMax*ph;
+
+  let html='';
+  html+=`<line x1="${pad.l}" y1="${H2-pad.b}" x2="${W2-pad.r}" y2="${H2-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  [0,.25,.5,.75,1].forEach(v=>{
+    html+=`<text x="${xScale(v)}" y="${H2-pad.b+18}" text-anchor="middle" font-size="11" fill="#94a3b8">${v}</text>`;
+  });
+  html+=`<text x="${W2/2}" y="${H2-4}" text-anchor="middle" font-size="13" fill="#475569">θ (reward probability)</text>`;
+
+  // fill
+  let fPath=`M${xScale(0)},${yScale(0)}`;
+  xs.forEach((x,i)=>{fPath+='L'+xScale(x).toFixed(1)+','+yScale(ys[i]).toFixed(1)});
+  fPath+=`L${xScale(1)},${yScale(0)}Z`;
+  html+=`<path d="${fPath}" fill="rgba(37,99,235,0.15)"/>`;
+  // curve
+  let cPath='';
+  xs.forEach((x,i)=>{cPath+=(i===0?'M':'L')+xScale(x).toFixed(1)+','+yScale(ys[i]).toFixed(1)});
+  html+=`<path d="${cPath}" fill="none" stroke="#2563eb" stroke-width="2"/>`;
+
+  // true θ
+  const pr=+document.getElementById('sl-pr').value;
+  html+=`<line x1="${xScale(pr)}" y1="${pad.t}" x2="${xScale(pr)}" y2="${H2-pad.b}" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5,3"/>`;
+  html+=`<text x="${xScale(pr)+6}" y="${pad.t+14}" font-size="12" fill="#dc2626">真实θ</text>`;
+
+  // RW value
+  const rw=rwVals[rwVals.length-1];
+  html+=`<line x1="${xScale(rw)}" y1="${pad.t}" x2="${xScale(rw)}" y2="${H2-pad.b}" stroke="#f97316" stroke-width="1.5" stroke-dasharray="5,3"/>`;
+  html+=`<text x="${xScale(rw)+6}" y="${pad.t+30}" font-size="12" fill="#f97316">RW</text>`;
+
+  html+=`<text x="${W2-pad.r-10}" y="${pad.t+16}" text-anchor="end" font-size="13" fill="#2563eb" font-weight="600">Beta(${aPost.toFixed(0)}, ${bPost.toFixed(0)})</text>`;
+  svg.innerHTML=html;
+}
+
+['sl-pr','sl-lr','sl-ps'].forEach(id=>{
+  const el=document.getElementById(id);
+  const key='v-'+id.split('-')[1];
+  el.addEventListener('input',()=>{document.getElementById(key).textContent=el.value;});
+});
+document.getElementById('btn-add1').addEventListener('click',()=>addTrials(1));
+document.getElementById('btn-add10').addEventListener('click',()=>addTrials(10));
+document.getElementById('btn-reset').addEventListener('click',resetAll);
+resetAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+{
+  "ch1": [
+    {
+      "file": "ch1_demo1_probability_simplex.html",
+      "title": "Demo 1：糖果罐抽球 — 概率分布与归一化"
+    },
+    {
+      "file": "ch1_demo2_product_sum_rule.html",
+      "title": "Demo 2：联合分布与边缘化 — 两道心理问卷题"
+    },
+    {
+      "file": "ch1_demo3_bayes_evidence.html",
+      "title": "Demo 3：基率忽视 — 贝叶斯诊断"
+    },
+    {
+      "file": "ch1_demo4_conditional_independence.html",
+      "title": "Demo 4：条件独立 — 共同原因（Fork）"
+    }
+  ],
+  "ch2": [
+    {
+      "file": "ch2_demo1_bn_factorization.html",
+      "title": "Demo 1：Gopnik Blicket Detector — 因果学习"
+    },
+    {
+      "file": "ch2_demo2_dseparation_triads.html",
+      "title": "Demo 2：Collider 与解释竞争 — 警报模型"
+    },
+    {
+      "file": "ch2_demo3_markov_blanket.html",
+      "title": "Demo 3：Baker 逆向规划 — 目标推断"
+    },
+    {
+      "file": "ch2_demo4_explaining_away.html",
+      "title": "Demo 4：Markov Blanket 与 Active Inference"
+    }
+  ],
+  "ch3": [
+    {
+      "file": "ch3_demo1_gestalt_mrf.html",
+      "title": "Gestalt MRF 视觉补全"
+    },
+    {
+      "file": "ch3_demo2_energy_landscape.html",
+      "title": "能量景观与自然图像先验"
+    },
+    {
+      "file": "ch3_demo3_boltzmann_memory.html",
+      "title": "Boltzmann 联想记忆补全"
+    },
+    {
+      "file": "ch3_demo4_ising_neural.html",
+      "title": "神经群体 Ising 模型"
+    },
+    {
+      "file": "ch3_demo1_mrf_grid_potentials.html",
+      "title": "2×2 MRF 势函数与整体模式"
+    },
+    {
+      "file": "ch3_demo2_energy_temperature.html",
+      "title": "能量与温度：Gibbs 分布"
+    },
+    {
+      "file": "ch3_demo3_undirected_separation.html",
+      "title": "无向图分离与条件独立"
+    },
+    {
+      "file": "ch3_demo4_ising_denoising.html",
+      "title": "Ising/MRF 的视觉去噪"
+    }
+  ],
+  "ch4": [
+    {
+      "file": "ch4_demo1_predictive_coding.html",
+      "title": "Predictive Coding 层级消息传递"
+    },
+    {
+      "file": "ch4_demo2_cue_integration.html",
+      "title": "多感觉线索整合 (sum-product)"
+    },
+    {
+      "file": "ch4_demo3_variable_elimination.html",
+      "title": "变量消去与 fill-in 边"
+    },
+    {
+      "file": "ch4_demo4_neural_sampling.html",
+      "title": "神经采样近似 posterior"
+    },
+    {
+      "file": "ch4_demo1_variable_elimination_order.html",
+      "title": "变量消去顺序与中间因子"
+    },
+    {
+      "file": "ch4_demo2_sum_product_chain.html",
+      "title": "链上 sum-product 消息"
+    },
+    {
+      "file": "ch4_demo3_junction_separator.html",
+      "title": "Junction tree 的 separator 一致性"
+    },
+    {
+      "file": "ch4_demo4_factor_graph_belief.html",
+      "title": "因子图中的证据整合"
+    }
+  ],
+  "ch6": [
+    {
+      "file": "ch6_demo1_rt_gaussian_mle.html",
+      "title": "Demo 6-1：心理物理反应时分布与 Gaussian MLE"
+    },
+    {
+      "file": "ch6_demo2_spike_train_poisson.html",
+      "title": "Demo 6-2：神经 Spike Train 的 Poisson / GLM 模型"
+    },
+    {
+      "file": "ch6_demo3_efficient_coding_kl.html",
+      "title": "Demo 6-3：Efficient Coding 中的 KL 散度"
+    },
+    {
+      "file": "ch6_demo4_population_coding.html",
+      "title": "Demo 6-4：Population Coding 与 Poisson Likelihood"
+    },
+    {
+      "file": "ch6_demo1_bernoulli_mle.html",
+      "title": "Bernoulli 似然与 MLE"
+    },
+    {
+      "file": "ch6_demo2_gaussian_density.html",
+      "title": "高斯分布的均值与方差"
+    },
+    {
+      "file": "ch6_demo3_entropy_kl.html",
+      "title": "熵与 KL：编码代价"
+    },
+    {
+      "file": "ch6_demo4_exponential_family.html",
+      "title": "指数族与充分统计量"
+    }
+  ],
+  "ch7": [
+    {
+      "file": "ch7_demo1_rw_bayesian_learning.html",
+      "title": "Demo 7-1：Rescorla-Wagner vs Bayesian Cue Learning"
+    },
+    {
+      "file": "ch7_demo2_concept_learning.html",
+      "title": "Demo 7-2：Xu & Tenenbaum 强抽样概念学习"
+    },
+    {
+      "file": "ch7_demo3_causal_structure.html",
+      "title": "Demo 7-3：Gopnik 因果结构学习"
+    },
+    {
+      "file": "ch7_demo4_working_memory.html",
+      "title": "Demo 7-4：工作记忆误差分布的模型比较"
+    },
+    {
+      "file": "ch7_demo1_beta_bernoulli.html",
+      "title": "Beta-Bernoulli 共轭更新"
+    },
+    {
+      "file": "ch7_demo2_mle_vs_map.html",
+      "title": "MLE vs MAP：数据与先验拉扯"
+    },
+    {
+      "file": "ch7_demo3_structure_learning.html",
+      "title": "二值结构学习：比较图结构"
+    },
+    {
+      "file": "ch7_demo4_model_evidence.html",
+      "title": "模型比较中的 Occam 因子"
+    }
+  ],
+  "ch8": [
+    {
+      "file": "ch8_demo1_statistical_learning.html",
+      "title": "Demo 8-1：Schapiro 统计学习 — 隐藏 Community 结构"
+    },
+    {
+      "file": "ch8_demo2_phoneme_gmm.html",
+      "title": "Demo 8-2：语音音素 GMM 类别学习"
+    },
+    {
+      "file": "ch8_demo3_diffusion_model_rt.html",
+      "title": "Demo 8-3：Ratcliff Diffusion Model 反应时隐变量（扩展案例）"
+    },
+    {
+      "file": "ch8_demo4_elbo_free_energy.html",
+      "title": "Demo 8-4：ELBO / Free Energy 与知觉学习"
+    },
+    {
+      "file": "ch8_em_gmm_demo.html",
+      "title": "Demo 8-5：EM 算法与高斯混合模型"
+    },
+    {
+      "file": "ch8_demo1_mixture_responsibility.html",
+      "title": "混合模型责任度"
+    },
+    {
+      "file": "ch8_demo2_em_step.html",
+      "title": "EM 一步一步更新均值"
+    },
+    {
+      "file": "ch8_demo3_jensen_elbo.html",
+      "title": "Jensen 下界与 KL 间隙"
+    },
+    {
+      "file": "ch8_demo4_missing_data_em.html",
+      "title": "缺失数据中的期望计数"
+    }
+  ],
+  "ch10": [
+    {
+      "file": "ch10_demo1_saffran_segmentation.html",
+      "title": "Saffran 统计词切分"
+    },
+    {
+      "file": "ch10_demo2_surprisal_reading.html",
+      "title": "Surprisal 与阅读时间"
+    },
+    {
+      "file": "ch10_demo3_viterbi_pos.html",
+      "title": "Viterbi 词性标注 Trellis"
+    },
+    {
+      "file": "ch10_demo4_event_segmentation.html",
+      "title": "事件分割 HMM"
+    },
+    {
+      "file": "ch10_demo1_markov_chain.html",
+      "title": "马尔可夫链与平稳分布"
+    },
+    {
+      "file": "ch10_demo2_hmm_forward.html",
+      "title": "HMM 前向滤波"
+    },
+    {
+      "file": "ch10_demo3_viterbi.html",
+      "title": "Viterbi 最可能路径"
+    },
+    {
+      "file": "ch10_demo4_baum_welch.html",
+      "title": "Baum-Welch：HMM 的 EM"
+    }
+  ],
+  "ch11": [
+    {
+      "file": "ch11_demo1_wolpert_motor.html",
+      "title": "Wolpert 运动控制 Kalman"
+    },
+    {
+      "file": "ch11_demo2_kalman_gain.html",
+      "title": "Kalman Gain 与线索可靠性"
+    },
+    {
+      "file": "ch11_demo3_shadmehr_adaptation.html",
+      "title": "Shadmehr 运动适应"
+    },
+    {
+      "file": "ch11_demo4_volatile_learning.html",
+      "title": "动态学习率 Volatile"
+    },
+    {
+      "file": "ch11_demo1_lds_simulation.html",
+      "title": "LDS：隐藏轨迹与带噪观测"
+    },
+    {
+      "file": "ch11_demo3_gaussian_conditioning.html",
+      "title": "多元高斯条件化"
+    },
+    {
+      "file": "ch11_demo4_rts_smoothing.html",
+      "title": "RTS 平滑：未来信息向后修正"
+    }
+  ],
+  "ch12": [
+    {
+      "file": "ch12_demo1_rejection_sampling.html",
+      "title": "Demo 1：拒绝采样接受率"
+    },
+    {
+      "file": "ch12_demo2_importance_sampling.html",
+      "title": "Demo 2：重要性采样权重退化"
+    },
+    {
+      "file": "ch12_demo3_gibbs_2d_gaussian.html",
+      "title": "Demo 3：二维高斯 Gibbs"
+    },
+    {
+      "file": "ch12_demo4_mh_bimodal.html",
+      "title": "Demo 4：MH 双峰穿越"
+    },
+    {
+      "file": "ch12_demo5_particle_filter_3x3_hmm.html",
+      "title": "Demo 5：3×3 环形 HMM 粒子滤波"
+    },
+    {
+      "file": "ch12_demo6_railway_blocked_gibbs.html",
+      "title": "Demo 6：铁路 Gibbs 长期采样比较"
+    },
+    {
+      "file": "ch12_demo7_gsp_color.html",
+      "title": "Demo 7：寻找心中的颜色"
+    },
+    {
+      "file": "ch12_demo8_necker_mh.html",
+      "title": "Demo 8：Necker 立方体 MH"
+    },
+    {
+      "file": "ch12_demo9_mcmcp_shape.html",
+      "title": "Demo 9：MCMCP 形状空间"
+    },
+    {
+      "file": "ch12_demo10_anchoring_mh.html",
+      "title": "Demo 10：锚定有限步 MH"
+    },
+    {
+      "file": "ch12_demo11_random_generation.html",
+      "title": "Demo 11：随机生成局部采样"
+    },
+    {
+      "file": "ch12_demo12_rhythm_reproduction.html",
+      "title": "Demo 12：节奏迭代复现"
+    }
+  ],
+  "ch13": [
+    {
+      "file": "ch13_demo1_laplace_kl_comparison.html",
+      "title": "Demo 1：Laplace 与 KL 近似比较"
+    },
+    {
+      "file": "ch13_demo2_elbo_posterior_matching.html",
+      "title": "Demo 2：先验、似然、后验与 ELBO 匹配"
+    },
+    {
+      "file": "ch13_demo3_image_denoising_mean_field.html",
+      "title": "Demo 3：平均场图像去噪"
+    },
+    {
+      "file": "ch13_demo4_2d_gaussian_mean_field.html",
+      "title": "Demo 4：二维高斯后验与平均场近似"
+    },
+    {
+      "file": "ch13_demo5_human_mean_field_classroom.html",
+      "title": "Demo 5：人形平均场计算机恢复噪声图片"
+    },
+    {
+      "file": "ch13_demo6_tree_approximation_ising.html",
+      "title": "Demo 6：树近似 Ising 格点推断"
+    }
+  ]
+}

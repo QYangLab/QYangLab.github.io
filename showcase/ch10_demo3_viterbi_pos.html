@@ -1,0 +1,200 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ch10 Demo 3: Viterbi 词性标注</title><style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--soft:#dbeafe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.6}
+.page{max-width:1200px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+.kicker{font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:8px}
+h1{font-size:26px;line-height:1.25;margin:0 0 10px}
+.subtitle{color:var(--muted);max-width:900px}
+.formula{margin-top:14px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:12px 14px;color:#0f172a;font-size:15px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(15,23,42,.04)}
+h2{font-size:17px;margin:0 0 10px}
+.controls{display:grid;gap:12px}
+.control span{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.control input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn:hover{opacity:.85}
+.stage{min-height:300px}
+svg.viz{width:100%;border:1px solid #e2e8f0;border-radius:18px;background:#f8fafc}
+.intent{background:#f8fafc;border-left:4px solid var(--accent);margin-top:14px}
+.refs{font-size:13px;color:var(--muted);padding-left:18px}
+.obs{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px;font-size:14px;margin-top:8px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+</style></head><body><div class="page">
+<section class="hero"><div class="kicker">Chapter 10 · Demo 3 · HMM 与离散时序模型</div>
+<h1>Viterbi 词性标注 Trellis</h1>
+<div class="subtitle">观测到词序列，隐藏状态是词性。Viterbi 找到整段最可能的隐藏路径。</div>
+<div class="formula">核心公式：\(\delta_t(j)=p(w_t|j)\max_i\delta_{t-1}(i)T_{ij}\)</div></section>
+<div class="layout"><aside class="card"><h2>交互参数</h2><div class="controls">
+<button class="btn primary" id="btnVStep">Viterbi 单步</button>
+<button class="btn" id="btnVReset">重置</button>
+</div></aside><main>
+<section class="card"><h2>Trellis 图</h2><div id="viz" class="stage"></div></section>
+<section class="card"><h2>观察提示</h2><div id="obs" class="obs"></div></section>
+<section class="card intent"><h2>文献与案例意图</h2><p>参考 Rabiner (1989) HMM tutorial、Jurafsky & Martin NLP 教材中的 POS tagging。案例说明 Viterbi 不是逐词分类，而是考虑全局最优路径——对应认知中的"整句理解"而非"逐词解读"。</p>
+<ul class="refs"><li>BRML Ch24 Discrete-State Markov Models</li><li>Bishop PRML Ch13 Sequential Data</li></ul></section>
+</main></div></div>
+<script>
+const liteMathCss = `
+<style id="lite-math-style">
+.math-lite{font-family:"Times New Roman","STIX Two Text","Cambria Math",serif;color:#0f172a;font-size:1.04em;white-space:nowrap}
+.math-lite.display{display:block;white-space:normal;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+.math-lite sub{font-size:.72em;vertical-align:-.25em}.math-lite sup{font-size:.72em}.math-lite .frac{display:inline-grid;grid-template-rows:auto auto;text-align:center;vertical-align:middle;margin:0 .18em}.math-lite .frac .num{border-bottom:1px solid currentColor;padding:0 .22em .08em}.math-lite .frac .den{padding:.08em .22em 0}.math-lite .sqrt{border-top:1px solid currentColor;padding-left:.1em}.math-lite .op{font-family:"Times New Roman",serif}.math-lite .kw{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:.9em}
+</style>`;
+
+function latexToHtml(src) {
+  let s = src.trim();
+  const esc = x => x.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  function convertFrac(t) {
+    return t.replace(/\\(?:dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, (_, a, b) => `<span class="frac"><span class="num">${latexToHtml(a)}</span><span class="den">${latexToHtml(b)}</span></span>`);
+  }
+  s = esc(s);
+  s = convertFrac(s);
+  const map = [
+    [/\\qquad/g,'  '],[/\\quad/g,' '],[/\\;/g,' '],[/\\,/g,' '],[/\\!/g,''],[/\\\|/g,'‖'],[/\\bigl/g,''],[/\\bigr/g,''],[/\\Bigl/g,''],[/\\Bigr/g,''],
+    [/\\leftarrow/g,'←'],[/\\rightarrow/g,'→'],[/\\Rightarrow/g,'⇒'],[/\\to/g,'→'],
+    [/\\leq/g,'≤'],[/\\geq/g,'≥'],[/\\neq/g,'≠'],[/\\times/g,'×'],[/\\cdot/g,'·'],[/\\odot/g,'⊙'],
+    [/\\mid/g,'|'],[/\\neg/g,'¬'],[/\\setminus/g,'∖'],[/\\in/g,'∈'],[/\\notin/g,'∉'],[/\\propto/g,'∝'],[/\\approx/g,'≈'],[/\\sim/g,'∼'],[/\\left/g,''],[/\\right/g,''],[/\\\{/g,'{'],[/\\\}/g,'}'],[/\\pm/g,'±'],[/\\ldots/g,'…'],[/\\cdots/g,'⋯'],
+    [/\\alpha/g,'α'],[/\\beta/g,'β'],[/\\gamma/g,'γ'],[/\\Gamma/g,'Γ'],[/\\theta/g,'θ'],[/\\Theta/g,'Θ'],[/\\mu/g,'μ'],[/\\sigma/g,'σ'],[/\\Sigma/g,'Σ'],[/\\pi/g,'π'],[/\\rho/g,'ρ'],[/\\lambda/g,'λ'],[/\\Lambda/g,'Λ'],[/\\Delta/g,'Δ'],[/\\epsilon/g,'ε'],[/\\varepsilon/g,'ε'],
+    [/\\mathcal\{N\}/g,'𝒩'],[/\\mathcal\s*\{?L\}?/g,'𝓛'],[/\\mathcal\s*\{?N\}?/g,'𝒩'],[/\\mathbb\s*\{?E\}?/g,'𝔼'],[/\\mathbb\s*\{?H\}?/g,'ℍ'],[/\\mathrm\{Var\}/g,'Var'],[/\\mathrm\{Cov\}/g,'Cov'],[/\\mathrm\{KL\}/g,'KL'],[/\\mathrm\{Beta\}/g,'Beta'],[/\\mathbf\{1\}/g,'1']
+  ];
+  map.forEach(([r,v]) => { s = s.replace(r,v); });
+  s = s.replace(/\\text\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\mathcal\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathbb\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathrm\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\operatorname\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\exp/g,'exp').replace(/\\log/g,'log').replace(/\\min/g,'min').replace(/\\max/g,'max').replace(/\\tanh/g,'tanh').replace(/\\argmax/g,'argmax').replace(/\\argmin/g,'argmin').replace(/\\partial/g,'∂').replace(/\\sum/g,'∑').replace(/\\prod/g,'∏').replace(/\\int/g,'∫');
+  s = s.replace(/\\dot\s*\{([^{}]*)\}/g,'$1̇').replace(/\\dot\s+([A-Za-z])/g,'$1̇');
+  s = s.replace(/\\sqrt\{([^{}]*)\}/g,'√<span class="sqrt">$1</span>');
+  s = s.replace(/\^\{([^{}]*)\}/g,'<sup>$1</sup>').replace(/_\{([^{}]*)\}/g,'<sub>$1</sub>');
+  s = s.replace(/\^([A-Za-z0-9*+\-])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9*+\-])/g,'<sub>$1</sub>');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));
+  s = s.replace(/\s+/g,' ');
+  return s;
+}
+
+function renderLiteMath(root) {
+  if (!root || root.__liteMathRendering) return;
+  root.__liteMathRendering = true;
+  try {
+    const doc = root.nodeType === 9 ? root : root.ownerDocument;
+    if (doc && doc.head && !doc.getElementById('lite-math-style')) doc.head.insertAdjacentHTML('beforeend', liteMathCss);
+    const walker = doc.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('script,style,textarea,pre,code,.math-lite')) return NodeFilter.FILTER_REJECT;
+        return /\\\(|\\\[|\$/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const text = node.nodeValue;
+      const parts = [];
+      let i = 0;
+      const re = /\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$([\s\S]*?)\$\$|\$([^$\n]{1,240})\$/g;
+      let m;
+      while ((m = re.exec(text))) {
+        if (m.index > i) parts.push(doc.createTextNode(text.slice(i, m.index)));
+        const raw = m[1] ?? m[2] ?? m[3] ?? m[4] ?? '';
+        const span = doc.createElement('span');
+        span.className = 'math-lite' + ((m[1] || m[3]) ? ' display' : '');
+        span.innerHTML = latexToHtml(raw);
+        parts.push(span);
+        i = m.index + m[0].length;
+      }
+      if (!parts.length) return;
+      if (i < text.length) parts.push(doc.createTextNode(text.slice(i)));
+      node.replaceWith(...parts);
+    });
+  } finally {
+    root.__liteMathRendering = false;
+  }
+}
+const words=['我','喜欢','吃','苹果'];
+const tags=['名词','动词','形容词'];
+const NT=tags.length,NW=words.length;
+// emission prob p(word|tag)
+const emit=[[.6,.05,.05],[.05,.7,.1],[.05,.6,.05],[.5,.05,.3]];// per word
+// transition prob
+const trans=[[.2,.6,.2],[.3,.3,.4],[.5,.3,.2]];
+const pi=[.5,.3,.2];
+let vStep=0, delta=[], psi=[], bestPath=[];
+function vReset(){vStep=0;delta=[];psi=[];bestPath=[];render();}
+function viterbiStep(){
+  if(vStep>=NW)return;
+  if(vStep===0){
+    delta.push(tags.map((_,j)=>Math.log(pi[j]+1e-12)+Math.log(emit[0][j]+1e-12)));
+    psi.push(tags.map(()=>-1));
+  } else {
+    const d=[],p2=[];
+    for(let j=0;j<NT;j++){
+      let bestI=0,bestV=-Infinity;
+      for(let i=0;i<NT;i++){
+        const v=delta[vStep-1][i]+Math.log(trans[i][j]+1e-12);
+        if(v>bestV){bestV=v;bestI=i;}
+      }
+      d.push(bestV+Math.log(emit[vStep][j]+1e-12));
+      p2.push(bestI);
+    }
+    delta.push(d);psi.push(p2);
+  }
+  vStep++;
+  // backtrace if done
+  if(vStep===NW){
+    let best=0;delta[NW-1].forEach((v,i)=>{if(v>delta[NW-1][best])best=i;});
+    bestPath=[best];
+    for(let t=NW-1;t>0;t--)bestPath.unshift(psi[t][bestPath[0]]);
+  }
+  render();
+}
+function render(){
+  const W=560,H=320,padL=70,padT=50,padB=50;
+  const colW=(W-padL-40)/NW, rowH=(H-padT-padB)/NT;
+  let svg=`<svg class="viz" viewBox="0 0 ${W} ${H}">`;
+  // Column headers (words)
+  words.forEach((w,t)=>{
+    svg+=`<text x="${padL+t*colW+colW/2}" y="22" text-anchor="middle" font-size="13" fill="#334155" font-weight="700">${w}</text>`;
+  });
+  // Row headers (tags)
+  tags.forEach((tag,j)=>{
+    svg+=`<text x="${padL-8}" y="${padT+j*rowH+rowH/2+4}" text-anchor="end" font-size="12" fill="#475569">${tag}</text>`;
+  });
+  // Trellis nodes and edges
+  for(let t=0;t<Math.min(vStep,NW);t++){
+    const maxD=Math.max(...delta[t]),minD=Math.min(...delta[t]);
+    for(let j=0;j<NT;j++){
+      const cx=padL+t*colW+colW/2, cy=padT+j*rowH+rowH/2;
+      // Backpointer edge
+      if(t>0&&psi[t][j]>=0){
+        const px=padL+(t-1)*colW+colW/2, py=padT+psi[t][j]*rowH+rowH/2;
+        const isBest=bestPath.length&&bestPath[t]===j&&bestPath[t-1]===psi[t][j];
+        svg+=`<line x1="${px}" y1="${py}" x2="${cx}" y2="${cy}" stroke="${isBest?'#16a34a':'#cbd5e1'}" stroke-width="${isBest?3:1.5}" ${isBest?'':'opacity="0.5"'}/>`;
+      }
+      const score=delta[t][j];
+      const norm=(score-minD)/(maxD-minD||1);
+      const isBest=bestPath.length&&bestPath[t]===j;
+      svg+=`<circle cx="${cx}" cy="${cy}" r="20" fill="${isBest?'#16a34a':'rgba(37,99,235,'+norm.toFixed(2)+')'}" stroke="${isBest?'#166534':'#94a3b8'}" stroke-width="${isBest?3:1.5}"/>`;
+      svg+=`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="9" fill="${isBest||norm>.5?'#fff':'#334155'}">${score.toFixed(1)}</text>`;
+    }
+  }
+  // Best path label
+  if(bestPath.length){
+    svg+=`<text x="${W/2}" y="${H-10}" text-anchor="middle" font-size="13" fill="#16a34a" font-weight="700">最优路径: ${bestPath.map(j=>tags[j]).join(' → ')}</text>`;
+  }
+  svg+='</svg>';
+  document.getElementById('viz').innerHTML=svg;
+  document.getElementById('obs').innerHTML=vStep===0?'点击 "Viterbi 单步" 逐步展开 trellis。':
+    vStep<NW?`已展开 ${vStep}/${NW} 步。每个节点的分数 = max(前一步分数 + 转移) + 发射。颜色越深，该状态分数越高。`:
+    `Viterbi 完成！最优路径（绿色）= ${bestPath.map(j=>tags[j]).join(' → ')}。注意这是全局最优，不一定等于每列独立选最大值。`;
+  renderLiteMath(document);
+}
+document.getElementById('btnVStep').addEventListener('click',viterbiStep);
+document.getElementById('btnVReset').addEventListener('click',vReset);
+render();
+</script></body></html>

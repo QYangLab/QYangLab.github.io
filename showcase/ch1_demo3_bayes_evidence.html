@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 3：基率忽视 — 贝叶斯诊断</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#ffffff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe;--tp:#16a34a;--fp:#f59e0b;--tn:#94a3b8;--fn:#ef4444}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:1200px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:white}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.layout{display:grid;grid-template-columns:340px 1fr;gap:20px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.control-group{margin-bottom:16px}
+.control-group label{display:block;font-weight:600;margin-bottom:4px;font-size:14px}
+.control-group input[type=range]{width:100%;accent-color:var(--accent)}
+.control-group .val{font-size:13px;color:var(--muted)}
+.result-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:16px;margin-top:16px;text-align:center}
+.result-box .big{font-size:32px;font-weight:800;color:#16a34a}
+.result-box .sub{font-size:13px;color:var(--muted);margin-top:4px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;font-size:13px}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+.obs-hint{background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:14px;font-size:14px;color:#0c4a6e;margin-top:16px}
+.ref-section{background:#fefce8;border:1px solid #fde68a;border-radius:14px;padding:14px;font-size:13px;color:#92400e;margin-top:16px}
+.flow-area{margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+<div class="hero">
+  <h1>Demo 3：基率忽视 — 贝叶斯诊断</h1>
+  <p>Chapter 1 · 概率推断与贝叶斯心智</p>
+  <p>核心公式：\( p(H|E) = \frac{p(E|H)p(H)}{p(E|H)p(H) + p(E|\neg H)p(\neg H)} \)</p>
+  <div class="badges">
+    <span class="badge"><span class="dot" style="background:var(--tp)"></span>真阳性 (TP)</span>
+    <span class="badge"><span class="dot" style="background:var(--fn)"></span>假阴性 (FN)</span>
+    <span class="badge"><span class="dot" style="background:var(--fp)"></span>假阳性 (FP)</span>
+    <span class="badge"><span class="dot" style="background:var(--tn)"></span>真阴性 (TN)</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="card">
+    <h2>参数控制</h2>
+    <div class="control-group">
+      <label>基率 p(H) — 患病率 <span class="val" id="v-base">5%</span></label>
+      <input type="range" id="s-base" min="1" max="50" value="5">
+    </div>
+    <div class="control-group">
+      <label>命中率 p(E|H) — 灵敏度 <span class="val" id="v-hit">90%</span></label>
+      <input type="range" id="s-hit" min="1" max="100" value="90">
+    </div>
+    <div class="control-group">
+      <label>误报率 p(E|¬H) — 假阳性率 <span class="val" id="v-fa">10%</span></label>
+      <input type="range" id="s-fa" min="1" max="50" value="10">
+    </div>
+    <div class="result-box">
+      <div>后验概率 p(H|E)</div>
+      <div class="big" id="posterior">32.1%</div>
+      <div class="sub" id="intuition-gap">常见直觉估计 ≈ 90%，实际仅 32.1% — 基率忽视效应</div>
+    </div>
+    <div class="result-box" style="background:#fef3c7;border-color:#fde68a;margin-top:10px">
+      <div style="font-size:13px;color:#92400e" id="count-summary">
+        1000 人中：50 人患病，950 人健康<br>
+        阳性人数：45 (TP) + 95 (FP) = 140<br>
+        其中真正患病：45 / 140 = 32.1%
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1000 人 Icon Array（华夫图）</h2>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#16a34a"></span>真阳性 (TP)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>假阴性 (FN)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>假阳性 (FP)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#e2e8f0"></span>真阴性 (TN)</span>
+    </div>
+    <svg id="waffle-svg" width="100%" height="320" viewBox="0 0 640 320"></svg>
+    <div class="flow-area">
+      <h2>概率流图（分母的两条路径）</h2>
+      <svg id="flow-svg" width="100%" height="180" viewBox="0 0 600 180"></svg>
+    </div>
+  </div>
+</div>
+
+<div class="obs-hint">
+  <strong>观察提示：</strong>把基率从 5% 拨到 1%，即使命中率 90%、误报率 10%，后验只有约 8%！这就是基率忽视（base-rate neglect）：人们倾向于只看命中率而忽略患病率很低的事实。高似然 ≠ 高后验。
+</div>
+
+<div class="ref-section">
+  <strong>文献与案例意图：</strong>本 demo 对应教材 §1.1 贝叶斯公式。经典的"假阳性"困境展示了为什么贝叶斯公式中的 evidence（分母 \(p(E)\)）如此重要。该效应在 Kahneman & Tversky (1973) 的基率忽视实验、Casscells et al. (1978) 的医学诊断问题以及 Gigerenzer (1995) 的自然频率方法中被广泛讨论。教学点：贝叶斯更新中分母（evidence）至关重要。
+</div>
+</main>
+
+<script>
+function calc(){
+  const baseRate = +document.getElementById('s-base').value / 100;
+  const hitRate = +document.getElementById('s-hit').value / 100;
+  const faRate = +document.getElementById('s-fa').value / 100;
+
+  document.getElementById('v-base').textContent = (baseRate*100).toFixed(0)+'%';
+  document.getElementById('v-hit').textContent = (hitRate*100).toFixed(0)+'%';
+  document.getElementById('v-fa').textContent = (faRate*100).toFixed(0)+'%';
+
+  const pE = hitRate*baseRate + faRate*(1-baseRate);
+  const posterior = pE>0 ? (hitRate*baseRate)/pE : 0;
+
+  document.getElementById('posterior').textContent = (posterior*100).toFixed(1)+'%';
+  document.getElementById('intuition-gap').textContent =
+    `常见直觉估计 ≈ ${(hitRate*100).toFixed(0)}%，实际仅 ${(posterior*100).toFixed(1)}% — 基率忽视效应`;
+
+  const N = 1000;
+  const sick = Math.round(N*baseRate);
+  const healthy = N - sick;
+  const tp = Math.round(sick*hitRate);
+  const fn = sick - tp;
+  const fp = Math.round(healthy*faRate);
+  const tn = healthy - fp;
+  const totalPos = tp + fp;
+
+  document.getElementById('count-summary').innerHTML =
+    `${N} 人中：${sick} 人患病，${healthy} 人健康<br>`+
+    `阳性人数：${tp} (TP) + ${fp} (FP) = ${totalPos}<br>`+
+    `其中真正患病：${tp} / ${totalPos} = ${totalPos>0?(tp/totalPos*100).toFixed(1):'0'}%`;
+
+  drawWaffle(sick, tp, fn, fp, tn);
+  drawFlow(baseRate, hitRate, faRate, posterior, tp, fp, totalPos);
+}
+
+function drawWaffle(sick, tp, fn, fp, tn){
+  const svg = document.getElementById('waffle-svg');
+  const N = 1000;
+  const cols = 50, rows = 20;
+  const cw = 12.4, ch = 15;
+  let html = '';
+
+  // Build ordered array: TP, FN, FP, TN
+  const cats = [];
+  for(let i=0;i<tp;i++) cats.push('tp');
+  for(let i=0;i<fn;i++) cats.push('fn');
+  for(let i=0;i<fp;i++) cats.push('fp');
+  for(let i=0;i<tn;i++) cats.push('tn');
+  while(cats.length < N) cats.push('tn');
+
+  const colorMap = {tp:'#16a34a',fn:'#ef4444',fp:'#f59e0b',tn:'#e2e8f0'};
+
+  for(let i=0;i<Math.min(N,cats.length);i++){
+    const row = Math.floor(i/cols), col = i%cols;
+    const x = col*cw+2, y = row*ch+2;
+    html += `<rect x="${x}" y="${y}" width="${cw-2}" height="${ch-2}" rx="2" fill="${colorMap[cats[i]]}"/>`;
+  }
+
+  // Highlight bracket for positive results
+  const posCount = tp + fp;
+  if(posCount > 0 && posCount <= N){
+    const lastPosIdx = tp + fn + fp - 1;
+    // Draw a bracket line under the positive area
+  }
+
+  svg.innerHTML = html;
+}
+
+function drawFlow(baseRate, hitRate, faRate, posterior, tp, fp, totalPos){
+  const svg = document.getElementById('flow-svg');
+  const w = 600, h = 180;
+  let html = '';
+
+  // Two paths converge to p(E)
+  // Left path: p(H) -> p(E|H) -> tp
+  // Right path: p(¬H) -> p(E|¬H) -> fp
+  const y1 = 30, y2 = 90, y3 = 150;
+
+  // Top: population
+  html += `<rect x="230" y="${y1-15}" width="140" height="30" rx="10" fill="#e2e8f0" stroke="#94a3b8"/>`;
+  html += `<text x="300" y="${y1+4}" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="600">1000 人</text>`;
+
+  // Split
+  html += `<line x1="260" y1="${y1+15}" x2="120" y2="${y2-15}" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>`;
+  html += `<line x1="340" y1="${y1+15}" x2="480" y2="${y2-15}" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>`;
+
+  // Sick group
+  const sickN = Math.round(1000*baseRate);
+  html += `<rect x="40" y="${y2-15}" width="160" height="30" rx="10" fill="#fee2e2" stroke="#fca5a5"/>`;
+  html += `<text x="120" y="${y2+4}" text-anchor="middle" font-size="12" fill="#991b1b" font-weight="600">患病 ${sickN} 人 (${(baseRate*100).toFixed(0)}%)</text>`;
+
+  // Healthy group
+  const healthN = 1000 - sickN;
+  html += `<rect x="400" y="${y2-15}" width="170" height="30" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>`;
+  html += `<text x="485" y="${y2+4}" text-anchor="middle" font-size="12" fill="#166534" font-weight="600">健康 ${healthN} 人 (${((1-baseRate)*100).toFixed(0)}%)</text>`;
+
+  // Down to positive
+  html += `<line x1="120" y1="${y2+15}" x2="220" y2="${y3-15}" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow)"/>`;
+  html += `<text x="145" y="${y2+38}" font-size="11" fill="#16a34a">命中率 ${(hitRate*100).toFixed(0)}%</text>`;
+
+  html += `<line x1="485" y1="${y2+15}" x2="380" y2="${y3-15}" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>`;
+  html += `<text x="415" y="${y2+38}" font-size="11" fill="#f59e0b">误报率 ${(faRate*100).toFixed(0)}%</text>`;
+
+  // Positive pool
+  html += `<rect x="200" y="${y3-15}" width="200" height="34" rx="10" fill="#dbeafe" stroke="#93c5fd" stroke-width="2"/>`;
+  html += `<text x="300" y="${y3+6}" text-anchor="middle" font-size="13" fill="#1d4ed8" font-weight="700">阳性 ${totalPos} 人 = ${tp} TP + ${fp} FP</text>`;
+
+  // Arrow marker
+  html = `<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#94a3b8"/></marker></defs>` + html;
+
+  svg.innerHTML = html;
+}
+
+['s-base','s-hit','s-fa'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', calc);
+});
+calc();
+</script>
+</body>
+</html>

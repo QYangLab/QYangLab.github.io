@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 7-4：工作记忆误差分布的模型比较</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:13px;color:var(--muted)}
+.ctrl-group input[type=range]{width:150px}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{text-align:center;padding:8px 14px;border-radius:14px;min-width:100px}
+.stat .val{font-size:1.15em;font-weight:700}
+.stat .lbl{font-size:11px;color:var(--muted)}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 7-4：工作记忆误差分布的模型比较</h1>
+    <p>被试记忆颜色/方向后报告，产生 circular error。不同模型（纯 von Mises、Mixture with guessing、Variable precision）对误差分布有不同预测。用 BIC 比较哪个模型更好。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#2563eb"></span>Model 1: von Mises</span>
+      <span class="badge"><span class="dot" style="background:#16a34a"></span>Model 2: Mixture + Guessing</span>
+      <span class="badge"><span class="dot" style="background:#f97316"></span>Model 3: Variable Precision</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[BIC = -2 \log p(D \mid \hat\theta) + k \log N\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>参数控制（数据生成）</h2>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Set size: <strong id="v-ss">4</strong></label>
+        <input type="range" id="sl-ss" min="1" max="8" value="4" step="1">
+      </div>
+      <div class="ctrl-group">
+        <label>Guessing rate \(\gamma\): <strong id="v-gr">0.20</strong></label>
+        <input type="range" id="sl-gr" min="0" max="0.6" value="0.2" step="0.02">
+      </div>
+      <div class="ctrl-group">
+        <label>集中度 \(\kappa\): <strong id="v-kp">8</strong></label>
+        <input type="range" id="sl-kp" min="1" max="30" value="8" step="1">
+      </div>
+      <div class="ctrl-group">
+        <label>试验数 N: <strong id="v-nt">200</strong></label>
+        <input type="range" id="sl-nt" min="50" max="500" value="200" step="10">
+      </div>
+      <div><button class="primary" id="btn-gen">生成数据</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>圆形误差直方图与模型拟合</h2>
+    <svg id="svg-main" width="100%" viewBox="0 0 860 380" style="display:block"></svg>
+  </div>
+
+  <div class="card">
+    <h2>模型比较 (BIC)</h2>
+    <div class="stats" id="bic-stats"></div>
+    <svg id="svg-bic" width="100%" viewBox="0 0 860 160" style="display:block;margin-top:12px"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>增大 guessing rate 时，直方图尾部变高——mixture 模型的优势增加。当 set size 增大但 guessing rate 低时，纯 von Mises 可能已足够。BIC 惩罚参数多的模型，平衡拟合与复杂度。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    模型比较不是只看拟合好坏，还要考虑复杂度和泛化。参考：Zhang & Luck (2008); Bays et al. (2009); van den Berg et al. (2014); Pitt & Myung (2002).
+  </div>
+</main>
+
+<script>
+let errors=[];
+
+function vonMisesPdf(x,mu,kappa){
+  // Approximate I0(kappa)
+  function besselI0(k){let s=1,t=1;for(let i=1;i<20;i++){t*=(k*k)/(4*i*i);s+=t}return s}
+  return Math.exp(kappa*Math.cos(x-mu))/(2*Math.PI*besselI0(kappa));
+}
+
+function generateData(){
+  const gamma=+document.getElementById('sl-gr').value;
+  const kappa=+document.getElementById('sl-kp').value;
+  const N=+document.getElementById('sl-nt').value;
+  errors=[];
+  for(let i=0;i<N;i++){
+    if(Math.random()<gamma){
+      errors.push(Math.random()*2*Math.PI-Math.PI); // uniform guess
+    } else {
+      // Sample from von Mises(0, kappa) using rejection sampling
+      let sample;
+      do{
+        sample=Math.random()*2*Math.PI-Math.PI;
+      }while(Math.random()>Math.exp(kappa*(Math.cos(sample)-1)));
+      errors.push(sample);
+    }
+  }
+  draw();
+}
+
+function fitModels(){
+  const N=errors.length;
+  if(N===0)return[];
+  const nBins=36;
+  const binW=2*Math.PI/nBins;
+
+  // Model 1: Pure von Mises — fit kappa by MLE (moment estimate)
+  const C=errors.reduce((s,e)=>s+Math.cos(e),0)/N;
+  const S=errors.reduce((s,e)=>s+Math.sin(e),0)/N;
+  const Rbar=Math.sqrt(C*C+S*S);
+  const kappaHat1=Rbar<0.53?2*Rbar+Rbar**3+5*Rbar**5/6:Rbar>=0.85?1/(2*(1-Rbar)-(1-Rbar)**2-(1-Rbar)**3):-.4+1.39*Rbar+0.43/(1-Rbar);
+  const ll1=errors.reduce((s,e)=>s+Math.log(Math.max(1e-20,vonMisesPdf(e,0,Math.max(0.1,kappaHat1)))),0);
+
+  // Model 2: Mixture = (1-gamma)*vonMises + gamma*uniform
+  // Fit gamma and kappa via simple grid search
+  let bestLL2=-Infinity, bestG=0, bestK=1;
+  for(let g=0;g<=0.6;g+=0.02){
+    for(let k=0.5;k<=40;k+=0.5){
+      const ll=errors.reduce((s,e)=>s+Math.log(Math.max(1e-20,(1-g)*vonMisesPdf(e,0,k)+g/(2*Math.PI))),0);
+      if(ll>bestLL2){bestLL2=ll;bestG=g;bestK=k}
+    }
+  }
+
+  // Model 3: Variable precision — mixture of 3 von Mises with different kappas
+  // Simple 3-component fit
+  let bestLL3=-Infinity,bestP3={};
+  const kappas3=[2,8,25];
+  for(let w1=0.1;w1<=0.8;w1+=0.1){
+    for(let w2=0.1;w2<=0.8-w1;w2+=0.1){
+      const w3=1-w1-w2;
+      const ll=errors.reduce((s,e)=>s+Math.log(Math.max(1e-20,w1*vonMisesPdf(e,0,kappas3[0])+w2*vonMisesPdf(e,0,kappas3[1])+w3*vonMisesPdf(e,0,kappas3[2]))),0);
+      if(ll>bestLL3){bestLL3=ll;bestP3={w1,w2,w3}}
+    }
+  }
+
+  const bic1=-2*ll1+1*Math.log(N);
+  const bic2=-2*bestLL2+2*Math.log(N);
+  const bic3=-2*bestLL3+4*Math.log(N);
+
+  return[
+    {name:'von Mises',color:'#2563eb',ll:ll1,k:1,bic:bic1,
+      pdf:x=>vonMisesPdf(x,0,Math.max(0.1,kappaHat1))},
+    {name:'Mixture+Guess',color:'#16a34a',ll:bestLL2,k:2,bic:bic2,
+      pdf:x=>(1-bestG)*vonMisesPdf(x,0,bestK)+bestG/(2*Math.PI)},
+    {name:'Variable Prec.',color:'#f97316',ll:bestLL3,k:4,bic:bic3,
+      pdf:x=>(bestP3.w1||.33)*vonMisesPdf(x,0,kappas3[0])+(bestP3.w2||.33)*vonMisesPdf(x,0,kappas3[1])+(bestP3.w3||.34)*vonMisesPdf(x,0,kappas3[2])}
+  ];
+}
+
+function draw(){
+  const models=fitModels();
+  drawMain(models);drawBIC(models);
+}
+
+function drawMain(models){
+  const svg=document.getElementById('svg-main');
+  const W=860,H=380,pad={l:60,r:30,t:20,b:50};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  // Histogram
+  const nBins=36;
+  const binW=2*Math.PI/nBins;
+  const bins=Array(nBins).fill(0);
+  errors.forEach(e=>{
+    const i=Math.floor((e+Math.PI)/binW);
+    if(i>=0&&i<nBins)bins[i]++;
+  });
+  const N=errors.length||1;
+  const maxDens=Math.max(...bins)/(N*binW);
+
+  // Models max
+  let yMax=maxDens;
+  if(models.length){
+    for(let x=-Math.PI;x<=Math.PI;x+=0.05){
+      models.forEach(m=>{yMax=Math.max(yMax,m.pdf(x))});
+    }
+  }
+  yMax*=1.15;
+
+  const xScale=v=>pad.l+((v+Math.PI)/(2*Math.PI))*pw;
+  const yScale=v=>pad.t+ph-v/yMax*ph;
+
+  let html='';
+  html+=`<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  html+=`<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  [-180,-90,0,90,180].forEach(deg=>{
+    const rad=deg*Math.PI/180;
+    html+=`<text x="${xScale(rad)}" y="${H-pad.b+22}" text-anchor="middle" font-size="12" fill="#94a3b8">${deg}°</text>`;
+    html+=`<line x1="${xScale(rad)}" y1="${H-pad.b}" x2="${xScale(rad)}" y2="${H-pad.b+5}" stroke="#cbd5e1"/>`;
+  });
+  html+=`<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="13" fill="#475569">报告误差 (°)</text>`;
+
+  // histogram bars
+  bins.forEach((c,i)=>{
+    const x1=xScale(-Math.PI+i*binW), x2=xScale(-Math.PI+(i+1)*binW);
+    const dens=c/(N*binW);
+    html+=`<rect x="${x1}" y="${yScale(dens)}" width="${x2-x1-1}" height="${H-pad.b-yScale(dens)}" fill="#e2e8f0" stroke="#cbd5e1" rx="2"/>`;
+  });
+
+  // Model curves
+  models.forEach(m=>{
+    let path='';
+    for(let x=-Math.PI;x<=Math.PI;x+=0.02){
+      const px=xScale(x), py=yScale(m.pdf(x));
+      path+=(x===-Math.PI?'M':'L')+px.toFixed(1)+','+py.toFixed(1);
+    }
+    html+=`<path d="${path}" fill="none" stroke="${m.color}" stroke-width="2.5"/>`;
+  });
+
+  // Legend
+  models.forEach((m,i)=>{
+    html+=`<rect x="${pad.l+10}" y="${pad.t+5+i*20}" width="16" height="3" fill="${m.color}" rx="1"/>`;
+    html+=`<text x="${pad.l+32}" y="${pad.t+11+i*20}" font-size="12" fill="${m.color}">${m.name}</text>`;
+  });
+
+  svg.innerHTML=html;
+}
+
+function drawBIC(models){
+  if(!models.length)return;
+  const container=document.getElementById('bic-stats');
+  const best=models.reduce((a,b)=>a.bic<b.bic?a:b);
+  container.innerHTML=models.map(m=>`
+    <div class="stat" style="background:${m===best?'#dbeafe':'#f8fafc'};border:2px solid ${m===best?'#2563eb':'#e2e8f0'}">
+      <div class="val" style="color:${m.color}">${m.bic.toFixed(1)}</div>
+      <div class="lbl">${m.name} (k=${m.k})</div>
+    </div>
+  `).join('');
+
+  const svg=document.getElementById('svg-bic');
+  const W=860,H=160,pad={l:60,r:30,t:10,b:50};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const maxBic=Math.max(...models.map(m=>m.bic));
+  const minBic=Math.min(...models.map(m=>m.bic));
+  const range=Math.max(maxBic-minBic,1);
+  const barW=80;
+
+  let html='';
+  html+=`<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1"/>`;
+  models.forEach((m,i)=>{
+    const x=pad.l+(i+.5)*(pw/models.length);
+    const normalized=(m.bic-minBic+1)/(range+1);
+    const h=normalized*ph;
+    const isBest=m===best;
+    html+=`<rect x="${x-barW/2}" y="${H-pad.b-h}" width="${barW}" height="${h}" fill="${isBest?m.color:'#e2e8f0'}" rx="8" opacity="${isBest?1:.5}"/>`;
+    html+=`<text x="${x}" y="${H-pad.b+18}" text-anchor="middle" font-size="13" fill="#475569" font-weight="600">${m.name}</text>`;
+    html+=`<text x="${x}" y="${H-pad.b-h-6}" text-anchor="middle" font-size="12" fill="${m.color}" font-weight="600">${m.bic.toFixed(1)}</text>`;
+    if(isBest)html+=`<text x="${x}" y="${H-pad.b+34}" text-anchor="middle" font-size="12" fill="#2563eb" font-weight="700">★ 最佳</text>`;
+  });
+  html+=`<text x="${W/2}" y="${pad.t+14}" text-anchor="middle" font-size="13" fill="#475569">BIC 越低越好（平衡拟合与复杂度）</text>`;
+  svg.innerHTML=html;
+}
+
+['sl-ss','sl-gr','sl-kp','sl-nt'].forEach(id=>{
+  const el=document.getElementById(id);
+  const key='v-'+id.split('-')[1];
+  el.addEventListener('input',()=>{document.getElementById(key).textContent=el.value});
+});
+document.getElementById('btn-gen').addEventListener('click',generateData);
+generateData();
+</script>
+</body>
+</html>

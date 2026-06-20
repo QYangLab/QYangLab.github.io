@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 3：平均场图像去噪</title>
+<style>
+:root{color-scheme:light;--bg:#f6f8fb;--card:#fff;--card2:#f8fafc;--text:#0f172a;--muted:#526176;--line:#d7dee9;--blue:#2563eb;--blue2:#dbeafe;--red:#dc2626;--red2:#fee2e2;--green:#059669;--green2:#d1fae5;--orange:#d97706;--orange2:#ffedd5;--purple:#7c3aed;--shadow:0 18px 48px rgba(15,23,42,.08)}
+*{box-sizing:border-box}html{min-width:360px}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(37,99,235,.12),transparent 34rem),radial-gradient(circle at top right,rgba(124,58,237,.10),transparent 32rem),var(--bg);line-height:1.55}main{max-width:1240px;margin:0 auto;padding:28px 20px 58px}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,4vw,38px);line-height:1.12;margin-bottom:12px;letter-spacing:-.03em}h2{font-size:18px;margin-bottom:12px}h3{font-size:15px;margin-bottom:8px}p{color:var(--muted)}button,input,select{font:inherit}button{border:1px solid var(--line);border-radius:999px;padding:10px 16px;background:#fff;color:var(--text);cursor:pointer;font-weight:800;transition:.16s}button:hover:not(:disabled){transform:translateY(-1px);border-color:#94a3b8;box-shadow:0 8px 18px rgba(15,23,42,.08)}button:disabled{opacity:.48;cursor:not-allowed}.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.danger{background:var(--red);color:#fff;border-color:var(--red)}.hero,.card,.footer{background:rgba(255,255,255,.88);border:1px solid rgba(215,222,233,.95);border-radius:24px;box-shadow:var(--shadow);backdrop-filter:blur(10px)}.hero{padding:28px;margin-bottom:18px}.hero p{max-width:900px;margin-bottom:0}.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:var(--card2);color:var(--muted);border:1px solid var(--line);font-size:13px}.dot{width:10px;height:10px;border-radius:999px;display:inline-block}.layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:18px;align-items:start}.stack{display:grid;gap:18px}.card{padding:20px}.controls-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.control{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:13px}.control label{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;font-weight:800;margin-bottom:8px}.control label span:last-child{color:var(--text);font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:var(--blue)}.action-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}.notice{margin:12px 0 0;padding:11px 13px;border-radius:16px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:13px}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric{border:1px solid var(--line);border-radius:18px;padding:13px;background:var(--card2);min-height:78px}.metric .label{color:var(--muted);font-size:12px;font-weight:900;letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px}.metric .value{font-size:20px;font-weight:950;font-variant-numeric:tabular-nums}.metric .sub{color:var(--muted);font-size:12px;margin-top:4px}.chart-wrap{border:1px solid var(--line);border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#fff,#f8fafc)}svg{display:block;width:100%;height:auto}.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:18px}table{border-collapse:collapse;width:100%;min-width:420px;background:#fff}th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);background:var(--card2);font-size:12px}tr:last-child td{border-bottom:0}.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;color:var(--muted);font-size:13px}.legend-item{display:inline-flex;align-items:center;gap:6px}.footer{padding:18px 20px;margin-top:18px;color:var(--muted);font-size:14px}.formula{font-family:"SFMono-Regular",Consolas,monospace;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:var(--text);overflow:auto}.bar{height:10px;border-radius:999px;background:var(--blue2);overflow:hidden}.bar>span{display:block;height:100%;background:var(--blue);border-radius:999px}.grid-cells{display:grid;gap:2px;background:#cbd5e1;border:1px solid #cbd5e1;border-radius:14px;overflow:hidden}.cell{aspect-ratio:1/1}.cell.dark{background:#0f172a}.cell.light{background:#fff}.cell.obs-pos{background:#dbeafe}.cell.obs-neg{background:#fee2e2}.cell.rec-pos{background:#2563eb}.cell.rec-neg{background:#dc2626}.small{font-size:12px;color:var(--muted)}@media(max-width:980px){.layout{grid-template-columns:1fr}.metric-grid{grid-template-columns:1fr}}@media(max-width:660px){main{padding:18px 12px 42px}.hero,.card{border-radius:20px;padding:16px}.controls-grid{grid-template-columns:1fr}}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#0b1120;--card:#111827;--card2:#172033;--text:#e5edf8;--muted:#a8b4c7;--line:#304055;--blue2:rgba(37,99,235,.24);--red2:rgba(220,38,38,.22);--green2:rgba(5,150,105,.22);--orange2:rgba(217,119,6,.22);--shadow:0 18px 48px rgba(0,0,0,.28)}button{background:#172033}.hero,.card,.footer{background:rgba(17,24,39,.88)}.chart-wrap,table,.notice{background:#111827}th{background:#172033}}
+.stage-row{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}.stage-btn{border-radius:999px;padding:9px 12px;background:#fff;border:1px solid var(--line);color:var(--muted);font-weight:900}.stage-btn.active{background:var(--blue);border-color:var(--blue);color:#fff}.stage-explain{background:var(--blue2);border:1px solid rgba(37,99,235,.25);border-radius:16px;padding:12px 14px;color:var(--text);font-weight:700}.grid-cells{display:grid;gap:2px}.cell{aspect-ratio:1;border-radius:4px;border:1px solid rgba(15,23,42,.08)}.mini-legend{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:13px;margin-top:8px}.kbd{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:1px 6px;background:var(--card2);font-weight:900}.problem-note{margin-top:14px;max-width:1060px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 16px;color:var(--ink)}.problem-note ul{margin:8px 0 0 20px;padding:0}.problem-note li{margin:4px 0}.curve-label{font-weight:900}
+
+</style>
+</head>
+<body>
+<main>
+<section class="hero"><h1>Demo 3：平均场图像去噪</h1><p>从弱初始信念开始运行平均场更新，让学生看到每一步的恢复图、准确率和 mean |Δm| 收敛诊断。</p><div class="pill-row"><span class="pill"><span class="dot" style="background:#2563eb"></span>蓝/红：观测像素</span>
+<span class="pill"><span class="dot" style="background:#0f172a"></span>深/浅：真实图像</span>
+<span class="pill"><span class="dot" style="background:#16a34a"></span>绿线：准确率</span>
+<span class="pill"><span class="dot" style="background:#d97706"></span>橙线：平均变化</span></div></section>
+
+<section class="layout">
+  <div class="stack">
+    <section class="card">
+      <h2>贝叶斯图像去噪：观测 vs 平均场恢复</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        <div><h3>真实图像</h3><div id="truth" class="grid-cells"></div></div>
+        <div><h3>带噪观测 y</h3><div id="obs" class="grid-cells"></div></div>
+        <div><h3>平均场恢复 m</h3><div id="rec" class="grid-cells"></div></div>
+      </div>
+      <div class="mini-legend"><span><span class="kbd">恢复图</span> 颜色深浅表示连续均值 |m_i|，不只显示最终正负号。</span></div>
+      <div class="action-row"><button id="new" class="primary">重新生成噪声</button><button id="step">迭代一步</button><button id="run">运行 20 步</button></div>
+    </section>
+    <section class="card">
+      <h2>迭代诊断</h2>
+      <div class="metric-grid">
+        <div class="metric"><div class="label">观测正确率</div><div class="value" id="obsAcc">—</div><div class="sub">噪声后的像素</div></div>
+        <div class="metric"><div class="label">恢复正确率</div><div class="value" id="recAcc">—</div><div class="sub">sign(m_i) vs truth</div></div>
+        <div class="metric"><div class="label">迭代步</div><div class="value" id="iter">0</div><div class="sub">同步平均场更新</div></div>
+        <div class="metric"><div class="label">mean |Δm|</div><div class="value" id="delta">—</div><div class="sub">本步平均变化量</div></div>
+        <div class="metric"><div class="label">平均置信度</div><div class="value" id="conf">—</div><div class="sub">mean |m_i|</div></div>
+      </div>
+      <div class="chart-wrap" style="margin-top:14px"><svg id="diag" viewBox="0 0 760 240"></svg></div>
+    </section>
+    <section class="card">
+      <h2>数学知识卡片：MRF 图像去噪的平均场</h2>
+      <p>二值图像去噪可以写成格点 Markov random field。观测项支持像素接近输入图像，邻域项鼓励相邻像素一致。</p>
+      <div class="formula">m_i ← tanh(γ y_i + w Σ_{j in ne(i)} m_j)</div>
+      <p>本 demo 从很弱的初始信念开始，让学生能看到均值逐步变深、局部噪声被邻域平均场修正，以及 mean |Δm| 如何下降。</p>
+    </section>
+  </div>
+  <aside class="stack">
+    <section class="card">
+      <h2>控制面板</h2>
+      <div class="controls-grid">
+        <div class="control"><label><span>翻转噪声</span><span id="noiseVal"></span></label><input id="noise" type="range" min="0" max="0.45" step="0.01" value="0.32"></div>
+        <div class="control"><label><span>观测可靠性 γ</span><span id="gammaVal"></span></label><input id="gamma" type="range" min="0.2" max="2.5" step="0.05" value="0.55"></div>
+        <div class="control"><label><span>邻域一致性 w</span><span id="wVal"></span></label><input id="w" type="range" min="0" max="1.2" step="0.05" value="0.75"></div>
+      </div>
+      <p class="notice">如果 γ 太大，初值会太相信观测；如果 w 太小，邻居无法修复孤立噪声。当前默认值让逐步恢复更容易看见。</p>
+    </section>
+  </aside>
+</section>
+
+<footer class="footer">对应章节：§2 Bayesian image denoising 与平均场近似。</footer>
+</main>
+<script>
+
+function $(id){return document.getElementById(id)}
+function fmt(x,d=2){return Number.isFinite(x)?x.toFixed(d):"—"}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function svgEl(n,a){const e=document.createElementNS("http://www.w3.org/2000/svg",n);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));return e}
+function clear(n){while(n.firstChild)n.removeChild(n.firstChild)}
+function normalPdf(x,m,s){return Math.exp(-0.5*((x-m)/s)**2)/(Math.sqrt(2*Math.PI)*s)}
+function normalLogPdf(x,m,s){return -0.5*Math.log(2*Math.PI*s*s)-0.5*((x-m)/s)**2}
+function pathFrom(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}
+function drawAxes(svg,W,H,pad,yLabel,xLabel){svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'transparent'}));svg.appendChild(svgEl('line',{x1:pad,x2:W-pad,y1:H-pad,y2:H-pad,stroke:'#94a3b8'}));svg.appendChild(svgEl('line',{x1:pad,x2:pad,y1:pad,y2:H-pad,stroke:'#94a3b8'}));svg.appendChild(svgEl('text',{x:W/2,y:H-10,fill:'#64748b','font-size':12,'font-weight':800,'text-anchor':'middle'})).textContent=xLabel||'潜变量 h';svg.appendChild(svgEl('text',{x:15,y:H/2,fill:'#64748b','font-size':12,'font-weight':800,'text-anchor':'middle',transform:`rotate(-90 15 ${H/2})`})).textContent=yLabel||'密度'}
+function addCurve(svg,xs,ys,X,Y,color,width,dash){svg.appendChild(svgEl('path',{d:pathFrom(xs.map((x,i)=>[X(x),Y(ys[i])])),fill:'none',stroke:color,'stroke-width':width||3,'stroke-dasharray':dash||''}))}
+
+
+const N=16;let truth=[],obs=[],m=[],iter=0,lastDelta=0,history=[];['noise','gamma','w'].forEach(id=>$(id).addEventListener('input',()=>{updateLabels();newNoise()}));$('new').onclick=newNoise;$('step').onclick=()=>{mfStep();render()};$('run').onclick=()=>{for(let i=0;i<20;i++)mfStep();render()};
+function makeTruth(){truth=[];for(let r=0;r<N;r++)for(let c=0;c<N;c++){const ring=(r-8)**2+(c-8)**2<38&&((r-8)**2+(c-8)**2>12||c>8);const bar=(r>3&&r<12&&c>4&&c<7);truth.push((ring||bar)?1:-1)}}
+function updateLabels(){$('noiseVal').textContent=fmt(+$('noise').value,2);$('gammaVal').textContent=fmt(+$('gamma').value,2);$('wVal').textContent=fmt(+$('w').value,2)}
+function newNoise(){const p=+$('noise').value;obs=truth.map(v=>Math.random()<p?-v:v);m=obs.map(v=>0.05*v);iter=0;lastDelta=0;history=[snapshot()];render()}
+function neigh(i){const r=Math.floor(i/N),c=i%N,out=[];if(r>0)out.push(i-N);if(r<N-1)out.push(i+N);if(c>0)out.push(i-1);if(c<N-1)out.push(i+1);return out}
+function mfStep(){const g=+$('gamma').value,w=+$('w').value,nm=m.slice();let delta=0;for(let i=0;i<N*N;i++){let s=0;neigh(i).forEach(j=>s+=m[j]);const val=Math.tanh(g*obs[i]+w*s);delta+=Math.abs(val-m[i]);nm[i]=val}m=nm;iter++;lastDelta=delta/(N*N);history.push(snapshot())}
+function sign(v){return v>=0?1:-1}
+function acc(arr){return arr.filter((v,i)=>sign(v)===truth[i]).length/arr.length}
+function conf(){return m.reduce((a,v)=>a+Math.abs(v),0)/m.length}
+function snapshot(){return{iter,acc:acc(m),delta:lastDelta,conf:conf()}}
+function colorMix(v){v=clamp(v,-1,1);const t=Math.abs(v),base=v>=0?[220,38,38]:[37,99,235];const r=Math.round(255*(1-t)+base[0]*t),g=Math.round(255*(1-t)+base[1]*t),b=Math.round(255*(1-t)+base[2]*t);return`rgb(${r},${g},${b})`}
+function drawGrid(id,arr,kind){const node=$(id);node.style.gridTemplateColumns=`repeat(${N},1fr)`;node.innerHTML='';arr.forEach(v=>{const d=document.createElement('div');d.className='cell';if(kind==='truth')d.style.background=v>0?'#0f172a':'#f8fafc';else if(kind==='obs')d.style.background=v>0?'#fecaca':'#bfdbfe';else d.style.background=colorMix(v);node.appendChild(d)})}
+function render(){updateLabels();drawGrid('truth',truth,'truth');drawGrid('obs',obs,'obs');drawGrid('rec',m,'rec');$('obsAcc').textContent=(acc(obs)*100).toFixed(1)+'%';$('recAcc').textContent=(acc(m)*100).toFixed(1)+'%';$('iter').textContent=iter;$('delta').textContent=fmt(lastDelta,4);$('conf').textContent=fmt(conf(),3);drawDiag()}
+function drawDiag(){const svg=$('diag'),W=760,H=240,pad=42;clear(svg);svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'transparent'}));svg.appendChild(svgEl('line',{x1:pad,x2:W-pad,y1:H-pad,y2:H-pad,stroke:'#94a3b8'}));svg.appendChild(svgEl('line',{x1:pad,x2:pad,y1:pad,y2:H-pad,stroke:'#94a3b8'}));const maxIter=Math.max(1,...history.map(h=>h.iter)),maxDelta=Math.max(0.01,...history.map(h=>h.delta));const X=i=>pad+i/maxIter*(W-2*pad),Y01=y=>H-pad-y*(H-2*pad),YDelta=y=>H-pad-y/maxDelta*(H-2*pad);if(history.length>1){addCurve(svg,history.map(h=>h.iter),history.map(h=>h.acc),(x)=>X(x),Y01,'#16a34a',3,'');addCurve(svg,history.map(h=>h.iter),history.map(h=>h.delta),(x)=>X(x),YDelta,'#d97706',3,'6 4')}svg.appendChild(svgEl('text',{x:pad,y:24,fill:'#16a34a','font-size':12,'font-weight':900})).textContent='绿色：恢复正确率';svg.appendChild(svgEl('text',{x:220,y:24,fill:'#d97706','font-size':12,'font-weight':900})).textContent='橙色：mean |Δm|（自适应缩放）'}
+makeTruth();updateLabels();newNoise();
+
+</script>
+</body>
+</html>

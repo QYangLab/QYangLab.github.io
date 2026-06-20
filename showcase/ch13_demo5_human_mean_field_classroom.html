@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 5：人形平均场计算机恢复噪声图片</title>
+<style>
+:root{color-scheme:light;--bg:#f6f8fb;--card:#fff;--card2:#f8fafc;--text:#0f172a;--muted:#526176;--line:#d7dee9;--blue:#2563eb;--cyan:#0891b2;--red:#dc2626;--green:#16a34a;--orange:#d97706;--purple:#7c3aed;--rose:#db2777;--shadow:0 18px 48px rgba(15,23,42,.08)}
+*{box-sizing:border-box}html{min-width:360px}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(37,99,235,.12),transparent 34rem),radial-gradient(circle at top right,rgba(219,39,119,.08),transparent 34rem),var(--bg);line-height:1.55}main{max-width:1320px;margin:0 auto;padding:28px 20px 58px}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,4vw,38px);line-height:1.12;margin-bottom:12px;letter-spacing:-.03em}h2{font-size:18px;margin-bottom:12px}h3{font-size:15px;margin-bottom:8px}p{color:var(--muted)}button,input,select{font:inherit}button{border:1px solid var(--line);border-radius:999px;padding:9px 14px;background:#fff;color:var(--text);cursor:pointer;font-weight:850;transition:.16s}button:hover:not(:disabled){transform:translateY(-1px);border-color:#94a3b8;box-shadow:0 8px 18px rgba(15,23,42,.08)}button.primary{background:var(--blue);border-color:var(--blue);color:#fff}.hero,.card,.footer{background:rgba(255,255,255,.9);border:1px solid rgba(215,222,233,.95);border-radius:24px;box-shadow:var(--shadow);backdrop-filter:blur(10px)}.hero{padding:28px;margin-bottom:18px}.hero p{max-width:980px;margin-bottom:0}.pill-row,.action-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:var(--card2);color:var(--muted);border:1px solid var(--line);font-size:13px}.dot{width:10px;height:10px;border-radius:999px;display:inline-block}.layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);gap:18px;align-items:start}.stack{display:grid;gap:18px}.card{padding:20px}.controls-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.control{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:12px}.control label{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:900;color:var(--muted);margin-bottom:6px}.control input[type=range],.control select{width:100%}.three-grids{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.grid-cells{display:grid;gap:3px;background:#e2e8f0;border:1px solid var(--line);border-radius:16px;padding:8px;min-height:160px}.cell{aspect-ratio:1;border-radius:5px;border:2px solid rgba(148,163,184,.45);cursor:pointer;position:relative;transition:.12s;display:flex;align-items:center;justify-content:center;font-weight:950;font-size:clamp(12px,2vw,18px)}.cell:hover{transform:scale(1.04);z-index:2}.cell.selected{outline:3px solid var(--orange);outline-offset:1px}.cell.answer-one{color:#fff;background:#0f172a}.cell.answer-zero{color:#0f172a;background:#fff}.cell.answer-uncertain{color:#334155;background:#cbd5e1}.cell.flipped::after{content:"";position:absolute;inset:2px;border-radius:3px;border:2px solid var(--red);pointer-events:none}.truth-hidden .cell{background:repeating-linear-gradient(45deg,#e2e8f0 0 6px,#f8fafc 6px 12px)!important}.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.metric{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:13px}.metric .label{font-size:12px;color:var(--muted);font-weight:900}.metric .value{font-size:22px;font-weight:950;letter-spacing:-.03em}.metric .sub{font-size:12px;color:var(--muted)}.notice,.formula{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:12px;color:var(--muted)}.formula{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--text);white-space:pre-wrap;overflow:auto}.calc-line{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;color:var(--text)}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;font-variant-numeric:tabular-nums}th,td{border-bottom:1px solid #e2e8f0;padding:7px 8px;text-align:right;font-size:13px}th{background:#f1f5f9;color:#334155}td:first-child,th:first-child{text-align:center}tr:last-child td{border-bottom:none}.mini{font-size:12px;color:var(--muted)}.guide-list{margin:0;padding-left:20px;color:var(--muted)}.guide-list li{margin:7px 0}.chip{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:1px 6px;background:#fff;font-weight:850;color:var(--text)}.formula strong{color:var(--text)}.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:8px}.sw{display:inline-block;width:14px;height:14px;border:1px solid #64748b;border-radius:4px;vertical-align:-2px;margin-right:4px}@media(max-width:1080px){.layout,.three-grids{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#0b1120;--card:#111827;--card2:#172033;--text:#e5edf8;--muted:#a8b4c7;--line:#304055;--shadow:0 18px 48px rgba(0,0,0,.28)}button{background:#172033}.hero,.card,.footer{background:rgba(17,24,39,.9)}.notice,.formula,.calc-line,table{background:#111827}}
+</style>
+</head>
+<body>
+<main>
+<section class="hero"><h1>Demo 5：人形平均场计算机恢复噪声图片</h1><p>把每个像素想成一名学生：教师先给每人一张带噪观测卡 yᵢ（黑卡=+1，白卡=-1），学生再把观测卡和上下左右邻居上一轮报告的均值 mⱼ 合起来，按同一条公式同步更新自己的信念 mᵢ。目标是从带噪观测卡 y 恢复隐藏二值图片。</p><div class="pill-row"><span class="pill"><span class="dot" style="background:#0f172a"></span>+1：黑色</span><span class="pill"><span class="dot" style="background:#fff;border:1px solid #64748b"></span>-1：白色</span><span class="pill"><span class="dot" style="background:#94a3b8"></span>m≈0：不确定</span><span class="pill"><span class="dot" style="background:#dc2626"></span>红框：被翻转观测</span><span class="pill"><span class="dot" style="background:#0f172a"></span>输出：q(+1)>0.5 则答 1</span></div></section>
+
+<section class="layout">
+  <div class="stack">
+    <section class="card">
+      <h2>四栏课堂黑板：真实图、观测卡、当前信念、学生输出</h2>
+      <div class="three-grids">
+        <div><h3>真实干净图 x★</h3><div id="truthGrid" class="grid-cells"></div></div>
+        <div><h3>带噪观测 y</h3><div id="obsGrid" class="grid-cells"></div></div>
+        <div><h3>当前平均场信念 m(t)</h3><div id="beliefGrid" class="grid-cells"></div></div>
+        <div><h3>学生输出答案 a(t)</h3><div id="answerGrid" class="grid-cells"></div></div>
+      </div>
+      <div class="legend"><span><span class="sw" style="background:#0f172a"></span>黑 = +1</span><span><span class="sw" style="background:#fff"></span>白 = -1</span><span><span class="sw" style="background:#94a3b8"></span>灰 = 不确定</span><span><span class="sw" style="border-color:#dc2626"></span>红框 = 观测被翻转</span><span><span class="sw" style="background:#0f172a"></span>输出 1 = q(+1)>0.5</span><span><span class="sw" style="background:#fff"></span>输出 0 = q(+1)≤0.5</span></div>
+      <div class="action-row"><button id="newNoise" class="primary">载入固定噪声观测</button><button id="stepBtn">单步同步更新</button><button id="runBtn">连续运行 5 轮</button><button id="resetBtn">重置到观测</button><button id="truthBtn">显示/隐藏真实图</button></div>
+    </section>
+
+    <section class="card">
+      <h2>课堂操作指导语：教师和学生分别做什么</h2>
+      <ol class="guide-list">
+        <li><strong>教师准备真实图片。</strong>先选择一张黑白小图，例如默认的粗 L。真实隐藏像素记为 <span class="chip">xᵢ★∈{-1,+1}</span>：黑色是 <span class="chip">+1</span>，白色是 <span class="chip">-1</span>。</li>
+        <li><strong>教师发观测卡。</strong>每个学生拿到一张观测卡 <span class="chip">yᵢ</span>，大多数时候 <span class="chip">yᵢ=xᵢ★</span>，但其中一组固定位置被翻转。默认 8×8 时，每个图案固定翻转 13 个像素（约 20%），这些位置是预先搜索出来、适合展示恢复的噪声类型。红框格表示这个观测卡其实被翻错了；课堂真实操作时学生不知道红框，只知道自己手里的 <span class="chip">yᵢ=+1</span> 或 <span class="chip">yᵢ=-1</span>。</li>
+        <li><strong>初始化。</strong>默认每个学生先把自己的观测卡变成初始信念：<span class="chip">mᵢ(0)=tanh(γyᵢ)</span>。若选“mᵢ(0)=0”，则表示学生一开始完全不确定，只在第一轮才使用观测和邻居信息。</li>
+        <li><strong>报告阶段。</strong>第 t 轮开始时，每个学生只向上下左右邻居报告旧值 <span class="chip">mᵢ(t)</span>。不要报告刚算出来的新值。</li>
+        <li><strong>计算阶段。</strong>学生 i 把收到的旧邻居值相加：<span class="chip">Sᵢ(t)=Σⱼ∈N(i)mⱼ(t)</span>，再算局部场 <span class="chip">hᵢ(t)=γyᵢ+wSᵢ(t)</span>。</li>
+        <li><strong>同步写入阶段。</strong>全班同时把新信念写成 <span class="chip">mᵢ(t+1)=tanh(hᵢ(t))</span>。下一轮开始前，任何人都不能把新值继续传给邻居。</li>
+        <li><strong>读出图片。</strong>把信念转成输出概率 <span class="chip">qᵢ(+1)=(1+mᵢ)/2</span>。若 <span class="chip">qᵢ(+1)&gt;0.5</span>，学生输出 <span class="chip">1</span> 并举黑卡；否则输出 <span class="chip">0</span> 并举白卡。右侧“恢复正确率”用这个 1/0 输出读出结果。</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>同步更新诊断</h2>
+      <div class="metric-grid"><div class="metric"><div class="label">迭代轮数</div><div class="value" id="iterVal">0</div><div class="sub">本轮只读上一轮邻居值</div></div><div class="metric"><div class="label">观测正确率</div><div class="value" id="obsAcc">—</div><div class="sub">y vs x★</div></div><div class="metric"><div class="label">恢复正确率</div><div class="value" id="recAcc">—</div><div class="sub">1/0 输出 vs x★</div></div><div class="metric"><div class="label">mean |Δm|</div><div class="value" id="deltaVal">—</div><div class="sub">上一轮平均变化量</div></div><div class="metric"><div class="label">恢复提升</div><div class="value" id="gainVal">—</div><div class="sub">恢复率 - 观测率</div></div></div>
+      <p class="notice"><strong>同步协议：</strong>请把一轮更新拆成“报告旧值 → 求邻居和 → 算局部场 → 同时写新值”四步。所有节点先读取上一轮 mⱼ(t)，各自计算 Sᵢ(t)=Σmⱼ(t)，再同时写出 mᵢ(t+1)=tanh(γyᵢ+wSᵢ)。本轮新值不能在同一轮继续传播；这避免了座位顺序影响结果。<br><strong>调参提示：</strong>默认 8×8 粗 L、γ=1.0、w=0.65 是演示恢复版，恢复效果更明显；若要课堂手算，可临时把 w 调成 0.5，此时公式变成 hᵢ=yᵢ+0.5Σmⱼ。当前只保留恢复较稳的图案。默认 8×8 时，每个图案都使用搜索得到的固定翻转 mask（13 个像素，约 20%），因此每次载入同一图案都会看到同一组观测卡。</p>
+    </section>
+
+    <section class="card">
+      <h2>非线性函数表</h2>
+      <div id="tanhTable"></div>
+    </section>
+
+    <section class="card">
+      <h2>教学结论与方法对比</h2>
+      <p>平均场不是精确推断；它只保存每个像素的单点均值 mᵢ。邻居影响通过平均值传播，但不保存相邻像素的联合相关。</p>
+      <ul class="mini"><li>w 太大：边界会被过度平滑。</li><li>γ 太大：系统会过度相信带噪观测。</li><li>噪声强或图片细节太细时，平均场可能恢复失败；课堂演示保留粗 L、实心圆、三角形、菱形、爱心、小鱼、粗 T、粗 1、十字路标、块状门牌底色和马克杯这类恢复较稳的图案；细线、人脸、笑脸/哭脸等稀疏特征已从 preset 中删除。</li><li>平均场：每个节点只报一个数 mᵢ；Tree approximation：删除部分边，在保留的树上做精确 sum-product；Bethe / loopy BP：每条边上传递二值消息或维护局部 belief，更保留相关，但课堂手算负担更大。</li></ul>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card"><h2>控制面板</h2><div class="controls-grid"><div class="control"><label><span>网格大小</span><span id="sizeVal"></span></label><select id="size"><option value="6">6×6</option><option value="8" selected>8×8</option></select></div><div class="control"><label><span>真实图片 preset</span><span></span></label><select id="preset"><option value="thickL" selected>粗黑板字母 L（最稳）</option><option value="circle">实心圆（稳定）</option><option value="triangle">实心三角形（稳定）</option><option value="diamond">实心菱形（稳定）</option><option value="heart">爱心（较稳）</option><option value="fish">小鱼（较稳）</option><option value="thickT">粗黑板字母 T</option><option value="digit1thick">粗门牌数字 1</option><option value="cross">十字路标（稳定）</option><option value="block">大块门牌底色</option><option value="mug2">块状马克杯剪影</option></select></div><div class="control"><label><span>固定翻转比例 p_flip</span><span id="noiseVal"></span></label><input id="noise" type="range" min="0" max="0.4" step="0.01" value="0.20"></div><div class="control"><label><span>观测强度 γ</span><span id="gammaVal"></span></label><input id="gamma" type="range" min="0" max="2" step="0.05" value="1.00"></div><div class="control"><label><span>平滑强度 w</span><span id="wVal"></span></label><input id="smooth" type="range" min="0" max="1.2" step="0.05" value="0.65"></div><div class="control"><label><span>初始化方式</span><span></span></label><select id="initMode"><option value="obs">mᵢ(0)=tanh(γyᵢ)</option><option value="zero">mᵢ(0)=0</option></select></div></div></section>
+
+    <section class="card"><h2>单个学生正在算什么</h2><p class="mini">点击或 hover 任意格点。这个面板会把“该学生下一轮要算的式子”用当前数值完整代入。课堂中可指定一名学生照着念：我拿到的观测卡 yᵢ 是多少、我听到的邻居旧均值是多少、我的局部场 hᵢ 是多少、下一轮信念 mᵢ' 是多少。</p><div class="calc-line" id="cellInfo">尚未选择格点。</div><div class="formula" id="calcFormula"><strong>学生 i 的纸上计算：</strong>
+1. 读取自己的观测卡 yᵢ。
+2. 只听上一轮邻居值：m_up, m_down, m_left, m_right。
+3. Sᵢ = m_up + m_down + m_left + m_right。
+4. hᵢ = γ yᵢ + wSᵢ。
+5. mᵢ' = tanh(hᵢ), qᵢ(+1)=(1+mᵢ')/2。
+6. 若 qᵢ(+1)>0.5，输出答案 aᵢ=1；否则 aᵢ=0。</div></section>
+
+    <section class="card"><h2>模型公式</h2><div class="formula"><strong>观测怎么给：</strong>
+黑色观测卡：yᵢ=+1；白色观测卡：yᵢ=-1。
+Demo 默认不是每次随机翻转，而是对每个 8×8 图案使用一组固定翻转位置；这些位置约占 p_flip=0.20。学生看到的是有噪声的 yᵢ。
+
+<strong>模型：</strong>
+p(x|y) ∝ exp(γ Σᵢ yᵢxᵢ + w Σ_(i,j) xᵢxⱼ)
+γ：相信自己观测卡的强度；w：相信邻居一致性的强度。
+
+<strong>同步平均场更新：</strong>
+Sᵢ(t)=Σⱼ∈N(i)mⱼ(t)
+hᵢ(t)=γyᵢ+wSᵢ(t)
+mᵢ(t+1)=tanh hᵢ(t)
+qᵢ(xᵢ=+1)=(1+mᵢ(t+1))/2=σ(2hᵢ(t))
+学生输出：aᵢ=1{qᵢ(+1)>0.5}，等价于 sign(mᵢ)>0</div></section>
+  </aside>
+</section>
+
+<footer class="footer">对应章节：课堂案例“人形平均场计算机恢复噪声图片”。</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let N=6, truth=[], obs=[], m=[], iter=0, lastDelta=0, selected=0, showTruth=true;
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function fmt(x,d=3){return Number.isFinite(x)?x.toFixed(d):'—'}
+function tanh(x){return Math.tanh(x)}
+function sign(x){return x>=0?1:-1}
+function idx(r,c){return r*N+c}
+function rc(i){return [Math.floor(i/N),i%N]}
+function neigh(i){const [r,c]=rc(i),out=[];if(r>0)out.push(idx(r-1,c));if(r<N-1)out.push(idx(r+1,c));if(c>0)out.push(idx(r,c-1));if(c<N-1)out.push(idx(r,c+1));return out}
+function inBand(x,a,b){return x>=a&&x<=b}
+function makeTruth(){N=+$('size').value;const p=$('preset').value;truth=[];for(let r=0;r<N;r++)for(let c=0;c<N;c++){let on=false;const mid=Math.floor(N/2);if(p==='thickL'){on=c<=1||(r>=N-2&&c<N-1)}else if(p==='circle'){on=(r-3.5)*(r-3.5)+(c-3.5)*(c-3.5)<=7}else if(p==='triangle'){on=r>=1&&r<=6&&Math.abs(c-3.5)<=(r-1)*0.75}else if(p==='diamond'){on=Math.abs(r-3.5)+Math.abs(c-3.5)<=3}else if(p==='heart'){on=(r===1&&[2,3,5,6].includes(c))||(r===2&&c>=1&&c<=6)||(r===3&&c>=1&&c<=6)||(r===4&&c>=2&&c<=5)||(r===5&&c>=3&&c<=4)||(r===6&&c===4)}else if(p==='fish'){on=(r>=2&&r<=5&&c>=1&&c<=4)||([2,5].includes(r)&&c===5)||([3,4].includes(r)&&c===6)||(r===3&&c===2)}else if(p==='thickT'){on=r<=1||Math.abs(c-mid)<=1}else if(p==='digit1thick'){on=Math.abs(c-mid)<=1||(r===1&&c===mid-2)||(r>=N-2&&Math.abs(c-mid)<=2)}else if(p==='cross'){on=Math.abs(c-mid)<=1||Math.abs(r-mid)<=1}else if(p==='block'){on=inBand(r,1,N-2)&&inBand(c,1,N-2)}else if(p==='mug2'){on=inBand(r,1,N-2)&&inBand(c,1,N-3)||inBand(r,2,N-3)&&c>=N-2}truth.push(on?1:-1)}}
+const FIXED_MASKS_8={thickL:[12,13,14,19,27,29,30,35,40,46,50,57,61],circle:[5,8,9,14,20,28,37,40,43,55,56,60,62],triangle:[5,6,9,11,15,16,25,27,28,30,35,43,53],diamond:[6,9,13,15,17,19,27,29,36,44,48,55,58],heart:[8,18,20,35,40,44,46,48,51,57,60,61,62],fish:[0,11,12,15,28,30,32,33,38,43,46,53,55],thickT:[11,13,20,25,28,33,35,39,41,46,50,53,55],digit1thick:[12,17,20,23,31,34,36,40,45,47,49,51,52],cross:[9,11,15,20,29,30,32,33,35,36,44,53,57],block:[13,18,19,28,29,33,35,42,45,52,61,62,63],mug2:[6,20,26,27,28,31,36,39,42,45,50,51,63]};
+function deterministicMask(count){const p=$('preset').value, scored=[];for(let i=0;i<N*N;i++){let h=2166136261;const s=p+':'+N+':'+i;for(let k=0;k<s.length;k++){h^=s.charCodeAt(k);h=Math.imul(h,16777619)}scored.push([h>>>0,i])}scored.sort((a,b)=>a[0]-b[0]);return scored.slice(0,count).map(x=>x[1])}
+function fixedMask(){const desired=Math.round(+$('noise').value*N*N);if(N===8&&Math.abs(+$('noise').value-0.20)<1e-9&&FIXED_MASKS_8[$('preset').value])return FIXED_MASKS_8[$('preset').value];return deterministicMask(desired)}
+function updateLabels(){$('sizeVal').textContent=N+'×'+N;$('noiseVal').textContent=fmt(+$('noise').value,2);$('gammaVal').textContent=fmt(+$('gamma').value,2);$('wVal').textContent=fmt(+$('smooth').value,2)}
+function generateNoise(){makeTruth();const flips=new Set(fixedMask());obs=truth.map((v,i)=>flips.has(i)?-v:v);resetToObs();}
+function resetToObs(){const g=+$('gamma').value;if($('initMode').value==='zero')m=truth.map(()=>0);else m=obs.map(y=>tanh(g*y));iter=0;lastDelta=0;selected=Math.min(selected,N*N-1);render()}
+function step(){const g=+$('gamma').value,w=+$('smooth').value,old=m.slice(),nm=m.slice();let delta=0;for(let i=0;i<N*N;i++){let S=0;neigh(i).forEach(j=>S+=old[j]);const h=g*obs[i]+w*S;nm[i]=tanh(h);delta+=Math.abs(nm[i]-old[i])}m=nm;iter++;lastDelta=delta/(N*N);render()}
+function run5(){for(let k=0;k<5;k++)step()}
+function acc(arr){return arr.filter((v,i)=>sign(v)===truth[i]).length/arr.length}
+function beliefColor(v){v=clamp(v,-1,1);const t=(v+1)/2;const val=Math.round(255*(1-t)+15*t);return `rgb(${val},${val},${val})`}
+function bw(v){return v>0?'#0f172a':'#ffffff'}
+function answerVal(v){return (1+v)/2>0.5?1:0}
+function drawGrid(id,arr,kind){const node=$(id);node.style.gridTemplateColumns=`repeat(${N},1fr)`;node.classList.toggle('truth-hidden',kind==='truth'&&!showTruth);node.innerHTML='';for(let i=0;i<N*N;i++){const d=document.createElement('div');d.className='cell';if(i===selected)d.classList.add('selected');if(kind==='truth'){d.style.background=bw(arr[i])}else if(kind==='obs'){d.style.background=bw(arr[i]);d.style.borderColor='#0891b2';if(obs[i]!==truth[i])d.classList.add('flipped')}else if(kind==='answer'){const a=answerVal(arr[i]);d.classList.add(a?'answer-one':'answer-zero');d.textContent=a;d.style.borderColor=a?'#0f172a':'#94a3b8'}else{d.style.background=beliefColor(arr[i])}const [r,c]=rc(i),q=(1+m[i])/2,a=answerVal(m[i]);d.title=`(${r+1},${c+1}) y=${obs[i]} m=${fmt(m[i],3)} q(+1)=${fmt(q,3)} 输出=${a}`;d.addEventListener('mouseenter',()=>{selected=i;render(false)});d.addEventListener('click',()=>{selected=i;render(false)});node.appendChild(d)}}
+function calcSelected(){if(!obs.length)return;const g=+$('gamma').value,w=+$('smooth').value,ns=neigh(selected),S=ns.reduce((a,j)=>a+m[j],0),h=g*obs[selected]+w*S,next=tanh(h),q=(1+next)/2;const [r,c]=rc(selected);const vals=ns.map(j=>fmt(m[j],3)).join(', ')||'无';$('cellInfo').textContent=`格点 (${r+1},${c+1})：观测卡 yᵢ=${obs[selected]}（+1=黑，-1=白），当前 mᵢ=${fmt(m[selected],3)}，听到的上一轮邻居均值=(${vals})，邻居和 Sᵢ=${fmt(S,3)}`;$('calcFormula').textContent=`学生 i 的计算步骤：
+1. 观测卡：yᵢ=${obs[selected]}（+1=黑，-1=白）
+2. 邻居报告的旧值：(${vals})
+3. Sᵢ = Σmⱼ = ${fmt(S,3)}
+4. hᵢ = γyᵢ + wSᵢ = ${fmt(g,2)}×(${obs[selected]}) + ${fmt(w,2)}×(${fmt(S,3)}) = ${fmt(h,3)}
+5. mᵢ(t+1) = tanh(${fmt(h,3)}) = ${fmt(next,3)}
+6. qᵢ(+1) = (1+mᵢ)/2 = ${fmt(q,3)}
+7. 输出答案：aᵢ=${q>0.5?1:0}（阈值 0.5：qᵢ(+1)>0.5 输出 1，否则输出 0）
+注意：这里用的是上一轮邻居值；同步更新避免座位顺序影响结果。`}
+function render(redraw=true){updateLabels();if(redraw){drawGrid('truthGrid',truth,'truth');drawGrid('obsGrid',obs,'obs');drawGrid('beliefGrid',m,'belief');drawGrid('answerGrid',m,'answer')}$('iterVal').textContent=iter;$('obsAcc').textContent=(acc(obs)*100).toFixed(1)+'%';$('recAcc').textContent=(acc(m)*100).toFixed(1)+'%';$('deltaVal').textContent=fmt(lastDelta,4);const gain=acc(m)-acc(obs);$('gainVal').textContent=(gain>=0?'+':'')+(gain*100).toFixed(1)+'%';calcSelected()}
+function tanhTable(){const hs=[-2.5,-2,-1.5,-1,-0.5,0,0.5,1,1.5,2,2.5];let html='<table><thead><tr><th>h</th>'+hs.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';html+='<tr><td>tanh(h)</td>'+hs.map(h=>`<td>${fmt(tanh(h),3)}</td>`).join('')+'</tr>';html+='<tr><td>q(+1)</td>'+hs.map(h=>`<td>${fmt((1+tanh(h))/2,3)}</td>`).join('')+'</tr></tbody></table>';$('tanhTable').innerHTML=html}
+['size','preset'].forEach(id=>$(id).addEventListener('change',generateNoise));['noise'].forEach(id=>$(id).addEventListener('input',()=>{generateNoise()}));['gamma','smooth','initMode'].forEach(id=>$(id).addEventListener('input',()=>{resetToObs()}));$('newNoise').onclick=generateNoise;$('stepBtn').onclick=step;$('runBtn').onclick=run5;$('resetBtn').onclick=resetToObs;$('truthBtn').onclick=()=>{showTruth=!showTruth;render()};tanhTable();generateNoise();
+</script>
+</body>
+</html>
