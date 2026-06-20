@@ -1,0 +1,273 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Demo 1 · Saffran 1996 现场重做 (Baum-Welch 后验)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --ink:#e8ecf1; --muted:#8b95a7;
+    --accent:#7cc5ff; --accent2:#ffd479; --good:#7ee2a8; --bad:#ff8a8a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB",sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:22px 28px;border-bottom:1px solid #222a36}
+  header h1{margin:0 0 4px;font-size:20px}
+  header p{margin:0;color:var(--muted)}
+  main{padding:22px 28px;max-width:1080px;margin:auto}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{background:var(--panel);border:1px solid #232a36;border-radius:12px;padding:18px}
+  .card h2{margin:0 0 10px;font-size:16px;color:var(--accent)}
+  button{background:#22304a;border:1px solid #2f4063;color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+  button.primary{background:#27507f;border-color:#3a73b8}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#22304a;color:var(--accent);font-size:12px;margin-right:6px}
+  .stream{font-family:ui-monospace,Menlo,monospace;background:#0a0d12;padding:10px;border-radius:8px;color:#cfd6e2;max-height:120px;overflow:auto;font-size:13px;letter-spacing:.3px}
+  table{border-collapse:collapse;width:100%}
+  th,td{border:1px solid #2a3344;padding:6px 8px;text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  th{color:var(--muted);font-weight:600;background:#141923}
+  .hi{background:#1a3a2a;color:var(--good)}
+  .lo{background:#3a1a1a;color:var(--bad)}
+  .test{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .opt{padding:14px 18px;border:1px solid #334;border-radius:10px;background:#10141c;cursor:pointer;font-size:18px;font-family:ui-monospace,Menlo,monospace;letter-spacing:1px}
+  .opt:hover{border-color:#69f}
+  .score{font-size:14px;color:var(--muted)}
+  .lattice{overflow-x:auto;background:#0a0d12;padding:10px;border-radius:8px}
+  svg{display:block}
+  .footnote{color:var(--muted);font-size:12px;margin-top:8px}
+  label{font-size:13px;color:var(--muted);margin-right:8px}
+  input[type=range]{vertical-align:middle}
+</style>
+</head>
+<body>
+<header>
+  <h1>Demo 1 · Saffran 1996 现场重做</h1>
+  <p>课堂用：让学生在 ~2 分钟内"亲身跑一次 Baum-Welch / 后验词边界"，再做 2AFC，最后看自己脑子里的转移概率矩阵。</p>
+</header>
+<main>
+
+  <section class="card">
+    <h2>① 暴露阶段：连续伪词语流</h2>
+    <p>四个伪词随机串接，无任何停顿/韵律线索。仅 syllable transitional probability 区分"词内"(p=1.0) 与"词间"(p=1/3)。</p>
+    <p>
+      <span class="pill">tupiro</span>
+      <span class="pill">golabu</span>
+      <span class="pill">bidaku</span>
+      <span class="pill">padoti</span>
+    </p>
+    <div style="margin:10px 0">
+      <label>暴露时长</label>
+      <input id="dur" type="range" min="30" max="180" value="120" step="10" />
+      <span id="durLab">120</span> 秒
+      &nbsp;&nbsp;
+      <label>语速</label>
+      <input id="rate" type="range" min="0.6" max="1.4" value="1" step="0.05" />
+      <span id="rateLab">1.00</span>
+      &nbsp;&nbsp;
+      <button id="play" class="primary">▶ 开始播放语流</button>
+      <button id="stop">■ 停止</button>
+    </div>
+    <div class="stream" id="streamBox">（点开始后，这里会实时滚动当前的语流。学生听就好，不要看屏。）</div>
+    <p class="footnote">实现说明：用浏览器 SpeechSynthesis 拼合，因此具体音色与 Saffran 1996 的 MITalk 合成略有差异，但 transitional probability 结构完全一致。</p>
+  </section>
+
+  <div style="height:18px"></div>
+
+  <section class="card">
+    <h2>② 测试阶段：2AFC（"哪个更像你刚才听到的'词'？"）</h2>
+    <p>每一题对比：<b>真词</b>（语流中真的存在的 trigram，词内 TP=1）vs <b>部分词 part-word</b>（跨词边界拼出来的 trigram，词间 TP=1/3）。</p>
+    <div id="trialBox" class="test"></div>
+    <p class="score" id="scoreLab">尚未开始测试。</p>
+    <button id="startTest" class="primary">开始 2AFC（8 题）</button>
+    <button id="resetTest">重置</button>
+  </section>
+
+  <div style="height:18px"></div>
+
+  <section class="card">
+    <h2>③ 你刚才在脑里跑了什么：syllable transition probability 矩阵</h2>
+    <p>下表是从语流统计出来的 P(syllable<sub>t+1</sub> | syllable<sub>t</sub>)。词内格子 = 高（绿，≈1.0），词间格子 = 低（红，≈0.33）。后验词边界 = 低 TP 的位置。</p>
+    <div id="matrixBox"></div>
+    <p class="footnote">这就是 HMM 把"音节属于词内 / 词边界"作为隐藏状态时，<b>E 步</b>得到的 posterior（学生注意：他们不是在数频率——Aslin et al. 1998 把频率匹配掉了，他们在数条件概率）。</p>
+  </section>
+
+  <div style="height:18px"></div>
+
+  <section class="card">
+    <h2>④ 前向格点（forward lattice）可视化</h2>
+    <p>选一段你刚才听到的音节序列，看模型在每个位置上"词内 vs 词边界"两条假设的相对置信度如何递推。</p>
+    <div style="margin:8px 0">
+      <button id="latticeBtn">用一段示例语流跑前向算法</button>
+    </div>
+    <div class="lattice" id="latticeBox"></div>
+  </section>
+
+</main>
+
+<script>
+// ------------ 材料 ------------
+const WORDS = ["tupiro","golabu","bidaku","padoti"];
+const SYLL  = {tupiro:["tu","pi","ro"], golabu:["go","la","bu"], bidaku:["bi","da","ku"], padoti:["pa","do","ti"]};
+const ALL_SYL = Object.values(SYLL).flat(); // 12 syllables
+// ------------ ① 生成 + 朗读语流 ------------
+let stream=[]; // syllable list
+function buildStream(seconds){
+  // 假设每音节 ~0.27s（Saffran 是 0.21s，浏览器 TTS 慢一点）
+  const n = Math.max(60, Math.round(seconds/0.27));
+  const out = [];
+  let last = -1;
+  while(out.length < n){
+    let i; do{ i = Math.floor(Math.random()*4); } while(i===last); // 避免相邻重复词
+    last = i;
+    out.push(...SYLL[WORDS[i]]);
+  }
+  return out.slice(0,n);
+}
+let utt=null, playing=false;
+const $ = id=>document.getElementById(id);
+$("dur").addEventListener("input",e=>$("durLab").textContent=e.target.value);
+$("rate").addEventListener("input",e=>$("rateLab").textContent=Number(e.target.value).toFixed(2));
+$("play").onclick = ()=>{
+  if(playing) return;
+  playing=true;
+  const sec = +$("dur").value;
+  stream = buildStream(sec);
+  const text = stream.join("");          // 关键：不加空格、不加标点 → 无韵律线索
+  $("streamBox").textContent = stream.join(" ");
+  utt = new SpeechSynthesisUtterance(text);
+  utt.lang="en-US"; utt.rate=+$("rate").value; utt.pitch=1;
+  utt.onend = ()=>{ playing=false; };
+  speechSynthesis.cancel(); speechSynthesis.speak(utt);
+  buildMatrix(); // 用当前 stream 算
+};
+$("stop").onclick = ()=>{ speechSynthesis.cancel(); playing=false; };
+
+// ------------ ② 2AFC ------------
+function partWord(){
+  // 跨词边界的 trigram：取 wordA 末两音节 + wordB 首音节
+  while(true){
+    const a = WORDS[Math.floor(Math.random()*4)];
+    const b = WORDS[Math.floor(Math.random()*4)];
+    if(a===b) continue;
+    return SYLL[a].slice(1).concat(SYLL[b].slice(0,1)).join("");
+  }
+}
+let trial=0, correct=0, total=8, inTest=false;
+function nextTrial(){
+  if(trial>=total){
+    $("trialBox").innerHTML="";
+    $("scoreLab").innerHTML = `测试结束 → 正确 <b>${correct}/${total}</b>，预期 chance=${total/2}。班级层面汇总后做 binomial test。`;
+    inTest=false; return;
+  }
+  trial++;
+  const real = WORDS[Math.floor(Math.random()*4)];
+  const part = partWord();
+  const order = Math.random()<0.5 ? [real,part] : [part,real];
+  $("trialBox").innerHTML = `
+    <div>第 ${trial}/${total} 题：</div>
+    <div class="opt" data-w="${order[0]}">${order[0]}</div>
+    <div class="opt" data-w="${order[1]}">${order[1]}</div>
+  `;
+  document.querySelectorAll(".opt").forEach(el=>{
+    el.onclick = ()=>{
+      if(el.dataset.w===real) correct++;
+      $("scoreLab").textContent = `进度 ${trial}/${total}，当前正确 ${correct}`;
+      setTimeout(nextTrial,250);
+    };
+  });
+}
+$("startTest").onclick = ()=>{ trial=0;correct=0;inTest=true; nextTrial(); };
+$("resetTest").onclick = ()=>{ trial=0;correct=0;$("trialBox").innerHTML="";$("scoreLab").textContent="已重置。"; };
+
+// ------------ ③ TP 矩阵 ------------
+function buildMatrix(){
+  // 若学生还没播放，就用一个 600 音节的合成 stream 来展示
+  const seq = stream.length? stream : buildStream(600*0.27);
+  const idx = Object.fromEntries(ALL_SYL.map((s,i)=>[s,i]));
+  const M = Array.from({length:12},()=>Array(12).fill(0));
+  for(let t=0;t<seq.length-1;t++){ M[idx[seq[t]]][idx[seq[t+1]]]++; }
+  const row = M.map(r=>r.reduce((a,b)=>a+b,0));
+  // 渲染
+  let html = "<table><tr><th>from \\ to</th>";
+  ALL_SYL.forEach(s=>html+=`<th>${s}</th>`);
+  html+="</tr>";
+  ALL_SYL.forEach((s,i)=>{
+    html+=`<tr><th>${s}</th>`;
+    ALL_SYL.forEach((s2,j)=>{
+      const p = row[i]? M[i][j]/row[i]:0;
+      const cls = p>0.7?"hi":(p>0.05?"":"lo");
+      html+=`<td class="${cls}">${p.toFixed(2)}</td>`;
+    });
+    html+="</tr>";
+  });
+  html+="</table>";
+  $("matrixBox").innerHTML=html;
+}
+buildMatrix();
+
+// ------------ ④ 前向格点（玩具版 2 状态 HMM：S=word-internal, B=word-boundary） ------------
+$("latticeBtn").onclick = ()=>{
+  const seq = stream.length? stream.slice(0,18) : buildStream(20*0.27).slice(0,18);
+  // 用经验 TP 当 emission：高 TP → 倾向 S；低 TP → 倾向 B
+  const idx = Object.fromEntries(ALL_SYL.map((s,i)=>[s,i]));
+  // 重新算 TP
+  const seqAll = stream.length? stream : buildStream(600*0.27);
+  const M = Array.from({length:12},()=>Array(12).fill(0));
+  for(let t=0;t<seqAll.length-1;t++){ M[idx[seqAll[t]]][idx[seqAll[t+1]]]++; }
+  const row = M.map(r=>r.reduce((a,b)=>a+b,0));
+  function tp(a,b){ return row[idx[a]]? M[idx[a]][idx[b]]/row[idx[a]]:0; }
+  // forward
+  // 状态：0 = within-word，1 = boundary-just-crossed
+  // 转移：A[s,s']  ; emit(s,obs_pair_tp): 若 s=0 期望 high TP，若 s=1 期望 low TP
+  const A = [[0.7,0.3],[0.3,0.7]];
+  const emit = (s,p)=> s===0? Math.max(p,0.01) : Math.max(1-p,0.01);
+  let alpha = [0.5,0.5];
+  const trace=[alpha.slice()];
+  for(let t=0;t<seq.length-1;t++){
+    const p = tp(seq[t],seq[t+1]);
+    const next=[0,0];
+    for(let s2=0;s2<2;s2++){
+      let sum=0;
+      for(let s1=0;s1<2;s1++) sum += alpha[s1]*A[s1][s2];
+      next[s2] = sum*emit(s2,p);
+    }
+    const Z = next[0]+next[1];
+    alpha=[next[0]/Z, next[1]/Z];
+    trace.push(alpha.slice());
+  }
+  // 画 SVG 格点
+  const W=Math.max(720, seq.length*48), H=180, pad=40;
+  const xs = i=> pad + i*((W-2*pad)/(seq.length-1));
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+  // 轴
+  svg += `<text x="6" y="40" fill="#8b95a7" font-size="12">P(within)</text>`;
+  svg += `<text x="6" y="${H-20}" fill="#8b95a7" font-size="12">P(boundary)</text>`;
+  // 音节标签
+  seq.forEach((s,i)=> svg+=`<text x="${xs(i)}" y="${H-2}" font-size="12" fill="#cfd6e2" text-anchor="middle">${s}</text>`);
+  // 两条线
+  function path(stateIdx,color){
+    let d="";
+    trace.forEach((a,i)=>{
+      const x = xs(i);
+      const y = 30 + (1-a[stateIdx])*(H-70);
+      d += (i?"L":"M")+x+" "+y+" ";
+    });
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>`;
+  }
+  svg += path(0,"#7ee2a8"); // within
+  svg += path(1,"#ff8a8a"); // boundary
+  // 高亮 boundary 高于 0.6 的位置
+  trace.forEach((a,i)=>{
+    if(a[1]>0.6){
+      svg += `<line x1="${xs(i)}" y1="20" x2="${xs(i)}" y2="${H-22}" stroke="#ffd479" stroke-dasharray="3,3"/>`;
+    }
+  });
+  svg += `</svg>`;
+  $("latticeBox").innerHTML = svg + `<div class="footnote">绿线 = P(within-word | observations)，红线 = P(boundary | observations)。黄色虚线 = 模型推断出的"词边界后验高峰"。和 Saffran 的真词边界对照一下，你会发现它们几乎完全一致——这就是 Baum-Welch E 步给学生大脑里跑出来的东西。</div>`;
+};
+</script>
+</body>
+</html>
+</div></article></div></main><footer><div class="copyright"><p>&copy; 2026 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.start()
+})</script></body></html>

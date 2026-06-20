@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Demo 3 · 花园路径接龙 (Viterbi 回溯)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --ink:#e8ecf1; --muted:#8b95a7;
+    --accent:#7cc5ff; --accent2:#ffd479; --good:#7ee2a8; --bad:#ff8a8a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB",sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:22px 28px;border-bottom:1px solid #222a36}
+  header h1{margin:0 0 4px;font-size:20px}
+  header p{margin:0;color:var(--muted)}
+  main{padding:22px 28px;max-width:1080px;margin:auto}
+  .card{background:var(--panel);border:1px solid #232a36;border-radius:12px;padding:18px;margin-bottom:18px}
+  .card h2{margin:0 0 10px;font-size:16px;color:var(--accent)}
+  button{background:#22304a;border:1px solid #2f4063;color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+  button.primary{background:#27507f;border-color:#3a73b8}
+  .stage{font-size:32px;line-height:1.6;background:#0a0d12;border-radius:10px;padding:30px;text-align:center;font-family:"Times New Roman",serif;letter-spacing:.5px;min-height:140px;display:flex;align-items:center;justify-content:center}
+  .word{margin:0 6px;color:#e8ecf1}
+  .ghost{color:#444}
+  .focus{color:#ffd479}
+  .surprise{background:#3a1a1a;color:#ff8a8a;padding:0 6px;border-radius:4px;animation:pulse .6s}
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .rt-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;align-items:end}
+  .rt{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#cfd6e2;text-align:center;width:90px}
+  .bar{background:#22304a;border:1px solid #2f4063;border-radius:3px;width:90px}
+  .bar.high{background:#5a1f1f;border-color:#a84141}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#22304a;color:var(--accent);font-size:12px;margin-right:6px}
+  .footnote{color:var(--muted);font-size:12px;margin-top:8px}
+  pre{background:#0a0d12;border-radius:8px;padding:10px;overflow:auto;font-size:13px;color:#cfd6e2}
+  .parse{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .parse > div{background:#0a0d12;border-radius:10px;padding:14px}
+  .parse h3{margin:0 0 6px;font-size:14px;color:var(--accent2)}
+  ul.queue{list-style:none;padding:0;margin:0}
+  ul.queue li{padding:6px 10px;border:1px solid #232a36;border-radius:8px;margin:4px 0;cursor:pointer;background:#0a0d12}
+  ul.queue li.done{opacity:.5;text-decoration:line-through}
+  .legend{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Demo 3 · 花园路径接龙</h1>
+  <p>课堂用：让学生做一次 word-by-word self-paced reading（按空格逐词推进），实时记录每个词的反应时；当遇到 <i>disambiguation point</i>，学生会"卡一下"——这就是 Viterbi 回溯到上一时刻最佳前驱的代价。</p>
+</header>
+<main>
+
+  <section class="card">
+    <h2>① 句子题库（按空格逐词推进；越想越慢=回溯发生）</h2>
+    <ul class="queue" id="queue"></ul>
+    <button id="loadAll" class="primary">载入题库</button>
+    <button id="reset">清空记录</button>
+  </section>
+
+  <section class="card">
+    <h2>② 阅读舞台</h2>
+    <div class="stage" id="stage">点上面任一句开始。按 <b>空格</b> 推进下一个词。</div>
+    <div class="rt-row" id="rtRow"></div>
+    <p class="footnote" id="status">尚未开始。</p>
+  </section>
+
+  <section class="card">
+    <h2>③ 解析（forward 单一路径 vs Viterbi 回溯）</h2>
+    <div class="parse">
+      <div>
+        <h3>初始最佳路径（被 garden-path 误导）</h3>
+        <pre id="parseA">—</pre>
+      </div>
+      <div>
+        <h3>歧义点之后的重分析（Viterbi 回到 t* 重新选）</h3>
+        <pre id="parseB">—</pre>
+      </div>
+    </div>
+    <p class="footnote">van Schijndel & Linzen (2021) 的关键：纯 forward surprisal 预测的减速量级 ≪ 实际花园路径减速；额外的减速 = <b>回溯/重新分析</b> 成本——也就是 Viterbi 把指针拉回 t* 的那一步。</p>
+  </section>
+
+  <section class="card">
+    <h2>④ 班级数据（直接做 by-region 对比）</h2>
+    <div id="agg"></div>
+    <p class="footnote">把同句的 critical region (例如 "fell" / "complex" 后的动词) RT 与 baseline region 做配对 t-test，让学生当场看 garden-path effect 的统计显著性。</p>
+  </section>
+
+</main>
+
+<script>
+const SENTS = [
+  {
+    id:"horse",
+    words:["The","horse","raced","past","the","barn","fell","."],
+    critical:6, // index of "fell"
+    parseA:"[NP The horse] [VP raced [PP past [NP the barn]]]  ← 主从动词 raced (主动)\n            ↑ 模型把 'raced' 当作主句过去时动词；没有给 'fell' 留位置",
+    parseB:"[NP The horse [RC (which was) raced past the barn]] [VP fell].\n            ↑ 在 'fell' 出现后回溯，把 'raced past the barn' 重解释为 reduced relative clause",
+    note:"Bever 1970 的开山句。'fell' 处 Viterbi 必须回到 t*=2 重新选。"
+  },
+  {
+    id:"old",
+    words:["The","old","man","the","boats","."],
+    critical:3,
+    parseA:"[NP The old man] [VP the boats]?\n            ↑ 'man' 默认当名词，'the boats' 卡住找不到动词",
+    parseB:"[NP The old] [VP man [NP the boats]].\n            ↑ 把 'old' 重解释为名词 (= 老人们)，'man' 作动词 (= 操控)",
+  },
+  {
+    id:"complex",
+    words:["The","complex","houses","married","soldiers","."],
+    critical:3,
+    parseA:"[NP The complex houses] [VP married soldiers]?\n            ↑ 'complex houses' 当名词短语，'married' 当动词（动作）",
+    parseB:"[NP The complex] [VP houses [NP married soldiers]].\n            ↑ 'complex' = 公寓楼，'houses' 作动词，'married soldiers' 是直接宾语",
+  },
+  {
+    id:"flies",
+    words:["Time","flies","like","an","arrow",";","fruit","flies","like","a","banana","."],
+    critical:7,
+    parseA:"[S Time flies like an arrow]; [S fruit flies like a banana].\n            ↑ 第二句继承第一句结构：fruit 像香蕉那样飞？",
+    parseB:"[S Time flies like an arrow]; [NP fruit flies] [VP like [NP a banana]].\n            ↑ 第二句完全不同：'fruit flies' 是名词短语 (果蝇)，'like' 是动词 (喜欢)",
+  }
+];
+
+const $ = id => document.getElementById(id);
+let cur=null, idx=0, t0=0, rts=[], allData={};
+
+function renderQueue(){
+  $("queue").innerHTML = SENTS.map(s=>`<li data-id="${s.id}">${s.words.join(" ")}</li>`).join("");
+  document.querySelectorAll("#queue li").forEach(li=>{
+    li.onclick = ()=> startSent(li.dataset.id);
+  });
+}
+$("loadAll").onclick = renderQueue;
+renderQueue();
+
+function startSent(id){
+  cur = SENTS.find(s=>s.id===id);
+  idx = 0; rts = [];
+  $("status").textContent = `句子: ${cur.id} · 按空格推进 (共 ${cur.words.length} 个词)`;
+  draw();
+  $("rtRow").innerHTML="";
+  $("parseA").textContent="（边读边在心里跑前向算法...）";
+  $("parseB").textContent="（遇到 critical word 后再揭晓 Viterbi 回溯路径）";
+  t0 = performance.now();
+  document.querySelector(`li[data-id="${id}"]`)?.classList.add("done");
+}
+function draw(){
+  if(!cur){ $("stage").textContent="点上面任一句开始。"; return; }
+  const html = cur.words.map((w,i)=>{
+    if(i<idx) return `<span class="word">${w}</span>`;
+    if(i===idx) {
+      const isCrit = i===cur.critical;
+      return `<span class="word ${isCrit?'surprise':'focus'}">${w}</span>`;
+    }
+    return `<span class="word ghost">_</span>`;
+  }).join("");
+  $("stage").innerHTML = html;
+}
+function finishSent(){
+  // 渲染 RT bar
+  const max = Math.max(...rts,1);
+  $("rtRow").innerHTML = cur.words.map((w,i)=>{
+    if(i>=rts.length) return "";
+    const h = Math.round(rts[i]/max*100);
+    const high = i===cur.critical;
+    return `<div class="rt"><div class="bar ${high?'high':''}" style="height:${h}px"></div><div>${w}</div><div>${rts[i].toFixed(0)} ms</div></div>`;
+  }).join("");
+  $("parseA").textContent = cur.parseA;
+  $("parseB").textContent = cur.parseB;
+  if(!allData[cur.id]) allData[cur.id]=[];
+  allData[cur.id].push(rts.slice());
+  renderAgg();
+  $("status").textContent = `完成 ${cur.id}。critical word "${cur.words[cur.critical]}" 的 RT = ${rts[cur.critical]?.toFixed(0)} ms。`;
+}
+function renderAgg(){
+  let html="<table style='border-collapse:collapse'><tr><th style='padding:4px 8px;color:#8b95a7'>句</th><th style='padding:4px 8px;color:#8b95a7'>n</th><th style='padding:4px 8px;color:#8b95a7'>baseline 平均 RT</th><th style='padding:4px 8px;color:#8b95a7'>critical 平均 RT</th><th style='padding:4px 8px;color:#8b95a7'>spillover</th></tr>";
+  for(const id in allData){
+    const trials = allData[id];
+    const sent = SENTS.find(s=>s.id===id);
+    const c = sent.critical;
+    let crit=[], base=[];
+    trials.forEach(rt=>{
+      if(rt[c]!=null) crit.push(rt[c]);
+      rt.forEach((r,i)=>{ if(i!==c && i<rt.length-1 && i>0) base.push(r); });
+    });
+    const m = a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(0):"—";
+    const spill = trials.map(rt=>rt[c+1]).filter(x=>x!=null);
+    html+=`<tr><td style='padding:4px 8px'>${id}</td><td style='padding:4px 8px'>${trials.length}</td><td style='padding:4px 8px'>${m(base)} ms</td><td style='padding:4px 8px;color:#ff8a8a'>${m(crit)} ms</td><td style='padding:4px 8px'>${m(spill)} ms</td></tr>`;
+  }
+  html+="</table>";
+  $("agg").innerHTML = html;
+}
+
+// 按空格逐词推进；记录每个词的 RT
+window.addEventListener("keydown", e=>{
+  if(e.code!=="Space" || !cur) return;
+  e.preventDefault();
+  if(idx>=cur.words.length) return;
+  const t1 = performance.now();
+  rts.push(t1-t0);
+  t0 = t1;
+  idx++;
+  if(idx>=cur.words.length){ draw(); finishSent(); cur=null; return; }
+  draw();
+});
+
+$("reset").onclick = ()=>{
+  allData={}; cur=null; rts=[]; idx=0;
+  $("rtRow").innerHTML="";
+  $("agg").innerHTML="";
+  $("parseA").textContent="—"; $("parseB").textContent="—";
+  $("stage").textContent="已重置。点题目开始。";
+  document.querySelectorAll("#queue li").forEach(li=>li.classList.remove("done"));
+};
+</script>
+</body>
+</html>
+</div></article></div></main><footer><div class="copyright"><p>&copy; 2026 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.start()
+})</script></body></html>

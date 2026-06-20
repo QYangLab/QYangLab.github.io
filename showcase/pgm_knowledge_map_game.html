@@ -1,0 +1,623 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGM 知识地图 · 寻路游戏</title>
+<script>
+  MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+<style>
+  :root{
+    --bg:#f8fafc; --card:#ffffff; --ink:#0f172a; --muted:#475569; --border:#cbd5e1;
+    --blue:#2563eb; --purple:#7c3aed; --orange:#ea580c; --green:#16a34a; --red:#dc2626;
+    --root:#334155; --trunk:#1e3a8a; --model:#2563eb; --algo:#ea580c; --stat:#0891b2; --approx:#7c3aed;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);}
+  header{padding:16px 24px;background:var(--card);border-bottom:1px solid var(--border);}
+  header h1{margin:0;font-size:20px;}
+  header p{margin:4px 0 0;color:var(--muted);font-size:13px;}
+  .layout{display:flex;height:calc(100vh - 70px);}
+  .side{width:300px;flex:none;background:var(--card);border-right:1px solid var(--border);
+    overflow-y:auto;padding:16px;}
+  .stage{flex:1;position:relative;overflow:hidden;}
+  svg#graph{width:100%;height:100%;display:block;background:
+    radial-gradient(circle at 30% 20%, #ffffff, #eef2f7);}
+  .panel{margin-bottom:18px;}
+  .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+    margin:0 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+  .hud-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+    background:rgba(15,23,42,.82);color:#fff;font-size:12px;padding:7px 14px;border-radius:20px;
+    pointer-events:none;z-index:40;white-space:nowrap;}
+  .toggle{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px;cursor:pointer;}
+  .toggle input{width:16px;height:16px;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:12px;margin:5px 0;}
+  .legend-line{width:30px;height:0;flex:none;}
+  .legend-swatch{width:14px;height:14px;border-radius:50%;flex:none;}
+  /* node + edge */
+  .edge{transition:stroke-opacity .2s;}
+  .node-circle{cursor:pointer;transition:.15s;stroke:#fff;stroke-width:2;}
+  .node-circle:hover{filter:brightness(1.12);}
+  .node-label{font-size:11px;pointer-events:none;fill:var(--ink);font-weight:600;
+    paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;}
+  .node.case-anchor .case-dot{fill:#fbbf24;stroke:#b45309;stroke-width:1;}
+  /* case popup */
+  #casePopup{position:absolute;max-width:320px;background:var(--card);border:1px solid var(--border);
+    border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.18);padding:14px;display:none;z-index:50;font-size:13px;}
+  #casePopup h3{margin:0 0 4px;font-size:15px;}
+  #casePopup .chap{font-size:11px;color:var(--orange);font-weight:700;}
+  #casePopup .formula{background:var(--bg);border-radius:8px;padding:8px;margin:8px 0;text-align:center;overflow-x:auto;}
+  #casePopup .close{position:absolute;top:8px;right:10px;border:none;background:none;font-size:18px;color:var(--muted);padding:0;}
+  #tooltip{position:absolute;background:#0f172a;color:#fff;font-size:12px;padding:6px 9px;border-radius:6px;
+    pointer-events:none;display:none;max-width:240px;z-index:60;line-height:1.4;}
+  .why-badge{display:inline-block;background:#ede9fe;color:var(--purple);border-radius:6px;padding:2px 6px;font-size:11px;margin-top:6px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>PGM 知识地图 · 概念关系可视化</h1>
+  <p>节点是概念，边是 <b>包含 / 相关 / 复杂度</b> 三类关系。点击带金点的节点可查看挂着的经典案例；<b>拖动节点</b>会让它的整个子树（contains 后代）随之平移，方便手动整理布局。<br>
+  <span style="color:#7c3aed">初始布局由图最短路距离经 MDS 流形嵌入得到（stress-1≈0.24）：平面上越近的概念，在知识图上关系也越近。</span></p>
+</header>
+
+<div class="layout">
+  <aside class="side">
+    <div class="panel">
+      <h2>显示开关</h2>
+      <label class="toggle"><input type="checkbox" id="tgContains" checked> 包含边（主干树）</label>
+      <label class="toggle"><input type="checkbox" id="tgRelated" checked> 横向相关边</label>
+      <label class="toggle"><input type="checkbox" id="tgProgression" checked> 复杂度箭头</label>
+    </div>
+
+    <div class="panel">
+      <h2>关系图例</h2>
+      <div class="legend-item"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--blue)" stroke-width="3"/></svg> 包含 contains（父→子）</div>
+      <div class="legend-item"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--purple)" stroke-width="3" stroke-dasharray="5,4"/></svg> 相关 related（双向）</div>
+      <div class="legend-item"><svg width="30" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="var(--orange)" stroke-width="3"/><polygon points="24,1 30,4 24,7" fill="var(--orange)"/></svg> 复杂度 progression（简→繁）</div>
+    </div>
+
+    <div class="panel">
+      <h2>节点类型</h2>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--trunk)"></span> 主干 / 章节</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--model)"></span> 模型</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--algo)"></span> 算法</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--stat)"></span> 统计基础</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--approx)"></span> 近似推断</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#fbbf24;border:1px solid #b45309"></span> 带经典案例（点击查看）</div>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <svg id="graph"></svg>
+    <div id="tooltip"></div>
+    <div id="casePopup">
+      <button class="close" onclick="document.getElementById('casePopup').style.display='none'">×</button>
+      <div class="chap" id="casChap"></div>
+      <h3 id="casTitle"></h3>
+      <div id="casDesc"></div>
+      <div class="formula" id="casFormula"></div>
+      <div id="casWhy"></div>
+    </div>
+    <div class="hud-hint" id="hudHint">拖动节点 → 平移其子树 · 悬停 → 高亮邻居 · 点金点 → 查看案例</div>
+  </main>
+</div>
+
+<script>
+/* =========================================================================
+   数据模型：~30 个核心节点 + 案例锚点。
+   有意砍掉的微机制/近义词：belief propagation(并入 sum-product)、fill-in/
+   separator 一致性、有向分解、potential↔因子节点重命名、充分统计量、
+   BIC/贝叶斯因子(并入"模型比较")、AR/OLDS(并入 LDS)、blocked Gibbs、
+   rejection-proposal、anchoring-MH 等。
+   ========================================================================= */
+const TYPE_COLOR = {root:'var(--root)',trunk:'var(--trunk)',model:'var(--model)',
+  algorithm:'var(--algo)',stat:'var(--stat)',approx:'var(--approx)'};
+const RAD = {root:26,trunk:20,model:16,algorithm:16,stat:15,approx:16};
+
+const nodes = [
+  // 根
+  {id:'root', label:'PGM 知识地图', type:'root', hint:'整本书的起点：用概率图模型统一描述心智与推断。'},
+  // 主干（章节簇）
+  {id:'prob_basics', label:'概率基础与生成模型', type:'trunk', hint:'联合分布、条件独立、贝叶斯公式（ch1）。'},
+  {id:'static_graph', label:'静态图模型', type:'trunk', hint:'贝叶斯网与马尔可夫网络（ch2–3）。'},
+  {id:'inference', label:'图上推断', type:'trunk', hint:'在图上计算边缘 / MAP（ch4）。'},
+  {id:'learning', label:'学习', type:'trunk', hint:'从数据估计参数与结构（ch6–8）。'},
+  {id:'dynamic', label:'动态模型', type:'trunk', hint:'随时间演化的隐状态（ch10–11）。'},
+  {id:'approx', label:'近似推断', type:'trunk', hint:'精确推断不可行时的采样与变分（ch12–13）。'},
+
+  // 概率基础
+  {id:'joint', label:'联合分布', type:'stat', hint:'$p(x_1,\\dots,x_n)$，所有变量的完整描述。'},
+  {id:'factorization', label:'因子分解', type:'stat', hint:'把联合分布拆成局部因子之积。'},
+  {id:'cond_indep', label:'条件独立', type:'stat', hint:'$X\\perp Y\\mid Z$，图结构的语义核心。'},
+  {id:'bayes_rule', label:'贝叶斯公式', type:'stat', hint:'$p(h\\mid d)\\propto p(d\\mid h)\\,p(h)$。'},
+  {id:'gen_model', label:'生成模型', type:'model', hint:'先验×似然，描述数据如何被生成。',
+    cas:{chap:'ch1 · 贝叶斯心智', title:'基率忽视：贝叶斯诊断',
+      desc:'病检阳性时，人们常忽略疾病基率而高估患病概率。生成模型把"先验×似然"摆在眼前。',
+      formula:'$$p(D\\mid +)=\\dfrac{p(+\\mid D)\\,p(D)}{p(+)}$$'}},
+
+  // 静态图：模型
+  {id:'bayes_net', label:'贝叶斯网', type:'model', hint:'有向无环图 (DAG) 上的因子分解。',
+    cas:{chap:'ch2 · 因果学习', title:'Gopnik Blicket Detector',
+      desc:'儿童通过观察哪些积木能点亮探测器，推断因果结构 —— 一个有向图的结构学习。',
+      formula:'$$p(\\text{结构}\\mid \\text{数据})\\propto p(\\text{数据}\\mid\\text{结构})\\,p(\\text{结构})$$'}},
+  {id:'markov_net', label:'马尔可夫网络', type:'model', hint:'无向图 + 势函数 / 能量。',
+    cas:{chap:'ch3 · 视觉', title:'Ising / MRF 视觉去噪',
+      desc:'相邻像素倾向相同（平滑先验），能量最低的配置就是去噪结果 —— 知觉补全的经典隐喻。',
+      formula:'$$p(x)=\\tfrac1Z\\exp\\!\\Big(-\\sum_{i\\sim j}\\psi(x_i,x_j)\\Big)$$'}},
+  {id:'factor_graph', label:'因子图', type:'model', hint:'变量节点 + 因子节点，消息传递的统一舞台。'},
+  {id:'markov_blanket', label:'Markov blanket', type:'stat', hint:'屏蔽一个节点与其余图的最小集合。'},
+  {id:'energy', label:'能量函数', type:'stat', hint:'$E(x)$ 越低概率越高，联想记忆的吸引子。',
+    cas:{chap:'ch3 · 记忆', title:'Boltzmann 联想记忆补全',
+      desc:'残缺线索沿能量面下降，落入存储模式 —— Hopfield/玻尔兹曼式的记忆提取。',
+      formula:'$$p(x)\\propto e^{-E(x)/T}$$'}},
+
+  // 推断：算法
+  {id:'var_elim', label:'变量消元', type:'algorithm', hint:'按顺序求和消去变量，精确但受图宽限制。'},
+  {id:'sum_product', label:'sum-product', type:'algorithm', hint:'树形因子图上用局部消息算边缘（含 belief propagation）。',
+    cas:{chap:'ch4 · 多感觉整合', title:'多线索整合是一次消息传递',
+      desc:'视觉与触觉两条似然相乘再归一化，就是因子图上的一步 sum-product。',
+      formula:'$$\\mu_{f\\to x}(x)=\\sum_{\\sim x} f\\!\\prod_{y}\\mu_{y\\to f}(y)$$'}},
+  {id:'max_product', label:'max-product', type:'algorithm', hint:'把求和换成取最大，找最可能配置 (MAP)。'},
+  {id:'map', label:'MAP 推断', type:'algorithm', hint:'最可能的整体解释 $\\arg\\max_x p(x\\mid d)$。'},
+  {id:'junction_tree', label:'junction tree', type:'algorithm', hint:'把图聚成团树做精确推断；团太大则困难。'},
+  {id:'pred_coding', label:'预测编码', type:'algorithm', hint:'层级网络用预测误差自下而上传递。',
+    cas:{chap:'ch4 · 知觉', title:'Predictive Coding 层级消息',
+      desc:'每层只上传"预测误差"，是大脑中 sum-product 式消息传递的神经实现假说。',
+      formula:'$$\\varepsilon = x - \\hat{x},\\quad \\hat{x}\\leftarrow \\hat{x}+\\eta\\,\\varepsilon$$'}},
+
+  // 学习
+  {id:'mle', label:'MLE', type:'stat', hint:'最大似然：让数据最可能。'},
+  {id:'map_learn', label:'MAP 估计', type:'stat', hint:'似然×先验后取峰值。'},
+  {id:'bayes_param', label:'贝叶斯参数学习', type:'stat', hint:'保留参数的整个后验，而非一个点。',
+    cas:{chap:'ch7 · 概念学习', title:'Xu & Tenenbaum 强抽样',
+      desc:'仅几个正例就能推断概念范围，因为"被有意挑选"的强抽样让似然更尖锐。',
+      formula:'$$p(C\\mid X)\\propto \\Big(\\tfrac1{|C|}\\Big)^{n} p(C)$$'}},
+  {id:'conjugacy', label:'Beta-Bernoulli 共轭', type:'stat', hint:'先验与后验同族，更新只是加计数。',
+    cas:{chap:'ch7 · 学习即推断', title:'共轭更新 = 计数累加',
+      desc:'每次观测只把 $\\alpha,\\beta$ 加一，后验信念平滑滑动 —— 序贯贝叶斯学习的最简形态。',
+      formula:'$$\\text{Beta}(\\alpha,\\beta)\\xrightarrow{x=1}\\text{Beta}(\\alpha+1,\\beta)$$'}},
+  {id:'model_compare', label:'模型比较', type:'stat', hint:'用模型证据 / Occam 因子权衡复杂度（含贝叶斯因子、BIC）。'},
+  {id:'latent', label:'隐变量模型', type:'model', hint:'存在未观测的类别 / 状态。'},
+  {id:'em', label:'EM 算法', type:'algorithm', hint:'E 步填后验、M 步做 MLE，交替上升。',
+    cas:{chap:'ch8 · 统计学习', title:'Schapiro 隐藏 Community 结构',
+      desc:'人脑能从连续刺激流中无监督地发现隐藏类别 —— EM 在高斯混合上反复"猜类别、更新中心"。',
+      formula:'$$Q(\\theta)=\\mathbb{E}_{z\\mid x,\\theta^{old}}[\\log p(x,z\\mid\\theta)]$$'}},
+  {id:'elbo', label:'ELBO', type:'stat', hint:'证据下界，把推断变成优化。',
+    cas:{chap:'ch8 · 知觉学习', title:'自由能 / ELBO 与知觉',
+      desc:'最小化自由能 = 最大化 ELBO，把"后验近似误差"写成可优化的 KL 问题。',
+      formula:'$$\\log p(x)\\ge \\mathbb{E}_q[\\log p(x,z)]-\\mathbb{E}_q[\\log q(z)]$$'}},
+  {id:'kl', label:'KL 散度', type:'stat', hint:'$D_{KL}(q\\|p)$，两分布的不对称距离。'},
+
+  // 动态模型
+  {id:'markov_chain', label:'Markov chain', type:'model', hint:'当前只依赖上一步的状态序列。'},
+  {id:'hmm', label:'HMM', type:'model', hint:'隐状态 + 观测的离散时序模型。',
+    cas:{chap:'ch10 · 语言', title:'Saffran 统计词切分',
+      desc:'8 月龄婴儿靠音节间转移概率切分连续语流 —— 隐"词边界"状态的 HMM 推断。',
+      formula:'$$\\text{TP}=\\dfrac{p(\\text{syl}_2\\mid\\text{syl}_1)}{\\dots}$$'}},
+  {id:'forward', label:'前向算法', type:'algorithm', hint:'滤波：递推 $p(z_t\\mid x_{1:t})$。'},
+  {id:'viterbi', label:'Viterbi', type:'algorithm', hint:'链形 HMM 上的 max-product，找最可能状态序列。',
+    cas:{chap:'ch10 · 词性标注', title:'Viterbi 词性标注 Trellis',
+      desc:'在 trellis 上回溯最优路径，给每个词标注最可能词性 —— 链上 max-product。',
+      formula:'$$\\delta_t(j)=\\max_i \\delta_{t-1}(i)\\,a_{ij}\\,b_j(x_t)$$'}},
+  {id:'baum_welch', label:'Baum-Welch', type:'algorithm', hint:'HMM 上的 EM，估计转移与发射概率。'},
+  {id:'lds', label:'LDS', type:'model', hint:'线性高斯动态系统（含 AR / OLDS）。'},
+  {id:'kalman', label:'Kalman filter', type:'algorithm', hint:'LDS 上的高斯滤波：预测 + 更新。',
+    cas:{chap:'ch11 · 运动控制', title:'Wolpert 运动控制 Kalman',
+      desc:'大脑用内部模型预测肢体状态，再用感觉反馈按 Kalman 增益纠正 —— 预测-更新闭环。',
+      formula:'$$\\hat{x}_t=\\hat{x}_t^-+K_t(y_t-H\\hat{x}_t^-)$$'}},
+  {id:'kalman_gain', label:'Kalman gain', type:'stat', hint:'$K$：按可靠性权衡预测与观测。',
+    cas:{chap:'ch11 · 线索可靠性', title:'Kalman Gain 与线索可靠性',
+      desc:'观测越可靠，增益越大、越信任新证据 —— 与多感觉整合的可靠性加权同构。',
+      formula:'$$K=\\dfrac{\\sigma^2_{pred}}{\\sigma^2_{pred}+\\sigma^2_{obs}}$$'}},
+  {id:'gauss_cond', label:'高斯条件化', type:'stat', hint:'联合高斯下，条件分布仍是高斯。'},
+  {id:'rts', label:'RTS 平滑', type:'algorithm', hint:'用未来信息向后修正过去估计。'},
+
+  // 近似推断
+  {id:'monte_carlo', label:'Monte Carlo', type:'approx', hint:'用样本均值近似期望。'},
+  {id:'importance', label:'重要性采样', type:'approx', hint:'从提议分布采样并加权。'},
+  {id:'particle', label:'粒子滤波', type:'approx', hint:'时序上的序贯重要性采样。'},
+  {id:'mcmc', label:'MCMC', type:'approx', hint:'构造平稳分布为目标的马尔可夫链。'},
+  {id:'mh', label:'Metropolis-Hastings', type:'approx', hint:'按接受率随机游走采样。',
+    cas:{chap:'ch12 · 知觉', title:'Necker 立方体 MH',
+      desc:'双稳知觉在两种深度解释间随机翻转 —— 像 MH 在双峰后验间穿越的采样轨迹。',
+      formula:'$$a=\\min\\!\\Big(1,\\dfrac{p(x\')q(x\\mid x\')}{p(x)q(x\'\\mid x)}\\Big)$$'}},
+  {id:'gibbs', label:'Gibbs sampling', type:'approx', hint:'逐变量从条件分布采样。',
+    cas:{chap:'ch12 · 采样', title:'二维高斯 Gibbs',
+      desc:'每次只更新一个变量、条件于其 Markov blanket —— 大脑"神经采样"的可能实现。',
+      formula:'$$x_i\\sim p(x_i\\mid x_{-i})=p(x_i\\mid \\text{MB}(x_i))$$'}},
+  {id:'laplace', label:'Laplace 近似', type:'approx', hint:'在 MAP 处用高斯拟合后验。'},
+  {id:'mean_field', label:'mean field', type:'approx', hint:'用可分解的 $q$ 近似后验。',
+    cas:{chap:'ch13 · 视觉', title:'平均场图像去噪',
+      desc:'把像素后验近似成各自独立，迭代更新每个像素信念 —— 变分推断的可视化样板。',
+      formula:'$$q(x)=\\prod_i q_i(x_i),\\quad \\min_q D_{KL}(q\\|p)$$'}},
+  {id:'vi', label:'变分推断', type:'approx', hint:'把推断写成最大化 ELBO 的优化问题。'},
+];
+
+const edges = [
+  // 主干 contains
+  e('root','prob_basics','contains'), e('root','static_graph','contains'),
+  e('root','inference','contains'), e('root','learning','contains'),
+  e('root','dynamic','contains'), e('root','approx','contains'),
+  // 概率基础 contains
+  e('prob_basics','joint','contains'), e('prob_basics','cond_indep','contains'),
+  e('prob_basics','bayes_rule','contains'), e('prob_basics','gen_model','contains'),
+  // 静态图 contains
+  e('static_graph','bayes_net','contains'), e('static_graph','markov_net','contains'),
+  e('static_graph','factor_graph','contains'),
+  // 推断 contains
+  e('inference','var_elim','contains'), e('inference','sum_product','contains'),
+  e('inference','max_product','contains'), e('inference','junction_tree','contains'),
+  e('inference','pred_coding','contains'),
+  // 学习 contains
+  e('learning','mle','contains'), e('learning','model_compare','contains'),
+  e('learning','latent','contains'), e('learning','em','contains'),
+  e('learning','elbo','contains'), e('learning','bayes_param','contains'),
+  // 动态 contains
+  e('dynamic','markov_chain','contains'), e('dynamic','hmm','contains'),
+  e('dynamic','lds','contains'),
+  // HMM 的算法挂在 HMM 下
+  e('hmm','forward','contains'), e('hmm','viterbi','contains'), e('hmm','baum_welch','contains'),
+  e('lds','kalman','contains'), e('lds','rts','contains'), e('kalman','kalman_gain','contains'),
+  // 近似 contains
+  e('approx','monte_carlo','contains'), e('approx','mcmc','contains'),
+  e('approx','mean_field','contains'), e('approx','laplace','contains'),
+  e('mcmc','mh','contains'), e('mcmc','gibbs','contains'),
+  e('monte_carlo','importance','contains'),
+
+  // 概率基础 ↔ 图模型 (related / progression)
+  e('joint','factorization','related'), e('cond_indep','markov_blanket','related'),
+  e('bayes_rule','bayes_net','progression'), e('gen_model','hmm','progression'),
+  e('gen_model','lds','progression'), e('factorization','bayes_net','related'),
+
+  // 图模型之间
+  e('bayes_net','markov_net','related'), e('bayes_net','factor_graph','progression'),
+  e('markov_net','factor_graph','progression'), e('markov_net','energy','related'),
+  e('markov_blanket','gibbs','related'),
+
+  // 推断横向
+  e('var_elim','sum_product','progression'), e('sum_product','forward','related'),
+  e('max_product','viterbi','related'), e('map','max_product','related'),
+  e('sum_product','factor_graph','related'), e('junction_tree','approx','progression'),
+  e('pred_coding','sum_product','related'),
+
+  // 学习横向
+  e('mle','map_learn','progression'), e('map_learn','bayes_param','progression'),
+  e('conjugacy','bayes_param','related'), e('latent','em','progression'),
+  e('em','baum_welch','related'), e('em','elbo','related'),
+  e('kl','elbo','progression'), e('elbo','mean_field','related'),
+  e('elbo','vi','related'), e('learning','conjugacy','contains'),
+  e('learning','kl','contains'),
+
+  // 动态横向
+  e('markov_chain','hmm','progression'), e('markov_chain','mcmc','progression'),
+  e('hmm','particle','progression'), e('lds','kalman','related'),
+  e('kalman_gain','gauss_cond','related'), e('dynamic','markov_blanket','related'),
+
+  // 近似横向
+  e('importance','particle','progression'), e('mh','gibbs','progression'),
+  e('laplace','map_learn','related'), e('mean_field','factorization','related'),
+  e('vi','elbo','related'), e('mcmc','markov_chain','related'),
+  e('approx','vi','contains'), e('approx','particle','contains'),
+];
+
+function e(source,target,relation){
+  return {source,target,relation,directed:relation!=='related'};
+}
+
+/* === 为什么这条边存在（hover 说明） === */
+const WHY = {
+  'sum_product|forward':'前向算法就是链形 HMM 上的 sum-product。',
+  'max_product|viterbi':'Viterbi 是链形 HMM 上的 max-product。',
+  'markov_blanket|gibbs':'Gibbs 更新只需要当前变量的 Markov blanket。',
+  'kl|elbo':'ELBO 来自把后验近似误差写成 KL 优化问题。',
+  'em|baum_welch':'Baum-Welch 是 HMM 上的 EM。',
+  'kalman_gain|gauss_cond':'Kalman 更新本质是一次高斯条件化。',
+  'var_elim|sum_product':'sum-product 是把变量消元组织成消息传递。',
+  'mh|gibbs':'Gibbs 是提议恒被接受的特殊 MH。',
+};
+function whyKey(a,b){ return WHY[a+'|'+b]||WHY[b+'|'+a]||null; }
+</script>
+
+<script>
+/* =========================================================================
+   图布局：简易力导向 + 章节分区初始化
+   ========================================================================= */
+const svg = document.getElementById('graph');
+const NS = 'http://www.w3.org/2000/svg';
+let W=svg.clientWidth, H=svg.clientHeight;
+const idToNode = Object.fromEntries(nodes.map(n=>[n.id,n]));
+
+// defs: arrowheads
+const defs = document.createElementNS(NS,'defs');
+defs.innerHTML = `
+  <marker id="arrow-prog" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="var(--orange)"/></marker>
+  <marker id="arrow-contain" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="var(--blue)"/></marker>`;
+svg.appendChild(defs);
+
+const gEdges = document.createElementNS(NS,'g'); svg.appendChild(gEdges);
+const gNodes = document.createElementNS(NS,'g'); svg.appendChild(gNodes);
+
+/* ---------------------------------------------------------------------------
+   流形布局：坐标由图最短路距离矩阵经 classical MDS + SMACOF 应力优化得到
+   （Kruskal stress-1 ≈ 0.24）。即平面上的欧氏距离 ≈ 概念在图上的关系距离。
+   这些坐标是离线预计算并烘焙进来的，确定性、不随刷新变化。
+   --------------------------------------------------------------------------- */
+const MDS = {"root":[-0.0545,-0.0402],"prob_basics":[0.0202,-0.1509],"static_graph":[-0.164,-0.2594],"inference":[0.0021,-0.3397],"learning":[-0.2485,0.1107],"dynamic":[0.1687,0.0313],"approx":[-0.0382,0.2638],"joint":[-0.2489,-0.3618],"factorization":[-0.3709,-0.2616],"cond_indep":[0.2325,-0.1838],"bayes_rule":[-0.1948,-0.4876],"gen_model":[0.3012,-0.141],"bayes_net":[-0.3074,-0.5307],"markov_net":[-0.3329,-0.6067],"factor_graph":[-0.203,-0.6353],"markov_blanket":[0.3398,0.1911],"energy":[-0.4673,-0.8499],"var_elim":[-0.0255,-0.7228],"sum_product":[-0.0372,-0.609],"max_product":[0.1448,-0.6393],"map":[0.1998,-1.0],"junction_tree":[-0.0344,0.1718],"pred_coding":[0.0183,-0.7078],"mle":[-0.4005,0.4761],"map_learn":[-0.3569,0.7638],"bayes_param":[-0.4373,0.3944],"conjugacy":[-0.4654,0.3288],"model_compare":[-0.5129,0.1158],"latent":[-0.4466,0.111],"em":[-0.3423,0.2005],"elbo":[-0.3063,0.3024],"kl":[-0.465,0.2111],"markov_chain":[0.2582,0.2318],"hmm":[0.2022,0.0155],"forward":[0.2104,-0.4464],"viterbi":[0.3368,-0.4019],"baum_welch":[0.1305,0.2758],"lds":[0.4027,-0.0089],"kalman":[0.6161,0.0444],"kalman_gain":[0.8141,0.0286],"gauss_cond":[1.0,0.0225],"rts":[0.5937,-0.1149],"monte_carlo":[-0.0141,0.6701],"importance":[0.1143,0.8355],"particle":[0.0974,0.3812],"mcmc":[0.153,0.484],"mh":[0.2727,0.7766],"gibbs":[0.3315,0.621],"laplace":[-0.1276,0.6392],"mean_field":[-0.2013,0.2927],"vi":[-0.1572,0.5083]};
+
+function layoutMDS(){
+  W=svg.clientWidth||1200; H=svg.clientHeight||760;
+  const pad=70;
+  // MDS 坐标范围
+  const xs=Object.values(MDS).map(p=>p[0]), ys=Object.values(MDS).map(p=>p[1]);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const sx=(W-2*pad)/(maxX-minX), sy=(H-2*pad)/(maxY-minY);
+  const s=Math.min(sx,sy); // 等比缩放，保持距离比例不失真
+  const cx=W/2-(minX+maxX)/2*s, cy=H/2-(minY+maxY)/2*s;
+  nodes.forEach(n=>{
+    const p=MDS[n.id]||[0,0];
+    n.x=cx+p[0]*s; n.y=cy+p[1]*s;
+  });
+  // 轻度重叠松弛：只在两节点几乎重合时互推，幅度很小，几乎不破坏 MDS 几何
+  for(let k=0;k<60;k++){
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      const minD=RAD[a.type]+RAD[b.type]+22;
+      let dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy)||0.01;
+      if(d<minD){ const push=(minD-d)/2*0.5; a.x+=dx/d*push;a.y+=dy/d*push;b.x-=dx/d*push;b.y-=dy/d*push; }
+    }
+    nodes.forEach(n=>{ n.x=Math.max(pad-30,Math.min(W-pad+30,n.x)); n.y=Math.max(pad-30,Math.min(H-pad+30,n.y)); });
+  }
+}
+layoutMDS();
+
+/* === 渲染 === */
+const edgeEls=[], nodeEls={};
+function relColor(r){ return r==='contains'?'var(--blue)':r==='related'?'var(--purple)':'var(--orange)'; }
+
+function drawEdges(){
+  gEdges.innerHTML='';
+  edgeEls.length=0;
+  edges.forEach(ed=>{
+    const a=idToNode[ed.source], b=idToNode[ed.target];
+    const line=document.createElementNS(NS,'line');
+    line.setAttribute('x1',a.x); line.setAttribute('y1',a.y);
+    line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
+    line.setAttribute('stroke',relColor(ed.relation));
+    line.setAttribute('stroke-width',ed.relation==='contains'?2.2:1.8);
+    line.setAttribute('class','edge');
+    if(ed.relation==='related') line.setAttribute('stroke-dasharray','5,4');
+    if(ed.relation==='progression') line.setAttribute('marker-end','url(#arrow-prog)');
+    line.setAttribute('stroke-opacity','0.55');
+    // 缩短到节点边缘（progression 箭头不被圆盖住）
+    shorten(line,a,b);
+    gEdges.appendChild(line);
+    edgeEls.push({el:line, ed});
+    // hover why
+    const wk=whyKey(ed.source,ed.target);
+    line.addEventListener('mousemove',ev=>{
+      const w=wk || `${idToNode[ed.source].label} —[${relLabel(ed.relation)}]→ ${idToNode[ed.target].label}`;
+      showTip(ev,w);
+    });
+    line.addEventListener('mouseleave',hideTip);
+  });
+}
+function relLabel(r){return r==='contains'?'包含':r==='related'?'相关':'复杂度';}
+function shorten(line,a,b){
+  const ra=RAD[a.type]+2, rb=RAD[b.type]+4;
+  let dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+  line.setAttribute('x1',a.x+dx/d*ra); line.setAttribute('y1',a.y+dy/d*ra);
+  line.setAttribute('x2',b.x-dx/d*rb); line.setAttribute('y2',b.y-dy/d*rb);
+}
+
+function drawNodes(){
+  gNodes.innerHTML='';
+  nodes.forEach(n=>{
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('class','node'+(n.cas?' case-anchor':''));
+    g.setAttribute('transform',`translate(${n.x},${n.y})`);
+    const c=document.createElementNS(NS,'circle');
+    c.setAttribute('r',RAD[n.type]); c.setAttribute('class','node-circle');
+    c.setAttribute('fill',TYPE_COLOR[n.type]);
+    g.appendChild(c);
+    if(n.cas){
+      const dot=document.createElementNS(NS,'circle');
+      dot.setAttribute('r',5); dot.setAttribute('cx',RAD[n.type]-3); dot.setAttribute('cy',-RAD[n.type]+3);
+      dot.setAttribute('class','case-dot');
+      g.appendChild(dot);
+    }
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('class','node-label'); t.setAttribute('text-anchor','middle');
+    t.setAttribute('dy',RAD[n.type]+12); t.textContent=n.label;
+    g.appendChild(t);
+    gNodes.appendChild(g);
+    nodeEls[n.id]={g,c,t};
+    c.addEventListener('mousemove',ev=>{ if(!drag) showTip(ev, n.hint+(n.cas?' · 点击查看案例':'')); });
+    c.addEventListener('mouseleave',hideTip);
+  });
+}
+drawEdges(); drawNodes();
+
+/* === tooltip === */
+const tip=document.getElementById('tooltip');
+function showTip(ev,html){
+  tip.innerHTML=html; tip.style.display='block';
+  const r=svg.getBoundingClientRect();
+  tip.style.left=(ev.clientX-r.left+14)+'px';
+  tip.style.top=(ev.clientY-r.top+14)+'px';
+}
+function hideTip(){ tip.style.display='none'; }
+</script>
+
+<script>
+/* =========================================================================
+   交互：开关 / 案例卡 / 悬停高亮 / 拖动（子树整体平移）
+   纯可视化，不含任务逻辑。
+   ========================================================================= */
+
+/* --- contains 子树：拖父节点时带着所有 contains 后代一起平移 --- */
+const containsChildren = {};
+edges.forEach(ed=>{ if(ed.relation==='contains'){ (containsChildren[ed.source] ||= []).push(ed.target); } });
+function subtreeOf(rootId){
+  // 返回 rootId 及其所有 contains 后代（去重、防环）
+  const seen=new Set([rootId]), stack=[rootId];
+  while(stack.length){
+    const u=stack.pop();
+    (containsChildren[u]||[]).forEach(v=>{ if(!seen.has(v)){ seen.add(v); stack.push(v); } });
+  }
+  return seen;
+}
+
+function toggles(){
+  return {contains:document.getElementById('tgContains').checked,
+    related:document.getElementById('tgRelated').checked,
+    progression:document.getElementById('tgProgression').checked};
+}
+
+/* --- 开关：仅控制边可见性 --- */
+function applyToggles(){
+  const t=toggles();
+  edgeEls.forEach(({el,ed})=>{ el.style.display = t[ed.relation]?'':'none'; });
+}
+
+/* --- 邻居高亮（hover 节点时点亮相连边与节点）--- */
+function neighborsAll(id){
+  const out=new Set();
+  edges.forEach(ed=>{
+    if(ed.source===id) out.add(ed.target);
+    if(ed.target===id) out.add(ed.source);
+  });
+  return out;
+}
+function highlightNode(id){
+  const nb=neighborsAll(id);
+  edgeEls.forEach(({el,ed})=>{
+    const on = (ed.source===id||ed.target===id);
+    el.setAttribute('stroke-opacity', on?'0.95':'0.12');
+    el.setAttribute('stroke-width', on?(ed.relation==='contains'?3.4:3):(ed.relation==='contains'?2.2:1.8));
+  });
+  nodes.forEach(n=>{
+    const {c,g}=nodeEls[n.id];
+    if(n.id===id){ c.setAttribute('stroke','#facc15'); c.setAttribute('stroke-width','4'); g.style.opacity='1'; }
+    else if(nb.has(n.id)){ c.setAttribute('stroke','#fff'); c.setAttribute('stroke-width','2.5'); g.style.opacity='1'; }
+    else { c.setAttribute('stroke','#fff'); c.setAttribute('stroke-width','2'); g.style.opacity='0.35'; }
+  });
+}
+function clearHighlight(){
+  edgeEls.forEach(({el,ed})=>{ el.setAttribute('stroke-opacity','0.55');
+    el.setAttribute('stroke-width', ed.relation==='contains'?2.2:1.8); });
+  nodes.forEach(n=>{ const {c,g}=nodeEls[n.id]; c.setAttribute('stroke','#fff'); c.setAttribute('stroke-width','2'); g.style.opacity='1'; });
+}
+
+/* --- 更新单个节点的视觉位置（拖动时调用）--- */
+function moveNode(id){
+  const n=idToNode[id], {g}=nodeEls[id];
+  g.setAttribute('transform',`translate(${n.x},${n.y})`);
+}
+function updateEdgesFor(idSet){
+  edgeEls.forEach(({el,ed})=>{
+    if(idSet.has(ed.source)||idSet.has(ed.target)){
+      shorten(el, idToNode[ed.source], idToNode[ed.target]);
+    }
+  });
+}
+
+/* === 案例卡 === */
+function showCase(n){
+  if(!n.cas) return;
+  const p=document.getElementById('casePopup');
+  document.getElementById('casChap').textContent=n.cas.chap;
+  document.getElementById('casTitle').textContent=n.cas.title;
+  document.getElementById('casDesc').textContent=n.cas.desc;
+  document.getElementById('casFormula').innerHTML=n.cas.formula;
+  const wk = null;
+  document.getElementById('casWhy').innerHTML =
+    `<span class="why-badge">回忆点：把「${n.label}」和这个心理学现象绑在一起</span>`;
+  const {g}=nodeEls[n.id];
+  const r=svg.getBoundingClientRect();
+  p.style.left=Math.min(n.x+20, W-340)+'px';
+  p.style.top=Math.min(n.y+10, H-200)+'px';
+  p.style.display='block';
+  if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([p]);
+}
+
+/* =========================================================================
+   拖动：按下节点开始拖；拖动父节点时，其 contains 子树整体随之平移。
+   单击（无明显位移）= 点开案例卡。
+   ========================================================================= */
+let drag=null;  // {rootId, subtree:Set, lastX,lastY, moved}
+function svgPoint(ev){
+  const r=svg.getBoundingClientRect();
+  const cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+  const cy=(ev.touches?ev.touches[0].clientY:ev.clientY)-r.top;
+  return {x:cx, y:cy};
+}
+function attachDrag(){
+  nodes.forEach(n=>{
+    const {c}=nodeEls[n.id];
+    c.style.cursor='grab';
+    const start=ev=>{
+      ev.preventDefault();
+      const p=svgPoint(ev);
+      drag={rootId:n.id, subtree:subtreeOf(n.id), lastX:p.x, lastY:p.y, moved:false};
+      c.style.cursor='grabbing';
+      hideTip();
+      document.getElementById('casePopup').style.display='none';
+    };
+    c.addEventListener('mousedown',start);
+    c.addEventListener('touchstart',start,{passive:false});
+  });
+}
+function onDragMove(ev){
+  if(!drag) return;
+  const p=svgPoint(ev);
+  const dx=p.x-drag.lastX, dy=p.y-drag.lastY;
+  if(Math.abs(dx)>1||Math.abs(dy)>1) drag.moved=true;
+  drag.lastX=p.x; drag.lastY=p.y;
+  drag.subtree.forEach(id=>{ const nd=idToNode[id]; nd.x+=dx; nd.y+=dy; moveNode(id); });
+  updateEdgesFor(drag.subtree);
+}
+function onDragEnd(){
+  if(!drag) return;
+  const {rootId,moved}=drag;
+  nodeEls[rootId].c.style.cursor='grab';
+  drag=null;
+  // 没有移动 => 视为点击：点开案例卡
+  if(!moved){ const n=idToNode[rootId]; if(n.cas) showCase(n); }
+}
+window.addEventListener('mousemove',onDragMove);
+window.addEventListener('touchmove',onDragMove,{passive:false});
+window.addEventListener('mouseup',onDragEnd);
+window.addEventListener('touchend',onDragEnd);
+
+/* === 节点 hover：高亮邻居（拖动时不触发）=== */
+function attachHover(){
+  nodes.forEach(n=>{
+    const {c}=nodeEls[n.id];
+    c.addEventListener('mouseenter',()=>{ if(!drag) highlightNode(n.id); });
+    c.addEventListener('mouseleave',()=>{ if(!drag) clearHighlight(); });
+  });
+}
+
+/* === 事件绑定 === */
+['tgContains','tgRelated','tgProgression'].forEach(id=>
+  document.getElementById(id).addEventListener('change',applyToggles));
+window.addEventListener('resize',()=>{ layoutMDS(); drawEdges(); drawNodes(); applyToggles(); attachDrag(); attachHover(); });
+
+/* === 启动 === */
+attachDrag();
+attachHover();
+applyToggles();
+</script>
+</body>
+</html>
+</div></article></div></main><footer><div class="copyright"><p>&copy; 2026 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.start()
+})</script></body></html>

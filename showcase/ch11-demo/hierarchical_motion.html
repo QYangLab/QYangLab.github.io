@@ -1,0 +1,557 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>层级运动感知 · 实验一 (精准复刻)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #f2f5f8 0%, #dfe6ed 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .card {
+            max-width: 1000px;
+            width: fit-content;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 2.5rem;
+            box-shadow: 0 25px 40px -10px rgba(0,20,40,0.2);
+            padding: 28px 30px 35px;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        h1 {
+            margin: 0 0 6px 0;
+            font-weight: 500;
+            font-size: 1.9rem;
+            letter-spacing: -0.01em;
+            color: #1a2e3b;
+        }
+        .subtitle {
+            margin: 0 0 18px 0;
+            color: #3a4c5c;
+            font-weight: 400;
+            border-left: 4px solid #2e7d6e;
+            padding-left: 18px;
+        }
+        .canvas-container {
+            background: #0b1219;
+            border-radius: 28px;
+            padding: 12px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.6), 0 8px 18px rgba(0,0,0,0.2);
+            margin-bottom: 22px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: radial-gradient(circle at 70% 50%, #19232c 0%, #050a0e 100%);
+            border-radius: 20px;
+            border: 1px solid #2e404e;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px 40px;
+            align-items: flex-end;
+            margin-bottom: 18px;
+        }
+        .control-group {
+            min-width: 200px;
+        }
+        .control-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            color: #1e3b4a;
+            margin-bottom: 8px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: #cdd9e6;
+            border-radius: 10px;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #1e5b53;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0,30,20,0.3);
+            border: 2px solid white;
+            cursor: grab;
+        }
+        .value-badge {
+            background: #1e3b4a;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            min-width: 75px;
+            text-align: center;
+        }
+        select {
+            padding: 10px 18px;
+            border-radius: 40px;
+            border: 1px solid #b6c8d6;
+            background: white;
+            font-weight: 500;
+            color: #0f2a33;
+            outline: none;
+            cursor: pointer;
+        }
+        .action-bar {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .btn {
+            background: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #153e45;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid #cbdae3;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-primary {
+            background: #1e5b53;
+            border-color: #0e3d38;
+            color: white;
+            box-shadow: 0 8px 16px -6px #1e5b5340;
+        }
+        .btn-primary:hover {
+            background: #2a7a6e;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .legend {
+            display: flex;
+            gap: 25px;
+            margin-top: 8px;
+            color: #1e3b4a;
+            font-weight: 500;
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 14px;
+            margin-right: 6px;
+        }
+        .note {
+            margin-top: 16px;
+            font-size: 0.9rem;
+            color: #3f5b6b;
+            border-top: 1px dashed #a6bbc8;
+            padding-top: 14px;
+        }
+        .status-indicator {
+            margin-left: 15px;
+            font-size: 0.95rem;
+            background: #d4e1e9;
+            padding: 5px 18px;
+            border-radius: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>
+        <span>🧪 层级运动感知 · 实验一</span>
+        <span class="status-indicator" id="motionStatus">⚪ 待开始</span>
+    </h1>
+    <div class="subtitle">中心群 (绿) · 周围群 (红) — 往复3个半周期 · 第3半周期注视点变绿</div>
+
+    <div class="canvas-container">
+        <canvas id="motionCanvas" width="900" height="500"></canvas>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>🎯 方向差角 (0°整合 → 45°垂直相对)</label>
+            <div class="slider-container">
+                <input type="range" id="angleSlider" min="0" max="45" value="20" step="1">
+                <span class="value-badge" id="angleDisplay">20°</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>🔴 周围群数目</label>
+            <select id="groupCountSelect">
+                <option value="1">1 个群</option>
+                <option value="3" selected>3 个群</option>
+                <option value="5">5 个群</option>
+                <option value="10">10 个群</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>⏯️ 运动控制</label>
+            <div class="action-bar">
+                <button class="btn btn-primary" id="startBtn">▶ 开始运动 (3个半周期)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div><span class="legend-dot" style="background: #4caf50;"></span> 中心群</div>
+        <div><span class="legend-dot" style="background: #ef5350;"></span> 周围群 (水平往复)</div>
+        <div><span style="background:#e0e6ed; border-radius:50%; width:14px; height:14px; display:inline-block; border:2px solid #4a5c66; margin-right:6px;"></span> 注视点 · 第三半周期变绿</div>
+    </div>
+    <div class="note">
+        ⏱️ 每半周期1.5秒 · 共3个半周期 (4.5秒) · 中心水平位移与周围一致，垂直位移=水平位移×tan(夹角)。<br>
+        💡 刺激位于屏幕右侧，左侧留黑。夹角0°时中心与周围完全同向；45°时中心相对周围垂直向上。
+    </div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        // ----- 画布 -----
+        const canvas = document.getElementById('motionCanvas');
+        const ctx = canvas.getContext('2d');
+        const w = 900, h = 500;
+        canvas.width = w; canvas.height = h;
+
+        // ----- DOM 元素 -----
+        const angleSlider = document.getElementById('angleSlider');
+        const angleDisplay = document.getElementById('angleDisplay');
+        const groupSelect = document.getElementById('groupCountSelect');
+        const startBtn = document.getElementById('startBtn');
+        const motionStatus = document.getElementById('motionStatus');
+
+        // ----- 固定参数 (完全依照论文精神) -----
+        const BASE_SPEED = 100.0;           // 像素/秒
+        const HALF_PERIOD = 1.5;            // 每个半周期1.5秒
+        const TOTAL_DURATION = 3 * HALF_PERIOD; // 4.5秒，3个半周期
+        
+        // 点群几何
+        const CENTER_RADIUS = 28;
+        const SURROUND_RADIUS = 28;
+        const ORBIT_RADIUS = 140;            // 周围群环绕中心群的距离
+        
+        // 每个群的点数
+        const DOTS_PER_PATCH = 45;
+
+        // 偏移：所有运动群位于屏幕右侧 (x方向偏移 +180)
+        const OFFSET_X = 180;  
+        
+        // 中心群基准位置 (相对于注视点偏移)
+        const CENTER_BASE_X = w/2 + OFFSET_X;
+        const CENTER_BASE_Y = h/2;
+        
+        // 注视点位置 (屏幕中央)
+        const FIXATION_X = w/2;
+        const FIXATION_Y = h/2;
+
+        // ----- 状态变量 -----
+        let currentAngleDeg = 20;        // 0-45
+        let surroundCount = 3;           // 1,3,5,10
+        
+        // 运动状态
+        let isAnimating = false;         // 是否正在播放运动序列
+        let animStartTime = 0;           // performance.now 参考
+        let animFrameId = null;
+        
+        // 预生成点群数据 (每个群的内部点相对位置固定)
+        let centerDots = [];             // 中心群点 {dx, dy}
+        let surroundDotsList = [];       // 数组，每个元素为 { baseAngle, dots: [{dx,dy}] }
+        
+        // 注视点是否变绿 (在第三个半周期开始后为true)
+        let fixationGreen = false;
+
+        // ----- 辅助函数 -----
+        function degToRad(deg) { return deg * Math.PI / 180.0; }
+
+        // ----- 生成一个群内部的随机点 (相对坐标) -----
+        function generatePatchDots(radius, seedOffset) {
+            const dots = [];
+            // 使用确定性种子但每组不同
+            const rnd = (s) => {
+                const x = Math.sin(s) * 10000;
+                return x - Math.floor(x);
+            };
+            for (let i = 0; i < DOTS_PER_PATCH; i++) {
+                const seed = seedOffset + i * 19.7;
+                // 面积均匀分布
+                const rFactor = Math.sqrt(rnd(seed) * 0.95 + 0.05);  // 避免中心点
+                const angle = rnd(seed + 10) * 2 * Math.PI;
+                const dist = radius * rFactor;
+                const dx = Math.cos(angle) * dist;
+                const dy = Math.sin(angle) * dist;
+                dots.push({ dx, dy });
+            }
+            return dots;
+        }
+
+        // ----- 重新生成所有点群 (当周围群数量变化时调用) -----
+        function regenerateDots() {
+            // 中心群 (种子固定但每次重新生成也没关系，保持随机感)
+            centerDots = generatePatchDots(CENTER_RADIUS, 12345);
+            
+            // 周围群: 计算每个群的角度位置，并生成内部点
+            const angles = getSurroundBaseAngles(surroundCount);
+            surroundDotsList = [];
+            for (let i = 0; i < angles.length; i++) {
+                const baseAngle = angles[i];
+                const dots = generatePatchDots(SURROUND_RADIUS, i * 2000 + 800);
+                surroundDotsList.push({ baseAngle, dots });
+            }
+        }
+
+        // 获取周围群基准角度 (均匀分布)
+        function getSurroundBaseAngles(count) {
+            const angles = [];
+            const step = (2 * Math.PI) / count;
+            const offset = 0.3; // 让排列稍微转动一点，视觉更自然
+            for (let i = 0; i < count; i++) {
+                angles.push(i * step + offset);
+            }
+            return angles;
+        }
+
+        // ----- 根据时间(0 ~ TOTAL_DURATION)计算位移 -----
+        function computeDisplacement(t) {
+            // t 范围 [0, 4.5]
+            const periodPos = t; 
+            let displacement;
+            if (periodPos < HALF_PERIOD) {
+                // 第一个半周期: 正向
+                displacement = BASE_SPEED * periodPos;
+            } else if (periodPos < 2 * HALF_PERIOD) {
+                // 第二个半周期: 反向 (从最大位移返回)
+                const forwardPart = BASE_SPEED * HALF_PERIOD;
+                const reverseTime = periodPos - HALF_PERIOD;
+                displacement = forwardPart - BASE_SPEED * reverseTime;
+            } else {
+                // 第三个半周期: 再次正向
+                const t3 = periodPos - 2 * HALF_PERIOD;
+                displacement = BASE_SPEED * t3;
+            }
+            // 映射位移到屏幕范围: 使得运动范围居中于偏移位置
+            const maxDisp = BASE_SPEED * HALF_PERIOD; // 150px
+            // 我们希望偏移范围在 -maxDisp/2 到 +maxDisp/2 之间摆动
+            return displacement - maxDisp / 2;
+        }
+
+        // 判断是否处于第三半周期 (注视点变绿)
+        function isThirdHalfPeriod(t) {
+            return t >= 2 * HALF_PERIOD;
+        }
+
+        // ----- 绘制背景 (左侧暗，右侧为运动区域)-----
+        function drawBackground() {
+            ctx.clearRect(0, 0, w, h);
+            // 左侧纯黑渐变
+            const grad = ctx.createLinearGradient(0, 0, w*0.6, 0);
+            grad.addColorStop(0, '#03070a');
+            grad.addColorStop(0.7, '#121a22');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+            
+            // 极淡网格
+            ctx.strokeStyle = '#1e3340';
+            ctx.lineWidth = 0.5;
+            ctx.setLineDash([4, 12]);
+            ctx.beginPath();
+            ctx.moveTo(FIXATION_X, 20); ctx.lineTo(FIXATION_X, h-20);
+            ctx.moveTo(20, FIXATION_Y); ctx.lineTo(w-20, FIXATION_Y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // 绘制注视点
+        function drawFixation(isGreen) {
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(FIXATION_X, FIXATION_Y, 8, 0, 2*Math.PI);
+            ctx.fillStyle = isGreen ? '#6fcf97' : '#e0e6ed';
+            ctx.strokeStyle = '#2e4c5e';
+            ctx.lineWidth = 3;
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(FIXATION_X, FIXATION_Y, 3.5, 0, 2*Math.PI);
+            ctx.fillStyle = '#1e3b4a';
+            ctx.fill();
+        }
+
+        // 绘制点群
+        function drawPatch(centerX, centerY, dots, color) {
+            ctx.shadowColor = color.replace(')', ', 0.8)').replace('rgb', 'rgba') || '#ffffff';
+            ctx.shadowBlur = 12;
+            for (let d of dots) {
+                ctx.beginPath();
+                ctx.arc(centerX + d.dx, centerY + d.dy, 2.2, 0, 2*Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+            }
+        }
+
+        // 主绘制函数 (基于当前时间t)
+        function drawScene(t) {
+            drawBackground();
+            
+            const disp = computeDisplacement(t);   // 水平位移量 (已居中映射)
+            
+            // 周围群位移 (仅水平)
+            const surroundOffsetX = disp;
+            const surroundOffsetY = 0;
+            
+            // 中心群位移: 水平分量 = disp, 垂直分量 = disp * tan(angle)
+            const angleRad = degToRad(currentAngleDeg);
+            const centerOffsetX = disp;
+            const centerOffsetY = disp * Math.tan(angleRad);
+            
+            // 绘制周围群
+            ctx.shadowColor = '#ef5350c0';
+            ctx.shadowBlur = 14;
+            for (let item of surroundDotsList) {
+                const baseAngle = item.baseAngle;
+                const baseX = CENTER_BASE_X + Math.cos(baseAngle) * ORBIT_RADIUS;
+                const baseY = CENTER_BASE_Y + Math.sin(baseAngle) * ORBIT_RADIUS;
+                
+                const patchX = baseX + surroundOffsetX;
+                const patchY = baseY + surroundOffsetY;
+                drawPatch(patchX, patchY, item.dots, '#ef5350');
+            }
+            
+            // 绘制中心群
+            ctx.shadowColor = '#4caf50c0';
+            ctx.shadowBlur = 16;
+            const centerPatchX = CENTER_BASE_X + centerOffsetX;
+            const centerPatchY = CENTER_BASE_Y + centerOffsetY;
+            drawPatch(centerPatchX, centerPatchY, centerDots, '#6fcf97');
+            
+            ctx.shadowBlur = 0;
+            
+            // 绘制注视点 (第三半周期变绿)
+            const greenFix = isThirdHalfPeriod(t);
+            drawFixation(greenFix);
+            
+            // 可选：显示时间信息 (调试用，但不影响核心)
+            ctx.font = "12px monospace";
+            ctx.fillStyle = "#7a9eb3";
+            ctx.fillText(`时间: ${t.toFixed(2)}s / 4.5s`, 20, 40);
+            ctx.fillText(`${greenFix ? '● 第三半周期 (注视点绿)' : '○ 第一/二半周期'}`, 20, 65);
+        }
+
+        // ----- 动画循环 (基于开始时间)-----
+        function animationLoop(now) {
+            const elapsed = (now - animStartTime) / 1000; // 秒
+            let t = Math.min(elapsed, TOTAL_DURATION);
+            
+            drawScene(t);
+            
+            if (t < TOTAL_DURATION) {
+                animFrameId = requestAnimationFrame(animationLoop);
+            } else {
+                // 运动结束
+                isAnimating = false;
+                startBtn.disabled = false;
+                motionStatus.innerHTML = '⏹️ 运动结束';
+                animFrameId = null;
+                // 最终状态绘制完成
+            }
+        }
+
+        // ----- 开始运动序列 -----
+        function startMotion() {
+            if (isAnimating) return;
+            
+            // 重置状态
+            isAnimating = true;
+            startBtn.disabled = true;
+            motionStatus.innerHTML = '▶ 运动中... (3个半周期)';
+            
+            // 重新生成点群 (确保每次开始点分布不同，符合随机)
+            regenerateDots();
+            
+            animStartTime = performance.now();
+            
+            // 绘制第一帧
+            drawScene(0);
+            
+            // 启动循环
+            animFrameId = requestAnimationFrame(animationLoop);
+        }
+
+        // ----- 更新UI与参数联动-----
+        function updateAngleDisplay() {
+            angleDisplay.textContent = currentAngleDeg + '°';
+            if (!isAnimating) {
+                // 非动画状态，重绘静态场景 (t=0)
+                drawScene(0);
+            }
+        }
+
+        function handleAngleChange(e) {
+            currentAngleDeg = parseInt(e.target.value, 10);
+            updateAngleDisplay();
+        }
+
+        function handleGroupChange(e) {
+            surroundCount = parseInt(e.target.value, 10);
+            regenerateDots();
+            if (!isAnimating) {
+                drawScene(0);
+            }
+        }
+
+        // ----- 初始化事件与默认绘制-----
+        function init() {
+            // 初始生成点群
+            regenerateDots();
+            
+            // 绑定控件
+            angleSlider.addEventListener('input', handleAngleChange);
+            groupSelect.addEventListener('change', handleGroupChange);
+            startBtn.addEventListener('click', startMotion);
+            
+            // 显示初始角度
+            angleDisplay.textContent = currentAngleDeg + '°';
+            
+            // 绘制初始静态场景 (t=0)
+            drawScene(0);
+        }
+
+        init();
+
+        // 窗口大小自适应不涉及，canvas固定尺寸。
+        // 清理RAF
+        window.addEventListener('beforeunload', () => {
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+        });
+
+    })();
+</script>
+</body>
+</html></div></article></div></main><footer><div class="copyright"><p>&copy; 2026 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.start()
+})</script></body></html>

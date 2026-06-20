@@ -1,0 +1,490 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGM 知识地图 · 第一人称寻路</title>
+<script>
+  MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--panel2:#334155;--ink:#e2e8f0;--muted:#94a3b8;
+    --blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--green:#4ade80;--red:#f87171;--gold:#fbbf24;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(circle at 50% 0%,#1e293b,#0f172a 70%);color:var(--ink);min-height:100vh;}
+  .wrap{max-width:780px;margin:0 auto;padding:24px 18px 60px;}
+  h1{font-size:21px;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px;}
+  .hud{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .hud .chip{background:var(--panel);border:1px solid var(--panel2);border-radius:10px;padding:8px 12px;font-size:13px;}
+  .hud .chip b{color:var(--gold);font-size:16px;}
+  .hud .chip.goal b{color:var(--orange);}
+  /* 当前位置卡 */
+  .here{background:linear-gradient(135deg,#1e293b,#273449);border:1px solid var(--panel2);
+    border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .here .youare{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+  .here .name{font-size:26px;font-weight:800;margin:4px 0 6px;}
+  .here .name .tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;vertical-align:middle;margin-left:8px;}
+  .here .hint{color:var(--muted);font-size:14px;line-height:1.6;}
+  .compass{margin-top:8px;font-size:14px;color:var(--blue);}
+  .case-box{margin-top:14px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);
+    border-radius:12px;padding:14px;}
+  .case-box .chap{color:var(--gold);font-size:12px;font-weight:700;}
+  .case-box h3{margin:3px 0 6px;font-size:16px;}
+  .case-box .formula{background:rgba(0,0,0,.25);border-radius:8px;padding:8px;margin-top:8px;overflow-x:auto;text-align:center;}
+  /* 选择 successor */
+  .choices{margin-top:18px;}
+  .choices .lead{font-size:14px;color:var(--muted);margin-bottom:10px;}
+  .choices .lead b{color:var(--ink);}
+  .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    background:var(--panel);border:1px solid var(--panel2);border-radius:12px;
+    padding:13px 15px;margin-bottom:9px;cursor:pointer;color:var(--ink);font:inherit;transition:.15s;}
+  .opt:hover{background:var(--panel2);transform:translateX(3px);border-color:var(--blue);}
+  .opt .num{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;background:#0f172a;color:var(--gold);}
+  .opt .rel{flex:none;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:700;}
+  .opt .rel.contains{background:rgba(96,165,250,.18);color:var(--blue);}
+  .opt .rel.related{background:rgba(192,132,252,.18);color:var(--purple);}
+  .opt .rel.progression{background:rgba(251,146,60,.18);color:var(--orange);}
+  .opt .lab{font-weight:600;flex:1;}
+  .opt .arrow{color:var(--muted);font-size:18px;}
+  .opt.toward{box-shadow:inset 3px 0 0 var(--green);}
+  .opt.hint{border-color:var(--gold);background:rgba(251,191,36,.14);
+    box-shadow:0 0 0 2px rgba(251,191,36,.5);animation:hintPulse 1.1s ease-in-out 3;}
+  @keyframes hintPulse{0%,100%{box-shadow:0 0 0 2px rgba(251,191,36,.35);}50%{box-shadow:0 0 0 5px rgba(251,191,36,.65);}}
+  .opt.hint .arrow{color:var(--gold);}
+  /* 控制 */
+  .ctrl{display:flex;gap:9px;margin-top:18px;flex-wrap:wrap;}
+  button.btn{font:inherit;cursor:pointer;border:1px solid var(--panel2);background:var(--panel);
+    color:var(--ink);border-radius:10px;padding:9px 14px;transition:.15s;}
+  button.btn:hover{background:var(--panel2);}
+  button.btn.primary{background:var(--blue);color:#0b1220;border-color:var(--blue);font-weight:700;}
+  /* 旅程日志 */
+  .log{margin-top:22px;}
+  .log h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px;}
+  .trail{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .trail .step{background:var(--panel);border:1px solid var(--panel2);border-radius:20px;padding:4px 11px;font-size:12px;}
+  .trail .sep{color:var(--muted);}
+  .trail .step.start{border-color:var(--gold);}
+  .trail .step.now{border-color:var(--green);color:var(--green);font-weight:700;}
+  .msg{margin-top:14px;padding:11px 14px;border-radius:10px;font-size:14px;min-height:20px;}
+  .msg.ok{background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.4);color:var(--green);}
+  .msg.warn{background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.4);color:var(--orange);}
+  .msg.neutral{background:var(--panel);border:1px solid var(--panel2);color:var(--muted);}
+  /* win */
+  .win{background:linear-gradient(135deg,#14532d,#166534);border:1px solid var(--green);border-radius:16px;padding:22px;margin-top:18px;}
+  .win h2{margin:0 0 10px;color:#bbf7d0;}
+  .win .stat{display:inline-block;background:rgba(0,0,0,.25);border-radius:8px;padding:6px 12px;margin:3px 6px 3px 0;font-size:13px;}
+  .reveal{margin-top:10px;padding:11px;background:rgba(0,0,0,.22);border-radius:10px;font-size:13px;line-height:1.6;}
+  select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--panel2);border-radius:8px;padding:7px 10px;}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px;}
+  .legend span{margin-right:14px;}
+  .hud .chip.found b{color:var(--green);}
+  .found-list{display:flex;flex-direction:column;gap:6px;}
+  .found-row{display:flex;align-items:flex-start;gap:8px;background:var(--panel);border:1px solid var(--panel2);
+    border-radius:10px;padding:8px 11px;font-size:12.5px;line-height:1.5;}
+  .found-row .idx{flex:none;width:22px;height:22px;border-radius:50%;background:rgba(74,222,128,.18);
+    color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+  .found-row .pathtxt{flex:1;}
+  .found-row.ghost{opacity:.55;border-style:dashed;}
+  .found-row.ghost .idx{background:rgba(148,163,184,.15);color:var(--muted);}
+  .alldone{margin-top:6px;padding:10px;border-radius:10px;background:rgba(74,222,128,.12);
+    border:1px solid rgba(74,222,128,.4);color:var(--green);font-size:13px;}
+  .epigraph{margin:0 0 18px;padding:12px 16px;border-left:3px solid var(--purple);
+    background:var(--panel);border-radius:0 10px 10px 0;color:var(--ink);font-size:13.5px;line-height:1.7;}
+  .epigraph .de{display:inline-block;margin:6px 0 2px;color:var(--purple);font-style:italic;
+    cursor:pointer;border-bottom:1px dashed var(--purple);transition:.15s;}
+  .epigraph .de:hover{color:#d8b4fe;border-bottom-color:#d8b4fe;}
+  .epigraph .de.speaking{background:rgba(192,132,252,.18);border-radius:4px;padding:0 4px;}
+  .epigraph .de .speaker{font-style:normal;margin-left:6px;font-size:12px;opacity:.8;}
+  .epigraph cite{display:block;margin-top:6px;color:var(--muted);font-size:12px;font-style:normal;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧭 PGM 知识地图 · 找全所有连接</h1>
+  <div class="sub">任务给你两个概念 <b>A</b> 和 <b>B</b>，它们之间不止一条路。你站在 A，看不到全局地图，只能看到脚下有几条出路、各是什么关系。一步步走到 B，记下这条路；然后回头再走，<b>把 A↔B 的所有路径都找出来</b>。边按无向处理（忽略简→繁箭头）。</div>
+
+  <blockquote class="epigraph">
+    “凡是能够说的事情，都能够说清楚；凡是不能谈的事情，就应该保持沉默。”
+    <span class="de" id="wittDe" title="点击朗读德文" role="button" tabindex="0">Wovon man nicht sprechen kann, darüber muss man schweigen.<span class="speaker" aria-hidden="true">🔊</span></span>
+    <cite>—— 维特根斯坦《逻辑哲学论》</cite>
+  </blockquote>
+
+  <div class="hud">
+    <div class="chip goal">任务：<b id="goalName">—</b></div>
+    <div class="chip">这条已走 <b id="stepCount">0</b> 步</div>
+    <div class="chip found">已找到路径 <b id="foundCount">0</b> / <b id="totalCount">?</b></div>
+  </div>
+
+  <div class="here" id="hereCard"></div>
+
+  <div class="choices" id="choices"></div>
+
+  <div class="msg neutral" id="message">选择一条出路前进。</div>
+
+  <div class="ctrl">
+    <button class="btn" id="restartBtn">↺ 回到 A 重走（找新路径）</button>
+    <button class="btn" id="undoBtn">⤺ 退一步</button>
+    <button class="btn" id="newTaskBtn">🎯 换一对概念</button>
+    <button class="btn" id="hintBtn">💡 提示一条还没找到的路</button>
+  </div>
+
+  <div class="log">
+    <h2>本条足迹</h2>
+    <div class="trail" id="trail"></div>
+    <h2 style="margin-top:14px">已找到的路径</h2>
+    <div id="foundList" class="found-list"></div>
+    <div class="legend">
+      <span style="color:var(--blue)">■ 包含</span>
+      <span style="color:var(--purple)">■ 相关</span>
+      <span style="color:var(--orange)">■ 复杂度</span>
+      <span style="color:var(--muted)">（任务中按无向通行）</span>
+    </div>
+  </div>
+
+  <div id="winSlot"></div>
+</div>
+
+<script>
+/* ===== 节点 / 边数据（与全局地图版一致）===== */
+const TYPE_LABEL={root:'根',trunk:'章节',model:'模型',algorithm:'算法',stat:'统计基础',approx:'近似推断'};
+const TYPE_COLOR={root:'#94a3b8',trunk:'#60a5fa',model:'#3b82f6',algorithm:'#fb923c',stat:'#22d3ee',approx:'#c084fc'};
+
+const nodes = [
+  {id:'root', label:'PGM 知识地图', type:'root', hint:'整本书的起点：用概率图模型统一描述心智与推断。'},
+  {id:'prob_basics', label:'概率基础与生成模型', type:'trunk', hint:'联合分布、条件独立、贝叶斯公式（ch1）。'},
+  {id:'static_graph', label:'静态图模型', type:'trunk', hint:'贝叶斯网与马尔可夫网络（ch2–3）。'},
+  {id:'inference', label:'图上推断', type:'trunk', hint:'在图上计算边缘 / MAP（ch4）。'},
+  {id:'learning', label:'学习', type:'trunk', hint:'从数据估计参数与结构（ch6–8）。'},
+  {id:'dynamic', label:'动态模型', type:'trunk', hint:'随时间演化的隐状态（ch10–11）。'},
+  {id:'approx', label:'近似推断', type:'trunk', hint:'精确推断不可行时的采样与变分（ch12–13）。'},
+  {id:'joint', label:'联合分布', type:'stat', hint:'$p(x_1,\\dots,x_n)$，所有变量的完整描述。'},
+  {id:'factorization', label:'因子分解', type:'stat', hint:'把联合分布拆成局部因子之积。'},
+  {id:'cond_indep', label:'条件独立', type:'stat', hint:'$X\\perp Y\\mid Z$，图结构的语义核心。'},
+  {id:'bayes_rule', label:'贝叶斯公式', type:'stat', hint:'$p(h\\mid d)\\propto p(d\\mid h)\\,p(h)$。'},
+  {id:'gen_model', label:'生成模型', type:'model', hint:'先验×似然，描述数据如何被生成。',
+    cas:{chap:'ch1 · 贝叶斯心智',title:'基率忽视：贝叶斯诊断',desc:'病检阳性时，人们常忽略疾病基率而高估患病概率。生成模型把"先验×似然"摆在眼前。',formula:'$$p(D\\mid +)=\\dfrac{p(+\\mid D)\\,p(D)}{p(+)}$$'}},
+  {id:'bayes_net', label:'贝叶斯网', type:'model', hint:'有向无环图 (DAG) 上的因子分解。',
+    cas:{chap:'ch2 · 因果学习',title:'Gopnik Blicket Detector',desc:'儿童通过观察哪些积木能点亮探测器，推断因果结构 —— 一个有向图的结构学习。',formula:'$$p(\\text{结构}\\mid \\text{数据})\\propto p(\\text{数据}\\mid\\text{结构})\\,p(\\text{结构})$$'}},
+  {id:'markov_net', label:'马尔可夫网络', type:'model', hint:'无向图 + 势函数 / 能量。',
+    cas:{chap:'ch3 · 视觉',title:'Ising / MRF 视觉去噪',desc:'相邻像素倾向相同（平滑先验），能量最低的配置就是去噪结果 —— 知觉补全的经典隐喻。',formula:'$$p(x)=\\tfrac1Z\\exp\\!\\Big(-\\sum_{i\\sim j}\\psi(x_i,x_j)\\Big)$$'}},
+  {id:'factor_graph', label:'因子图', type:'model', hint:'变量节点 + 因子节点，消息传递的统一舞台。'},
+  {id:'markov_blanket', label:'Markov blanket', type:'stat', hint:'屏蔽一个节点与其余图的最小集合。'},
+  {id:'energy', label:'能量函数', type:'stat', hint:'$E(x)$ 越低概率越高，联想记忆的吸引子。',
+    cas:{chap:'ch3 · 记忆',title:'Boltzmann 联想记忆补全',desc:'残缺线索沿能量面下降，落入存储模式 —— Hopfield/玻尔兹曼式的记忆提取。',formula:'$$p(x)\\propto e^{-E(x)/T}$$'}},
+  {id:'var_elim', label:'变量消元', type:'algorithm', hint:'按顺序求和消去变量，精确但受图宽限制。'},
+  {id:'sum_product', label:'sum-product', type:'algorithm', hint:'树形因子图上用局部消息算边缘（含 belief propagation）。',
+    cas:{chap:'ch4 · 多感觉整合',title:'多线索整合是一次消息传递',desc:'视觉与触觉两条似然相乘再归一化，就是因子图上的一步 sum-product。',formula:'$$\\mu_{f\\to x}(x)=\\sum_{\\sim x} f\\!\\prod_{y}\\mu_{y\\to f}(y)$$'}},
+  {id:'max_product', label:'max-product', type:'algorithm', hint:'把求和换成取最大，找最可能配置 (MAP)。'},
+  {id:'map', label:'MAP 推断', type:'algorithm', hint:'最可能的整体解释 $\\arg\\max_x p(x\\mid d)$。'},
+  {id:'junction_tree', label:'junction tree', type:'algorithm', hint:'把图聚成团树做精确推断；团太大则困难。'},
+  {id:'pred_coding', label:'预测编码', type:'algorithm', hint:'层级网络用预测误差自下而上传递。',
+    cas:{chap:'ch4 · 知觉',title:'Predictive Coding 层级消息',desc:'每层只上传"预测误差"，是大脑中 sum-product 式消息传递的神经实现假说。',formula:'$$\\varepsilon = x - \\hat{x},\\quad \\hat{x}\\leftarrow \\hat{x}+\\eta\\,\\varepsilon$$'}},
+  {id:'mle', label:'MLE', type:'stat', hint:'最大似然：让数据最可能。'},
+  {id:'map_learn', label:'MAP 估计', type:'stat', hint:'似然×先验后取峰值。'},
+  {id:'bayes_param', label:'贝叶斯参数学习', type:'stat', hint:'保留参数的整个后验，而非一个点。',
+    cas:{chap:'ch7 · 概念学习',title:'Xu & Tenenbaum 强抽样',desc:'仅几个正例就能推断概念范围，因为"被有意挑选"的强抽样让似然更尖锐。',formula:'$$p(C\\mid X)\\propto \\Big(\\tfrac1{|C|}\\Big)^{n} p(C)$$'}},
+  {id:'conjugacy', label:'Beta-Bernoulli 共轭', type:'stat', hint:'先验与后验同族，更新只是加计数。',
+    cas:{chap:'ch7 · 学习即推断',title:'共轭更新 = 计数累加',desc:'每次观测只把 $\\alpha,\\beta$ 加一，后验信念平滑滑动 —— 序贯贝叶斯学习的最简形态。',formula:'$$\\text{Beta}(\\alpha,\\beta)\\xrightarrow{x=1}\\text{Beta}(\\alpha+1,\\beta)$$'}},
+  {id:'model_compare', label:'模型比较', type:'stat', hint:'用模型证据 / Occam 因子权衡复杂度（含贝叶斯因子、BIC）。'},
+  {id:'latent', label:'隐变量模型', type:'model', hint:'存在未观测的类别 / 状态。'},
+  {id:'em', label:'EM 算法', type:'algorithm', hint:'E 步填后验、M 步做 MLE，交替上升。',
+    cas:{chap:'ch8 · 统计学习',title:'Schapiro 隐藏 Community 结构',desc:'人脑能从连续刺激流中无监督地发现隐藏类别 —— EM 在高斯混合上反复"猜类别、更新中心"。',formula:'$$Q(\\theta)=\\mathbb{E}_{z\\mid x,\\theta^{old}}[\\log p(x,z\\mid\\theta)]$$'}},
+  {id:'elbo', label:'ELBO', type:'stat', hint:'证据下界，把推断变成优化。',
+    cas:{chap:'ch8 · 知觉学习',title:'自由能 / ELBO 与知觉',desc:'最小化自由能 = 最大化 ELBO，把"后验近似误差"写成可优化的 KL 问题。',formula:'$$\\log p(x)\\ge \\mathbb{E}_q[\\log p(x,z)]-\\mathbb{E}_q[\\log q(z)]$$'}},
+  {id:'kl', label:'KL 散度', type:'stat', hint:'$D_{KL}(q\\|p)$，两分布的不对称距离。'},
+  {id:'markov_chain', label:'Markov chain', type:'model', hint:'当前只依赖上一步的状态序列。'},
+  {id:'hmm', label:'HMM', type:'model', hint:'隐状态 + 观测的离散时序模型。',
+    cas:{chap:'ch10 · 语言',title:'Saffran 统计词切分',desc:'8 月龄婴儿靠音节间转移概率切分连续语流 —— 隐"词边界"状态的 HMM 推断。',formula:'$$\\text{TP}=\\dfrac{p(\\text{syl}_2\\mid\\text{syl}_1)}{\\dots}$$'}},
+  {id:'forward', label:'前向算法', type:'algorithm', hint:'滤波：递推 $p(z_t\\mid x_{1:t})$。'},
+  {id:'viterbi', label:'Viterbi', type:'algorithm', hint:'链形 HMM 上的 max-product，找最可能状态序列。',
+    cas:{chap:'ch10 · 词性标注',title:'Viterbi 词性标注 Trellis',desc:'在 trellis 上回溯最优路径，给每个词标注最可能词性 —— 链上 max-product。',formula:'$$\\delta_t(j)=\\max_i \\delta_{t-1}(i)\\,a_{ij}\\,b_j(x_t)$$'}},
+  {id:'baum_welch', label:'Baum-Welch', type:'algorithm', hint:'HMM 上的 EM，估计转移与发射概率。'},
+  {id:'lds', label:'LDS', type:'model', hint:'线性高斯动态系统（含 AR / OLDS）。'},
+  {id:'kalman', label:'Kalman filter', type:'algorithm', hint:'LDS 上的高斯滤波：预测 + 更新。',
+    cas:{chap:'ch11 · 运动控制',title:'Wolpert 运动控制 Kalman',desc:'大脑用内部模型预测肢体状态，再用感觉反馈按 Kalman 增益纠正 —— 预测-更新闭环。',formula:'$$\\hat{x}_t=\\hat{x}_t^-+K_t(y_t-H\\hat{x}_t^-)$$'}},
+  {id:'kalman_gain', label:'Kalman gain', type:'stat', hint:'$K$：按可靠性权衡预测与观测。',
+    cas:{chap:'ch11 · 线索可靠性',title:'Kalman Gain 与线索可靠性',desc:'观测越可靠，增益越大、越信任新证据 —— 与多感觉整合的可靠性加权同构。',formula:'$$K=\\dfrac{\\sigma^2_{pred}}{\\sigma^2_{pred}+\\sigma^2_{obs}}$$'}},
+  {id:'gauss_cond', label:'高斯条件化', type:'stat', hint:'联合高斯下，条件分布仍是高斯。'},
+  {id:'rts', label:'RTS 平滑', type:'algorithm', hint:'用未来信息向后修正过去估计。'},
+  {id:'monte_carlo', label:'Monte Carlo', type:'approx', hint:'用样本均值近似期望。'},
+  {id:'importance', label:'重要性采样', type:'approx', hint:'从提议分布采样并加权。'},
+  {id:'particle', label:'粒子滤波', type:'approx', hint:'时序上的序贯重要性采样。'},
+  {id:'mcmc', label:'MCMC', type:'approx', hint:'构造平稳分布为目标的马尔可夫链。'},
+  {id:'mh', label:'Metropolis-Hastings', type:'approx', hint:'按接受率随机游走采样。',
+    cas:{chap:'ch12 · 知觉',title:'Necker 立方体 MH',desc:'双稳知觉在两种深度解释间随机翻转 —— 像 MH 在双峰后验间穿越的采样轨迹。',formula:'$$a=\\min\\!\\Big(1,\\dfrac{p(x\')q(x\\mid x\')}{p(x)q(x\'\\mid x)}\\Big)$$'}},
+  {id:'gibbs', label:'Gibbs sampling', type:'approx', hint:'逐变量从条件分布采样。',
+    cas:{chap:'ch12 · 采样',title:'二维高斯 Gibbs',desc:'每次只更新一个变量、条件于其 Markov blanket —— 大脑"神经采样"的可能实现。',formula:'$$x_i\\sim p(x_i\\mid x_{-i})=p(x_i\\mid \\text{MB}(x_i))$$'}},
+  {id:'laplace', label:'Laplace 近似', type:'approx', hint:'在 MAP 处用高斯拟合后验。'},
+  {id:'mean_field', label:'mean field', type:'approx', hint:'用可分解的 $q$ 近似后验。',
+    cas:{chap:'ch13 · 视觉',title:'平均场图像去噪',desc:'把像素后验近似成各自独立，迭代更新每个像素信念 —— 变分推断的可视化样板。',formula:'$$q(x)=\\prod_i q_i(x_i),\\quad \\min_q D_{KL}(q\\|p)$$'}},
+  {id:'vi', label:'变分推断', type:'approx', hint:'把推断写成最大化 ELBO 的优化问题。'},
+];
+
+function e(source,target,relation){return {source,target,relation};}
+const edges = [
+  e('root','prob_basics','contains'),e('root','static_graph','contains'),e('root','inference','contains'),
+  e('root','learning','contains'),e('root','dynamic','contains'),e('root','approx','contains'),
+  e('prob_basics','joint','contains'),e('prob_basics','cond_indep','contains'),e('prob_basics','bayes_rule','contains'),e('prob_basics','gen_model','contains'),
+  e('static_graph','bayes_net','contains'),e('static_graph','markov_net','contains'),e('static_graph','factor_graph','contains'),
+  e('inference','var_elim','contains'),e('inference','sum_product','contains'),e('inference','max_product','contains'),e('inference','junction_tree','contains'),e('inference','pred_coding','contains'),
+  e('learning','mle','contains'),e('learning','model_compare','contains'),e('learning','latent','contains'),e('learning','em','contains'),e('learning','elbo','contains'),e('learning','bayes_param','contains'),
+  e('dynamic','markov_chain','contains'),e('dynamic','hmm','contains'),e('dynamic','lds','contains'),
+  e('hmm','forward','contains'),e('hmm','viterbi','contains'),e('hmm','baum_welch','contains'),
+  e('lds','kalman','contains'),e('lds','rts','contains'),e('kalman','kalman_gain','contains'),
+  e('approx','monte_carlo','contains'),e('approx','mcmc','contains'),e('approx','mean_field','contains'),e('approx','laplace','contains'),
+  e('mcmc','mh','contains'),e('mcmc','gibbs','contains'),e('monte_carlo','importance','contains'),
+  e('joint','factorization','related'),e('cond_indep','markov_blanket','related'),
+  e('bayes_rule','bayes_net','progression'),e('gen_model','hmm','progression'),e('gen_model','lds','progression'),e('factorization','bayes_net','related'),
+  e('bayes_net','markov_net','related'),e('bayes_net','factor_graph','progression'),e('markov_net','factor_graph','progression'),e('markov_net','energy','related'),e('markov_blanket','gibbs','related'),
+  e('var_elim','sum_product','progression'),e('sum_product','forward','related'),e('max_product','viterbi','related'),e('map','max_product','related'),e('sum_product','factor_graph','related'),e('junction_tree','approx','progression'),e('pred_coding','sum_product','related'),
+  e('mle','map_learn','progression'),e('map_learn','bayes_param','progression'),e('conjugacy','bayes_param','related'),e('latent','em','progression'),e('em','baum_welch','related'),e('em','elbo','related'),e('kl','elbo','progression'),e('elbo','mean_field','related'),e('elbo','vi','related'),e('learning','conjugacy','contains'),e('learning','kl','contains'),
+  e('markov_chain','hmm','progression'),e('markov_chain','mcmc','progression'),e('hmm','particle','progression'),e('lds','kalman','related'),e('kalman_gain','gauss_cond','related'),e('dynamic','markov_blanket','related'),
+  e('importance','particle','progression'),e('mh','gibbs','progression'),e('laplace','map_learn','related'),e('mean_field','factorization','related'),e('vi','elbo','related'),e('mcmc','markov_chain','related'),e('approx','vi','contains'),e('approx','particle','contains'),
+];
+
+const idToNode=Object.fromEntries(nodes.map(n=>[n.id,n]));
+const relLabel=r=>r==='contains'?'包含':r==='related'?'相关':'复杂度';
+const WHY={'sum_product|forward':'前向算法就是链形 HMM 上的 sum-product。','max_product|viterbi':'Viterbi 是链形 HMM 上的 max-product。','markov_blanket|gibbs':'Gibbs 更新只需要当前变量的 Markov blanket。','kl|elbo':'ELBO 来自把后验近似误差写成 KL 优化问题。','em|baum_welch':'Baum-Welch 是 HMM 上的 EM。','kalman_gain|gauss_cond':'Kalman 更新本质是一次高斯条件化。','var_elim|sum_product':'sum-product 是把变量消元组织成消息传递。','mh|gibbs':'Gibbs 是提议恒被接受的特殊 MH。'};
+const whyOf=(a,b)=>WHY[a+'|'+b]||WHY[b+'|'+a]||null;
+</script>
+
+<script>
+/* =========================================================================
+   玩法：找全两个概念之间的所有路径。
+   - 去掉 root；边按【无向】通行（忽略简→繁箭头）。
+   - 一个任务 = 一对概念 (A,B)。有效路径 = 所有简单路径，长度 ≤ 最短+2。
+   - 玩家从 A 走到 B，每条新的有效路径记一次；找全即通关。
+   ========================================================================= */
+
+// 无向邻居（带能展示的关系标签；同一对取一条边的关系）
+const ADJ={};
+edges.forEach(ed=>{
+  if(ed.source==='root'||ed.target==='root') return; // 去根
+  (ADJ[ed.source] ||= []).push({to:ed.target, relation:ed.relation});
+  (ADJ[ed.target] ||= []).push({to:ed.source, relation:ed.relation});
+});
+function successors(id){
+  const seen=new Set(), res=[];
+  (ADJ[id]||[]).forEach(o=>{ if(!seen.has(o.to)){ seen.add(o.to); res.push(o); } });
+  return res;
+}
+function bfsDist(start){
+  const d={[start]:0},q=[start];
+  while(q.length){const u=q.shift();successors(u).forEach(({to})=>{if(d[to]===undefined){d[to]=d[u]+1;q.push(to);}});}
+  return d;
+}
+// 枚举 a→b 所有简单路径，长度 ≤ 最短+slack
+function enumeratePaths(a,b,slack){
+  const d0=bfsDist(a); if(d0[b]===undefined) return [];
+  const maxLen=d0[b]+slack, res=[];
+  (function dfs(u,path,seen){
+    if(path.length-1>maxLen) return;
+    if(u===b){ res.push(path.slice()); return; }
+    for(const {to} of successors(u)){
+      if(seen.has(to)) continue;
+      const dr=bfsDist(to)[b];
+      if(dr===undefined || (path.length-1)+1+dr>maxLen) continue;
+      seen.add(to); path.push(to); dfs(to,path,seen); path.pop(); seen.delete(to);
+    }
+  })(a,[a],new Set([a]));
+  return res;
+}
+const keyOf = path => path.join('>');
+
+/* ===== 任务池（去根 · 无向 · slack=2 · 路径数2-6 · 含案例锚点）===== */
+const TASK_POOL=[["joint","hmm"],["bayes_rule","hmm"],["gen_model","sum_product"],["sum_product","map"],["sum_product","markov_chain"],["sum_product","viterbi"],["junction_tree","viterbi"],["em","markov_chain"],["elbo","monte_carlo"],["markov_chain","kalman"],["hmm","monte_carlo"],["hmm","laplace"],["importance","mean_field"],["joint","viterbi"],["factorization","gen_model"],["factorization","energy"],["factorization","em"],["factorization","mh"],["cond_indep","kalman"],["cond_indep","mh"],["bayes_rule","energy"],["bayes_rule","elbo"],["gen_model","bayes_net"],["gen_model","markov_blanket"]];
+const SLACK=2;
+
+/* ===== 状态 ===== */
+let S={a:null,b:null,cur:null,trail:[],validPaths:[],validKeys:new Set(),found:new Set()};
+let taskIdx=-1;
+
+function startTask(pairOrNull){
+  let pair=pairOrNull;
+  if(!pair){ let i; do{ i=Math.floor(Math.random()*TASK_POOL.length); }while(i===taskIdx&&TASK_POOL.length>1); taskIdx=i; pair=TASK_POOL[i]; }
+  const [a,b]=pair;
+  const paths=enumeratePaths(a,b,SLACK);
+  S={a,b,cur:a,trail:[a],validPaths:paths,validKeys:new Set(paths.map(keyOf)),found:new Set()};
+  document.getElementById('totalCount').textContent=paths.length;
+  render();
+  setMsg(`任务：找出「${idToNode[a].label}」和「${idToNode[b].label}」之间的全部 ${paths.length} 条路径。你现在站在 A。`,'neutral');
+}
+
+function choose(to){
+  // 不允许走回已在本条路径里的节点（保持简单路径）
+  if(S.trail.includes(to)){ setMsg('这条路里已经经过「'+idToNode[to].label+'」了，简单路径不能重复经过同一节点。','warn'); return; }
+  S.hintTargets=null;  // 一旦移动，清除提示高亮
+  S.cur=to; S.trail.push(to);
+  if(to===S.b){ arrive(); return; }
+  render();
+}
+
+function arrive(){
+  const k=keyOf(S.trail);
+  const isValid=S.validKeys.has(k);
+  const already=S.found.has(k);
+  if(isValid && !already){
+    S.found.add(k);
+    render();
+    if(S.found.size===S.validPaths.length){ allDone(); }
+    else { setMsg(`✓ 找到一条新路径！已找到 ${S.found.size} / ${S.validPaths.length}。回到 A 再找下一条。`,'ok'); }
+  } else if(isValid && already){
+    render();
+    setMsg('这条路你已经找到过了。回到 A，换一条没走过的路。','warn');
+  } else {
+    // 到达 B 但路径太绕（超过最短+2），给出友好提示，不计入
+    render();
+    setMsg(`你到了 B，但这条路太绕了（超过最短+${SLACK} 步），不算在目标路径里。回到 A 试更直接的走法。`,'warn');
+  }
+}
+
+/* ===== 渲染 ===== */
+function render(){
+  const n=idToNode[S.cur];
+  document.getElementById('goalName').innerHTML=`${idToNode[S.a].label} <span style="color:var(--muted)">↔</span> ${idToNode[S.b].label}`;
+  document.getElementById('stepCount').textContent=S.trail.length-1;
+  document.getElementById('foundCount').textContent=S.found.size;
+
+  const atA=S.cur===S.a, atB=S.cur===S.b;
+  let here=`<div class="youare">你现在站在${atA?' （起点 A）':atB?' （终点 B）':''}</div>
+    <div class="name">${n.label}<span class="tag" style="background:${TYPE_COLOR[n.type]}33;color:${TYPE_COLOR[n.type]}">${TYPE_LABEL[n.type]}</span></div>
+    <div class="hint">${n.hint}</div>`;
+  const succ=successors(S.cur).filter(o=>!S.trail.includes(o.to));
+  here+=`<div class="compass">🧭 脚下有 <b>${succ.length}</b> 条还没走过的出路${atB?'（已到 B）':''}。目标 B = <b>${idToNode[S.b].label}</b></div>`;
+  if(n.cas){
+    here+=`<div class="case-box"><div class="chap">${n.cas.chap}</div><h3>📌 ${n.cas.title}</h3>
+      <div>${n.cas.desc}</div><div class="formula">${n.cas.formula}</div></div>`;
+  }
+  document.getElementById('hereCard').innerHTML=here;
+
+  // choices
+  let ch='';
+  if(succ.length===0){
+    ch=`<div class="lead">脚下没有新出路了 —— 走进死胡同。<b>回到 A 重走</b>找别的路径。</div>`;
+  } else {
+    ch=`<div class="lead">选择一条出路前进（关系类型已标出，无向通行）：</div>`;
+    succ.forEach((o,i)=>{
+      const isB = o.to===S.b;
+      const isHint = S.hintTargets && S.hintTargets.includes(o.to);
+      ch+=`<button class="opt${isB?' toward':''}${isHint?' hint':''}" data-to="${o.to}">
+        <span class="num">${i+1}</span>
+        <span class="rel ${o.relation}">${relLabel(o.relation)}</span>
+        <span class="lab">${idToNode[o.to].label}${isB?'　🎯 这是 B':''}${isHint?'　💡 提示':''}</span>
+        <span class="arrow">›</span>
+      </button>`;
+    });
+  }
+  document.getElementById('choices').innerHTML=ch;
+  document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>choose(b.dataset.to));
+
+  // 本条足迹
+  let tr='';
+  S.trail.forEach((id,i)=>{
+    const cls=i===0?'start':(i===S.trail.length-1?'now':'');
+    tr+=`<span class="step ${cls}">${idToNode[id].label}</span>`;
+    if(i<S.trail.length-1) tr+='<span class="sep">→</span>';
+  });
+  document.getElementById('trail').innerHTML=tr;
+
+  // 已找到 + 未找到（占位）
+  const foundArr=S.validPaths.filter(p=>S.found.has(keyOf(p)));
+  const missCount=S.validPaths.length-foundArr.length;
+  let fl='';
+  foundArr.forEach((p,i)=>{
+    fl+=`<div class="found-row"><span class="idx">${i+1}</span><span class="pathtxt">${p.map(x=>idToNode[x].label).join(' → ')}</span></div>`;
+  });
+  for(let i=0;i<missCount;i++){
+    fl+=`<div class="found-row ghost"><span class="idx">?</span><span class="pathtxt">还有一条没找到的路径…</span></div>`;
+  }
+  document.getElementById('foundList').innerHTML=fl || '<div style="color:var(--muted);font-size:12px">还没找到任何路径。</div>';
+
+  document.getElementById('winSlot').innerHTML='';
+  if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([document.getElementById('hereCard')]);
+}
+
+function allDone(){
+  const insight = INSIGHT[S.a+'|'+S.b] || INSIGHT[S.b+'|'+S.a]
+    || `「${idToNode[S.a].label}」和「${idToNode[S.b].label}」之间有 ${S.validPaths.length} 条不同的概念路径——它们从不同角度解释了这两个概念为什么相关。`;
+  let html=`<div class="win"><h2>🎉 全部找到！共 ${S.validPaths.length} 条路径</h2>
+    <div class="reveal">${S.validPaths.map((p,i)=>`<div><b>${i+1}.</b> ${p.map(x=>idToNode[x].label).join(' → ')}</div>`).join('')}</div>
+    <div class="reveal">💡 ${insight}</div>
+    <div class="ctrl"><button class="btn primary" id="winNext">下一对概念</button>
+      <button class="btn" id="winSame">再做一次这对</button></div></div>`;
+  document.getElementById('winSlot').innerHTML=html;
+  document.getElementById('choices').innerHTML='';
+  setMsg('🎉 通关！所有路径都找到了。','ok');
+  document.getElementById('winNext').onclick=()=>startTask(null);
+  document.getElementById('winSame').onclick=()=>startTask([S.a,S.b]);
+  if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([document.getElementById('winSlot')]);
+}
+
+const INSIGHT={
+  'sum_product|viterbi':'sum-product 和 Viterbi 既能从"推断章节 → max-product"这条路相连，也能从"前向算法 → HMM"这条链路相连：同一对算法在精确推断侧和时序模型侧各有一条身份线。',
+  'em|markov_chain':'EM 到 Markov chain 有两大类路：经 Baum-Welch→HMM 的"时序学习"路，和经 ELBO→变分→MCMC 的"近似推断"路。',
+  'elbo|monte_carlo':'ELBO（变分）与 Monte Carlo（采样）是近似推断的两大家族，它们在"近似推断"节点处交汇——多条路都要穿过它。',
+  'importance|mean_field':'重要性采样（采样族）和 mean field（变分族）都挂在"近似推断"下，殊途同归。',
+  'gen_model|sum_product':'生成模型到 sum-product：既能走"贝叶斯网→因子图"的结构路，也能走"HMM→前向算法"的时序路。',
+};
+
+function setMsg(t,c){const m=document.getElementById('message');m.textContent=t;m.className='msg '+c;}
+
+/* ===== 控件 ===== */
+document.getElementById('restartBtn').onclick=()=>{ S.hintTargets=null; S.cur=S.a; S.trail=[S.a]; render();
+  setMsg('回到 A。找一条还没标记的新路径。','neutral'); };
+document.getElementById('undoBtn').onclick=()=>{ if(S.trail.length>1){ S.hintTargets=null; S.trail.pop(); S.cur=S.trail[S.trail.length-1]; render();
+  setMsg('退回「'+idToNode[S.cur].label+'」。','neutral'); } };
+document.getElementById('newTaskBtn').onclick=()=>startTask(null);
+document.getElementById('hintBtn').onclick=()=>{
+  const unfound=S.validPaths.filter(p=>!S.found.has(keyOf(p)));
+  if(!unfound.length){ setMsg('所有路径都找到了！','ok'); return; }
+  const pref=S.trail;
+  // 未找到路径中，前缀与当前足迹一致、且更长的那些 → 它们的下一步
+  const cont=unfound.filter(p=> p.length>pref.length && pref.every((x,i)=>p[i]===x));
+  if(cont.length){
+    // 高亮当前可点的、能通向某条未找到路径的下一个 successor
+    S.hintTargets=[...new Set(cont.map(p=>p[pref.length]))];
+    render();
+    setMsg(`💡 高亮的是能通向还没找到路径的下一步（${S.hintTargets.map(id=>idToNode[id].label).join(' / ')}）—— 自己点上去。`,'warn');
+  } else {
+    // 当前足迹偏离了所有未找到路径：建议回到 A
+    S.hintTargets=null; render();
+    const p=unfound[0];
+    setMsg(`当前这条偏离了剩下的路径。先「回到 A 重走」，有一条未找到的路开头是：${idToNode[p[0]].label} → ${idToNode[p[1]].label} → …`,'warn');
+  }
+};
+
+/* ===== 维特根斯坦德文：点击朗读 ===== */
+(function(){
+  const de=document.getElementById('wittDe');
+  if(!de) return;
+  const text='Wovon man nicht sprechen kann, darüber muss man schweigen.';
+  function speak(){
+    if(!('speechSynthesis' in window)){
+      setMsg('当前浏览器不支持语音朗读，无法读出这句德文。','warn'); return;
+    }
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='de-DE'; u.rate=0.9;
+    // 尽量挑一个德语嗓音
+    const v=(window.speechSynthesis.getVoices()||[]).find(x=>/de(-|_)?/i.test(x.lang));
+    if(v) u.voice=v;
+    u.onstart=()=>de.classList.add('speaking');
+    u.onend=u.onerror=()=>de.classList.remove('speaking');
+    window.speechSynthesis.speak(u);
+  }
+  de.addEventListener('click',speak);
+  de.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); speak(); } });
+})();
+
+/* ===== 启动 ===== */
+startTask(null);
+</script>
+</body>
+</html>
+</div></article></div></main><footer><div class="copyright"><p>&copy; 2026 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.start()
+})</script></body></html>

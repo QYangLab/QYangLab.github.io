@@ -1,0 +1,1014 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dokka-style 4D heading task stimulus demo</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #131a2d;
+      --panel-2: #1b2540;
+      --text: #e8eefc;
+      --muted: #9eb0d5;
+      --accent: #6fb0ff;
+      --accent-2: #ff7c63;
+      --accent-3: #63e6d5;
+      --accent-4: #ffb16a;
+      --border: rgba(255, 255, 255, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(111, 176, 255, 0.10), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 124, 99, 0.10), transparent 24%),
+        linear-gradient(180deg, #09101e 0%, #111933 100%);
+      color: var(--text);
+    }
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.15;
+    }
+    p.top-note {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 1040px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 332px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .panel {
+      background: rgba(19, 26, 45, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(8px);
+    }
+    .controls {
+      padding: 18px 18px 20px;
+    }
+    .controls h2, .canvas-wrap h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    button {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      background: #233150;
+    }
+    .control-group {
+      margin-bottom: 14px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+    }
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .control-group .meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+    input[type="range"]:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .checkbox-row label {
+      display: inline;
+      margin: 0;
+    }
+    .canvas-wrap {
+      padding: 18px;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: radial-gradient(circle at center, #10182a 0%, #070b16 100%);
+    }
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .legend-card {
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .badge {
+      display: inline-block;
+      margin-bottom: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .blue { background: rgba(111,176,255,0.18); color: #99c8ff; }
+    .red { background: rgba(255,124,99,0.18); color: #ffb0a2; }
+    .green { background: rgba(99,230,213,0.18); color: #a9f5eb; }
+    .orange { background: rgba(255,177,106,0.18); color: #ffd1a3; }
+    .status {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #d8e6ff;
+    }
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Dokka-style 4D heading / object-motion stimulus demo</h1>
+    <p class="top-note">
+      This standalone HTML now mirrors the full 4D surrogate used in <code>shuyuchen/</code>:
+      <code>x_t^W = [v_x^self, v_z^self, v_x^obj, v_z^obj]</code> and
+      <code>o_t = [o_x^bg, o_z^bg, o_x^obj, o_z^obj]</code> with
+      <code>o^bg = -v^self</code> and <code>o^obj = v^obj - v^self</code>.
+      The canvas is split into a world-frame velocity plane, an observer-frame cue plane,
+      and separate <code>x</code>/<code>z</code> history panels so both components stay visible at once.
+    </p>
+
+    <div class="layout">
+      <div class="panel controls">
+        <h2>Controls</h2>
+        <div class="button-row">
+          <button id="toggleRun">Pause</button>
+          <button id="resetScene">Reset scene</button>
+        </div>
+        <div class="button-row">
+          <button data-preset="stationary">Preset: stationary world</button>
+          <button data-preset="lateral">Preset: lateral object</button>
+          <button data-preset="depth">Preset: depth object</button>
+          <button data-preset="full4d">Preset: full 4D</button>
+        </div>
+
+        <div class="control-group">
+          <label>
+            <span>Self-motion lateral x</span>
+            <span id="selfXValue"></span>
+          </label>
+          <input id="selfX" type="range" min="-1.00" max="1.00" step="0.01" value="0.35" />
+          <div class="meta">
+            Heading-related world-frame component <code>v_x^self</code>. Positive values correspond to rightward heading.
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>
+            <span>Self-motion forward z</span>
+            <span id="selfZValue"></span>
+          </label>
+          <input id="selfZ" type="range" min="0.30" max="1.60" step="0.01" value="1.05" />
+          <div class="meta">
+            Forward world-frame component <code>v_z^self</code>. This drives the common negative background cue <code>o_z^bg</code>.
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>
+            <span>Object lateral x</span>
+            <span id="objectXValue"></span>
+          </label>
+          <input id="objectX" type="range" min="-1.00" max="1.00" step="0.01" value="0.45" />
+          <div class="meta">
+            World-frame lateral object velocity <code>v_x^obj</code>. Positive values move the object rightward in the world.
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>
+            <span>Object depth z</span>
+            <span id="objectZValue"></span>
+          </label>
+          <input id="objectZ" type="range" min="-0.60" max="0.80" step="0.01" value="0.20" />
+          <div class="meta">
+            World-frame depth object velocity <code>v_z^obj</code>. Positive values move the object forward in the world.
+          </div>
+          <div class="checkbox-row">
+            <input id="stationaryObject" type="checkbox" />
+            <label for="stationaryObject">Force stationary world object (<code>v_x^obj = v_z^obj = 0</code>)</label>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>
+            <span>Dot density</span>
+            <span id="densityValue"></span>
+          </label>
+          <input id="dotDensity" type="range" min="80" max="260" step="1" value="170" />
+          <div class="meta">
+            Number of cue dots used in the observer-frame panel and trace density in the 4D display.
+          </div>
+        </div>
+
+        <div class="status" id="statusBox"></div>
+      </div>
+
+      <div class="panel canvas-wrap">
+        <h2>World-frame causes and observer-frame cues</h2>
+        <canvas id="stimulus" width="980" height="680"></canvas>
+        <div class="legend">
+          <div class="legend-card">
+            <span class="badge blue">World x/z</span><br />
+            The upper-left panel shows the world-frame velocity plane. The blue-cyan vector is self-motion; the orange-red vector is object motion.
+          </div>
+          <div class="legend-card">
+            <span class="badge red">Observer x/z</span><br />
+            The upper-right panel shows egocentric cues: the background arrow is <code>-v^self</code> and the object arrow is <code>v^obj - v^self</code>.
+          </div>
+          <div class="legend-card">
+            <span class="badge green">Channel history</span><br />
+            The lower panels keep all four scalar channels visible. Solid lines are world velocities; dashed lines are observer-frame cues.
+          </div>
+          <div class="legend-card">
+            <span class="badge orange">Ambiguity</span><br />
+            If the object is stationary in the world, then <code>o^obj = o^bg = -v^self</code>: the object can still move in the observer frame without moving in the world.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('stimulus');
+    const ctx = canvas.getContext('2d');
+
+    const selfX = document.getElementById('selfX');
+    const selfZ = document.getElementById('selfZ');
+    const objectX = document.getElementById('objectX');
+    const objectZ = document.getElementById('objectZ');
+    const dotDensity = document.getElementById('dotDensity');
+    const stationaryObject = document.getElementById('stationaryObject');
+    const toggleRun = document.getElementById('toggleRun');
+    const resetScene = document.getElementById('resetScene');
+    const statusBox = document.getElementById('statusBox');
+
+    const selfXValue = document.getElementById('selfXValue');
+    const selfZValue = document.getElementById('selfZValue');
+    const objectXValue = document.getElementById('objectXValue');
+    const objectZValue = document.getElementById('objectZValue');
+    const densityValue = document.getElementById('densityValue');
+
+    const HISTORY_LIMIT = 180;
+    const COLORS = {
+      selfX: '#7bb9ff',
+      selfZ: '#63e6d5',
+      objX: '#ffb16a',
+      objZ: '#ff7c63',
+      text: 'rgba(232, 238, 252, 0.92)',
+      muted: 'rgba(188, 204, 236, 0.84)'
+    };
+
+    let running = true;
+    let lastTimestamp = performance.now();
+    let worldObjectPos = { x: 0.52, z: 1.10 };
+    let retinalObjectPos = { x: 0.18, z: 0.12 };
+    const worldTrail = [];
+    const retinalTrail = [];
+    const retinalDots = [];
+    const history = {
+      selfX: [],
+      selfZ: [],
+      objX: [],
+      objZ: [],
+      bgX: [],
+      bgZ: [],
+      objCueX: [],
+      objCueZ: []
+    };
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function formatScalar(value) {
+      return value.toFixed(2);
+    }
+
+    function formatPair(xValue, zValue) {
+      return `(${formatScalar(xValue)}, ${formatScalar(zValue)})`;
+    }
+
+    function roundedRectPath(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function drawSceneBackground(width, height) {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#0a1222');
+      gradient.addColorStop(0.55, '#0e1730');
+      gradient.addColorStop(1, '#07101d');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.025)';
+      for (let i = 0; i < 24; i += 1) {
+        ctx.beginPath();
+        ctx.arc(rand(0, width), rand(0, height), rand(0.5, 1.4), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawTopBanner(state) {
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '600 18px sans-serif';
+      ctx.fillText('4D world causes to observer-frame cues', 22, 30);
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = COLORS.muted;
+      ctx.fillText(
+        `v_self = ${formatPair(state.selfX, state.selfZ)}  |  v_obj = ${formatPair(state.objX, state.objZ)}  |  o_bg = ${formatPair(state.bgX, state.bgZ)}  |  o_obj = ${formatPair(state.objCueX, state.objCueZ)}`,
+        22,
+        48
+      );
+    }
+
+    function mapPoint(rect, xValue, zValue, bounds) {
+      return {
+        x: rect.x + ((xValue - bounds.xMin) / (bounds.xMax - bounds.xMin)) * rect.w,
+        y: rect.y + rect.h - ((zValue - bounds.zMin) / (bounds.zMax - bounds.zMin)) * rect.h
+      };
+    }
+
+    function drawPanelShell(panel, title, subtitle, colorA, colorB) {
+      const gradient = ctx.createLinearGradient(panel.x, panel.y, panel.x + panel.w, panel.y + panel.h);
+      gradient.addColorStop(0, colorA);
+      gradient.addColorStop(1, colorB);
+
+      ctx.save();
+      roundedRectPath(panel.x, panel.y, panel.w, panel.h, 18);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '600 15px sans-serif';
+      ctx.fillText(title, panel.x + 16, panel.y + 24);
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '12px sans-serif';
+      ctx.fillText(subtitle, panel.x + 16, panel.y + 42);
+      ctx.restore();
+
+      return {
+        x: panel.x + 18,
+        y: panel.y + 54,
+        w: panel.w - 36,
+        h: panel.h - 72
+      };
+    }
+
+    function drawPlaneAxes(rect, bounds, xLabel, zLabel) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i += 1) {
+        const gx = rect.x + (i / 4) * rect.w;
+        ctx.beginPath();
+        ctx.moveTo(gx, rect.y);
+        ctx.lineTo(gx, rect.y + rect.h);
+        ctx.stroke();
+      }
+      for (let i = 0; i <= 4; i += 1) {
+        const gy = rect.y + (i / 4) * rect.h;
+        ctx.beginPath();
+        ctx.moveTo(rect.x, gy);
+        ctx.lineTo(rect.x + rect.w, gy);
+        ctx.stroke();
+      }
+
+      const zeroPointX = mapPoint(rect, 0, bounds.zMin, bounds).x;
+      const zeroPointZ = mapPoint(rect, bounds.xMin, 0, bounds).y;
+      ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+      ctx.lineWidth = 1.2;
+      if (0 >= bounds.xMin && 0 <= bounds.xMax) {
+        ctx.beginPath();
+        ctx.moveTo(zeroPointX, rect.y);
+        ctx.lineTo(zeroPointX, rect.y + rect.h);
+        ctx.stroke();
+      }
+      if (0 >= bounds.zMin && 0 <= bounds.zMax) {
+        ctx.beginPath();
+        ctx.moveTo(rect.x, zeroPointZ);
+        ctx.lineTo(rect.x + rect.w, zeroPointZ);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '11px sans-serif';
+      ctx.fillText(xLabel, rect.x + rect.w - 14, zeroPointZ - 6);
+      ctx.fillText(zLabel, zeroPointX + 6, rect.y + 12);
+      ctx.restore();
+    }
+
+    function drawArrow(fromPoint, toPoint, color, width, dash = []) {
+      const angle = Math.atan2(toPoint.y - fromPoint.y, toPoint.x - fromPoint.x);
+      const head = 8 + width;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(fromPoint.x, fromPoint.y);
+      ctx.lineTo(toPoint.x, toPoint.y);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(toPoint.x, toPoint.y);
+      ctx.lineTo(toPoint.x - head * Math.cos(angle - Math.PI / 6), toPoint.y - head * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(toPoint.x - head * Math.cos(angle + Math.PI / 6), toPoint.y - head * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTrail(trail, rect, bounds, color) {
+      if (trail.length < 2) {
+        return;
+      }
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      trail.forEach((point, index) => {
+        const mapped = mapPoint(rect, point.x, point.z, bounds);
+        if (index === 0) {
+          ctx.moveTo(mapped.x, mapped.y);
+        } else {
+          ctx.lineTo(mapped.x, mapped.y);
+        }
+      });
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCluster(center, fillColor, strokeColor) {
+      const offsets = [
+        { x: -7, y: -7 },
+        { x: 8, y: -3 },
+        { x: -3, y: 7 },
+        { x: 9, y: 8 }
+      ];
+      ctx.save();
+      ctx.fillStyle = fillColor;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 1.3;
+      offsets.forEach((offset, index) => {
+        ctx.beginPath();
+        ctx.arc(center.x + offset.x, center.y + offset.y, index % 2 === 0 ? 5.2 : 4.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawObserverMarker(point) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(245,248,255,0.96)';
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y - 10);
+      ctx.lineTo(point.x - 10, point.y + 10);
+      ctx.lineTo(point.x + 10, point.y + 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function resetDot(dot) {
+      dot.x = rand(-1.60, 1.60);
+      dot.z = rand(-1.10, 1.10);
+      dot.alpha = rand(0.28, 0.72);
+      dot.size = rand(1.2, 3.0);
+    }
+
+    function rebuildDots() {
+      retinalDots.length = 0;
+      for (let i = 0; i < Number(dotDensity.value); i += 1) {
+        const dot = {};
+        resetDot(dot);
+        retinalDots.push(dot);
+      }
+    }
+
+    function currentState() {
+      const state = {
+        selfX: Number(selfX.value),
+        selfZ: Number(selfZ.value),
+        objX: stationaryObject.checked ? 0 : Number(objectX.value),
+        objZ: stationaryObject.checked ? 0 : Number(objectZ.value)
+      };
+      state.bgX = -state.selfX;
+      state.bgZ = -state.selfZ;
+      state.objCueX = state.objX - state.selfX;
+      state.objCueZ = state.objZ - state.selfZ;
+      return state;
+    }
+
+    function clearHistory() {
+      Object.values(history).forEach((series) => {
+        series.length = 0;
+      });
+    }
+
+    function recordHistory(state) {
+      const mappings = {
+        selfX: state.selfX,
+        selfZ: state.selfZ,
+        objX: state.objX,
+        objZ: state.objZ,
+        bgX: state.bgX,
+        bgZ: state.bgZ,
+        objCueX: state.objCueX,
+        objCueZ: state.objCueZ
+      };
+      Object.entries(mappings).forEach(([key, value]) => {
+        history[key].push(value);
+        if (history[key].length > HISTORY_LIMIT) {
+          history[key].shift();
+        }
+      });
+    }
+
+    function seedHistory(state) {
+      clearHistory();
+      for (let i = 0; i < HISTORY_LIMIT; i += 1) {
+        recordHistory(state);
+      }
+    }
+
+    function resetDynamicState(resetHistoryToo = true) {
+      worldObjectPos = { x: 0.52, z: 1.10 };
+      retinalObjectPos = { x: 0.18, z: 0.12 };
+      worldTrail.length = 0;
+      retinalTrail.length = 0;
+      rebuildDots();
+      if (resetHistoryToo) {
+        seedHistory(currentState());
+      }
+    }
+
+    function setPreset(name) {
+      if (name === 'stationary') {
+        selfX.value = '0.40';
+        selfZ.value = '1.05';
+        objectX.value = '0.00';
+        objectZ.value = '0.00';
+        stationaryObject.checked = true;
+      } else if (name === 'lateral') {
+        selfX.value = '0.35';
+        selfZ.value = '1.05';
+        objectX.value = '0.28';
+        objectZ.value = '0.00';
+        stationaryObject.checked = false;
+      } else if (name === 'depth') {
+        selfX.value = '0.22';
+        selfZ.value = '1.05';
+        objectX.value = '0.00';
+        objectZ.value = '0.34';
+        stationaryObject.checked = false;
+      } else if (name === 'full4d') {
+        selfX.value = '0.35';
+        selfZ.value = '1.05';
+        objectX.value = '0.55';
+        objectZ.value = '0.26';
+        stationaryObject.checked = false;
+      }
+      resetDynamicState(true);
+      updateReadouts();
+    }
+
+    function syncControlState() {
+      objectX.disabled = stationaryObject.checked;
+      objectZ.disabled = stationaryObject.checked;
+    }
+
+    function updateReadouts() {
+      const state = currentState();
+      const objectSpeed = Math.hypot(state.objX, state.objZ);
+      const dominantAxis = Math.abs(state.objX) >= Math.abs(state.objZ) ? 'lateral x' : 'depth z';
+
+      selfXValue.textContent = formatScalar(state.selfX);
+      selfZValue.textContent = formatScalar(state.selfZ);
+      objectXValue.textContent = formatScalar(state.objX);
+      objectZValue.textContent = formatScalar(state.objZ);
+      densityValue.textContent = dotDensity.value;
+      syncControlState();
+
+      const worldDescription = objectSpeed < 1e-6
+        ? 'object is stationary in the world'
+        : `object moves in the world with v_obj = ${formatPair(state.objX, state.objZ)}`;
+
+      const retinalDescription = objectSpeed < 1e-6
+        ? 'In the observer frame, the object cue sits exactly on top of the background cue because o_obj = o_bg = -v_self.'
+        : `In the observer frame, the object separates from the stationary-world prediction by Delta o = o_obj - o_bg = v_obj = ${formatPair(state.objX, state.objZ)}.`;
+
+      const ambiguityLine = objectSpeed < 1e-6
+        ? 'Benchmark ambiguity: a world-stationary object still drifts in both observer-frame channels whenever self-motion is nonzero.'
+        : (objectSpeed < 0.25
+            ? `Weak-deviation case: the object cue only subtly peels away from the stationary-world prediction, mostly in the ${dominantAxis} channel.`
+            : `Clear moving-object case: the object's own world velocity strongly separates the object cue from the background, especially in the ${dominantAxis} channel.`);
+
+      statusBox.innerHTML = `
+        <strong>4D latent state</strong><br>
+        <code>x_t^W = [v_x^self, v_z^self, v_x^obj, v_z^obj]</code><br>
+        <code>o_t = [o_x^bg, o_z^bg, o_x^obj, o_z^obj]</code><br><br>
+        <strong>Current world values</strong><br>
+        <code>v_self = $&#123;formatPair(state.selfX, state.selfZ)&#125;</code><br>
+        <code>v_obj = $&#123;formatPair(state.objX, state.objZ)&#125;</code><br><br>
+        <strong>Current observer-frame cues</strong><br>
+        <code>o_bg = -v_self = $&#123;formatPair(state.bgX, state.bgZ)&#125;</code><br>
+        <code>o_obj = v_obj - v_self = $&#123;formatPair(state.objCueX, state.objCueZ)&#125;</code><br><br>
+        <strong>World interpretation</strong><br>
+        ${worldDescription}<br><br>
+        <strong>Observer-frame interpretation</strong><br>
+        ${retinalDescription}<br><br>
+        ${ambiguityLine}
+      `;
+    }
+
+    function updateTrackedPoint(point, vx, vz, dt, scales, bounds, trail) {
+      point.x += vx * dt * scales.x;
+      point.z += vz * dt * scales.z;
+      let reset = false;
+      if (point.x < bounds.xMin || point.x > bounds.xMax) {
+        point.x = rand(bounds.xMin + 0.10, bounds.xMax - 0.10);
+        reset = true;
+      }
+      if (point.z < bounds.zMin || point.z > bounds.zMax) {
+        point.z = rand(bounds.zMin + 0.10, bounds.zMax - 0.10);
+        reset = true;
+      }
+      if (reset) {
+        trail.length = 0;
+      }
+      trail.push({ x: point.x, z: point.z });
+      if (trail.length > 42) {
+        trail.shift();
+      }
+    }
+
+    function drawWorldPanel(dt, panel, state) {
+      const inner = drawPanelShell(
+        panel,
+        'World frame x^W-z^W',
+        'self and object velocities in the world',
+        'rgba(30, 46, 78, 0.96)',
+        'rgba(14, 21, 36, 0.94)'
+      );
+      const rect = { x: inner.x + 8, y: inner.y + 4, w: inner.w - 16, h: inner.h - 18 };
+      const bounds = { xMin: -1.35, xMax: 1.35, zMin: 0.00, zMax: 2.00 };
+      drawPlaneAxes(rect, bounds, 'x^W', 'z^W');
+
+      if (running) {
+        updateTrackedPoint(worldObjectPos, state.objX, state.objZ, dt, { x: 0.64, z: 0.44 }, { xMin: -1.15, xMax: 1.15, zMin: 0.26, zMax: 1.82 }, worldTrail);
+      }
+
+      drawTrail(worldTrail, rect, bounds, 'rgba(255, 177, 106, 0.35)');
+
+      const observerPoint = mapPoint(rect, 0, 0.08, bounds);
+      const selfEnd = mapPoint(rect, state.selfX, clamp(state.selfZ, bounds.zMin, bounds.zMax), bounds);
+      const objectPoint = mapPoint(rect, worldObjectPos.x, worldObjectPos.z, bounds);
+      const objectEnd = mapPoint(
+        rect,
+        clamp(worldObjectPos.x + state.objX * 0.55, bounds.xMin, bounds.xMax),
+        clamp(worldObjectPos.z + state.objZ * 0.55, bounds.zMin, bounds.zMax),
+        bounds
+      );
+
+      drawObserverMarker(observerPoint);
+      drawCluster(objectPoint, 'rgba(255, 132, 92, 0.92)', 'rgba(255, 189, 155, 0.92)');
+      drawArrow(observerPoint, selfEnd, 'rgba(113, 185, 255, 0.96)', 3);
+      drawArrow(objectPoint, objectEnd, 'rgba(255, 177, 106, 0.96)', 3);
+
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`v_self = ${formatPair(state.selfX, state.selfZ)}`, panel.x + 18, panel.y + panel.h - 16);
+      ctx.fillText(`v_obj = ${formatPair(state.objX, state.objZ)}`, panel.x + panel.w - 170, panel.y + panel.h - 16);
+    }
+
+    function drawRetinalPanel(dt, panel, state) {
+      const inner = drawPanelShell(
+        panel,
+        'Observer frame o_t',
+        'background and object cues in egocentric coordinates',
+        'rgba(49, 25, 34, 0.96)',
+        'rgba(13, 20, 33, 0.94)'
+      );
+      const rect = { x: inner.x + 8, y: inner.y + 4, w: inner.w - 16, h: inner.h - 18 };
+      const bounds = { xMin: -2.05, xMax: 2.05, zMin: -1.85, zMax: 1.15 };
+      drawPlaneAxes(rect, bounds, 'o_x', 'o_z');
+
+      if (running) {
+        updateTrackedPoint(retinalObjectPos, state.objCueX, state.objCueZ, dt, { x: 0.72, z: 0.52 }, { xMin: -1.55, xMax: 1.55, zMin: -1.18, zMax: 0.98 }, retinalTrail);
+        retinalDots.forEach((dot) => {
+          dot.x += dt * (state.bgX * 0.62 + dot.x * (-state.bgZ) * 0.08);
+          dot.z += dt * (state.bgZ * 0.42 + dot.z * (-state.bgZ) * 0.05);
+          if (dot.x < -2.10 || dot.x > 2.10 || dot.z < -1.24 || dot.z > 1.24) {
+            resetDot(dot);
+          }
+        });
+      }
+
+      retinalDots.forEach((dot) => {
+        const previous = mapPoint(rect, dot.x - state.bgX * 0.03, dot.z - state.bgZ * 0.03, bounds);
+        const current = mapPoint(rect, dot.x, dot.z, bounds);
+        ctx.strokeStyle = `rgba(123, 185, 255, ${0.16 + dot.alpha * 0.18})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(previous.x, previous.y);
+        ctx.lineTo(current.x, current.y);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(171, 219, 255, ${dot.alpha})`;
+        ctx.beginPath();
+        ctx.arc(current.x, current.y, dot.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      drawTrail(retinalTrail, rect, bounds, 'rgba(255, 124, 99, 0.35)');
+
+      const origin = mapPoint(rect, 0, 0, bounds);
+      const bgEnd = mapPoint(rect, state.bgX, state.bgZ, bounds);
+      const objCueEnd = mapPoint(rect, state.objCueX, state.objCueZ, bounds);
+      const objectPoint = mapPoint(rect, retinalObjectPos.x, retinalObjectPos.z, bounds);
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(245,248,255,0.88)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(origin.x - 8, origin.y);
+      ctx.lineTo(origin.x + 8, origin.y);
+      ctx.moveTo(origin.x, origin.y - 8);
+      ctx.lineTo(origin.x, origin.y + 8);
+      ctx.stroke();
+      ctx.restore();
+
+      drawCluster(objectPoint, 'rgba(255, 124, 99, 0.88)', 'rgba(255, 207, 199, 0.92)');
+      drawArrow(origin, bgEnd, 'rgba(113, 185, 255, 0.96)', 3, [5, 4]);
+      drawArrow(origin, objCueEnd, 'rgba(255, 124, 99, 0.96)', 3);
+
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`o_bg = ${formatPair(state.bgX, state.bgZ)}`, panel.x + 18, panel.y + panel.h - 16);
+      ctx.fillText(`o_obj = ${formatPair(state.objCueX, state.objCueZ)}`, panel.x + panel.w - 180, panel.y + panel.h - 16);
+    }
+
+    function drawHistoryPanel(panel, title, subtitle, seriesDefs, state, range, colors) {
+      const inner = drawPanelShell(panel, title, subtitle, colors[0], colors[1]);
+      const chart = {
+        x: inner.x,
+        y: inner.y,
+        w: inner.w - 132,
+        h: inner.h
+      };
+      const legendX = chart.x + chart.w + 16;
+      const zeroY = chart.y + chart.h / 2;
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i += 1) {
+        const gy = chart.y + (i / 4) * chart.h;
+        ctx.beginPath();
+        ctx.moveTo(chart.x, gy);
+        ctx.lineTo(chart.x + chart.w, gy);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath();
+      ctx.moveTo(chart.x, zeroY);
+      ctx.lineTo(chart.x + chart.w, zeroY);
+      ctx.stroke();
+      ctx.restore();
+
+      seriesDefs.forEach((series) => {
+        const data = history[series.key];
+        if (!data.length) {
+          return;
+        }
+        ctx.save();
+        ctx.strokeStyle = series.color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash(series.dash || []);
+        ctx.beginPath();
+        data.forEach((value, index) => {
+          const xPos = chart.x + (index / Math.max(data.length - 1, 1)) * chart.w;
+          const yPos = zeroY - (value / range) * (chart.h * 0.44);
+          if (index === 0) {
+            ctx.moveTo(xPos, yPos);
+          } else {
+            ctx.lineTo(xPos, yPos);
+          }
+        });
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '11px sans-serif';
+      ctx.fillText(`+${range.toFixed(2)}`, chart.x + 4, chart.y + 12);
+      ctx.fillText('0.00', chart.x + 4, zeroY - 4);
+      ctx.fillText(`-${range.toFixed(2)}`, chart.x + 4, chart.y + chart.h - 6);
+
+      ctx.font = '12px sans-serif';
+      seriesDefs.forEach((series, index) => {
+        const yPos = chart.y + 22 + index * 22;
+        ctx.save();
+        ctx.strokeStyle = series.color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash(series.dash || []);
+        ctx.beginPath();
+        ctx.moveTo(legendX, yPos - 4);
+        ctx.lineTo(legendX + 16, yPos - 4);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = COLORS.text;
+        ctx.fillText(series.label, legendX + 22, yPos);
+        ctx.fillStyle = series.color;
+        ctx.fillText(formatScalar(state[series.stateKey]), legendX + 78, yPos);
+      });
+    }
+
+    function drawFrame(timestamp) {
+      const width = canvas.width;
+      const height = canvas.height;
+      const dt = running ? Math.min((timestamp - lastTimestamp) / 1000, 0.033) : 0;
+      lastTimestamp = timestamp;
+
+      const state = currentState();
+      if (running) {
+        recordHistory(state);
+      }
+
+      const outer = 18;
+      const gap = 16;
+      const headerY = 58;
+      const panelW = (width - outer * 2 - gap) / 2;
+      const topH = 286;
+      const bottomH = height - headerY - topH - gap - 22;
+      const panels = {
+        world: { x: outer, y: headerY, w: panelW, h: topH },
+        observer: { x: outer + panelW + gap, y: headerY, w: panelW, h: topH },
+        xHistory: { x: outer, y: headerY + topH + gap, w: panelW, h: bottomH },
+        zHistory: { x: outer + panelW + gap, y: headerY + topH + gap, w: panelW, h: bottomH }
+      };
+
+      drawSceneBackground(width, height);
+      drawTopBanner(state);
+      drawWorldPanel(dt, panels.world, state);
+      drawRetinalPanel(dt, panels.observer, state);
+      drawHistoryPanel(
+        panels.xHistory,
+        'x-channel traces',
+        'solid: world velocities   dashed: observer-frame cues',
+        [
+          { key: 'selfX', stateKey: 'selfX', label: 'self_x', color: COLORS.selfX, dash: [] },
+          { key: 'objX', stateKey: 'objX', label: 'obj_x', color: COLORS.objX, dash: [] },
+          { key: 'bgX', stateKey: 'bgX', label: 'bg_x', color: COLORS.selfX, dash: [5, 4] },
+          { key: 'objCueX', stateKey: 'objCueX', label: 'objCue_x', color: COLORS.objX, dash: [5, 4] }
+        ],
+        state,
+        2.05,
+        ['rgba(24, 33, 61, 0.96)', 'rgba(15, 20, 33, 0.94)']
+      );
+      drawHistoryPanel(
+        panels.zHistory,
+        'z-channel traces',
+        'solid: world velocities   dashed: observer-frame cues',
+        [
+          { key: 'selfZ', stateKey: 'selfZ', label: 'self_z', color: COLORS.selfZ, dash: [] },
+          { key: 'objZ', stateKey: 'objZ', label: 'obj_z', color: COLORS.objZ, dash: [] },
+          { key: 'bgZ', stateKey: 'bgZ', label: 'bg_z', color: COLORS.selfZ, dash: [5, 4] },
+          { key: 'objCueZ', stateKey: 'objCueZ', label: 'objCue_z', color: COLORS.objZ, dash: [5, 4] }
+        ],
+        state,
+        1.90,
+        ['rgba(20, 43, 45, 0.96)', 'rgba(15, 20, 33, 0.94)']
+      );
+
+      requestAnimationFrame(drawFrame);
+    }
+
+    [selfX, selfZ, objectX, objectZ, dotDensity, stationaryObject].forEach((element) => {
+      element.addEventListener('input', () => {
+        if (element === dotDensity) {
+          rebuildDots();
+        }
+        updateReadouts();
+      });
+      element.addEventListener('change', () => {
+        if (element === dotDensity) {
+          rebuildDots();
+        }
+        updateReadouts();
+      });
+    });
+
+    document.querySelectorAll('[data-preset]').forEach((button) => {
+      button.addEventListener('click', () => setPreset(button.dataset.preset));
+    });
+
+    toggleRun.addEventListener('click', () => {
+      running = !running;
+      toggleRun.textContent = running ? 'Pause' : 'Resume';
+      lastTimestamp = performance.now();
+    });
+
+    resetScene.addEventListener('click', () => {
+      resetDynamicState(true);
+      updateReadouts();
+      lastTimestamp = performance.now();
+    });
+
+    updateReadouts();
+    resetDynamicState(true);
+    requestAnimationFrame(drawFrame);
+  </script>
+</body>
+</html>
+</div></article></div></main><footer><div class="copyright"><p>&copy; 2026 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.start()
+})</script></body></html>

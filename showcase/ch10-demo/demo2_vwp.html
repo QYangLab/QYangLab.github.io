@@ -1,0 +1,245 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index, follow"><title> • LoT Lab</title><meta name="description" content=" - LoT Lab"><link rel="icon" href="/LoT-logo.png"><link rel="stylesheet" href="https://unpkg.com/nanoreset@3.0.1/nanoreset.min.css"><link rel="stylesheet" href="/css/theme.css"><link rel="search" type="application/opensearchdescription+xml" href="/atom.xml" title="LoT Lab"><meta name="generator" content="Hexo 7.3.0"></head><body><div class="wrap" id="barba-wrapper"><header><h1 class="branding"><a href="/" title="LoT Lab"><img class="logo-image" src="/LoT-logo.png" alt="logo"></a></h1><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link no-barba" href="/about" target="_self">HOME</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/team" target="_self">PEOPLE</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/research" target="_self">RESEARCH</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/publications" target="_self">PUBLICATIONS</a></li><li class="nav-list-item"><a class="nav-list-link no-barba" href="/resources" target="_self">RESOURCES</a></li></ul></header><div class="barba-container"><main class="container"><!--a.post-title-link(href=url_for(item.path) class="no-barba")--><div class="post"><article class="post-block"><div class="post-content"><!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Demo 2 · 视觉世界范式 (Altmann & Kamide 1999) — 前向算法在 ms 级被先验调制</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --ink:#e8ecf1; --muted:#8b95a7;
+    --accent:#7cc5ff; --accent2:#ffd479; --good:#7ee2a8; --bad:#ff8a8a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB",sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:22px 28px;border-bottom:1px solid #222a36}
+  header h1{margin:0 0 4px;font-size:20px}
+  header p{margin:0;color:var(--muted)}
+  main{padding:22px 28px;max-width:1080px;margin:auto}
+  .card{background:var(--panel);border:1px solid #232a36;border-radius:12px;padding:18px;margin-bottom:18px}
+  .card h2{margin:0 0 10px;font-size:16px;color:var(--accent)}
+  button{background:#22304a;border:1px solid #2f4063;color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+  button.primary{background:#27507f;border-color:#3a73b8}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:520px;margin:auto}
+  .obj{background:#0a0d12;border:2px solid #232a36;border-radius:14px;padding:32px;text-align:center;font-size:80px;cursor:pointer;transition:.18s;user-select:none}
+  .obj:hover{border-color:#69f}
+  .obj.target{box-shadow:0 0 0 3px #ffd479 inset}
+  .obj.dim{opacity:.4}
+  .label{font-size:13px;color:var(--muted);margin-top:6px}
+  .sent{font-size:22px;text-align:center;margin:14px 0;letter-spacing:.5px}
+  .sent .w{margin:0 4px;color:#cfd6e2}
+  .sent .now{color:#ffd479;font-weight:700}
+  .sent .past{color:#7ee2a8}
+  .footnote{color:var(--muted);font-size:12px;margin-top:8px}
+  .row{display:flex;gap:12px;align-items:center;justify-content:center;margin:10px 0;flex-wrap:wrap}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#22304a;color:var(--accent);font-size:12px;margin-right:6px}
+  table{border-collapse:collapse;width:100%;margin-top:8px}
+  th,td{border:1px solid #2a3344;padding:6px 8px;text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  th{color:var(--muted);background:#141923}
+  .ok{color:var(--good)} .no{color:var(--bad)}
+  svg{display:block;margin:auto}
+  .legend{font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>Demo 2 · Visual World Paradigm</h1>
+  <p>Altmann & Kamide (1999) 经典：听到动词 "eat" 时，眼睛已经飞到唯一可吃物上。课堂用：让学生听句子，<b>在动词出现的瞬间点击他们预测的目标物</b>。我们用 click 时间戳代替眼跳——在 RT 上呈现完全相同的预测效应。</p>
+</header>
+<main>
+
+  <section class="card">
+    <h2>① 试次 (trial)：四物场景 + 一个限制性动词</h2>
+    <div class="row">
+      <button id="play" class="primary">▶ 播放本试次</button>
+      <button id="next">下一试次 →</button>
+      <span class="pill" id="cond">条件: —</span>
+    </div>
+    <div class="grid" id="scene"></div>
+    <div class="sent" id="sent"></div>
+    <p class="footnote" id="status">提示：在听到动词的瞬间，<b>立刻</b>点击你预测的目标物。我们记录从动词起算的 click latency。</p>
+  </section>
+
+  <section class="card">
+    <h2>② 你的反应时（按动词约束分组）</h2>
+    <div id="aggBox">尚无数据。</div>
+    <p class="footnote">关键对比：<b>限制性动词</b>（restrictive，如 "eat"，只有 cake 可吃）vs <b>非限制性动词</b>（neutral，如 "move"，4 物都可移动）。预期：restrictive 条件下 click latency 显著更短，且更集中在唯一目标。</p>
+  </section>
+
+  <section class="card">
+    <h2>③ 把它对回前向算法</h2>
+    <div style="max-width:760px;margin:auto">
+      <svg viewBox="0 0 760 220" width="100%" height="220">
+        <!-- 时间轴 -->
+        <line x1="40" y1="170" x2="720" y2="170" stroke="#444" stroke-width="1"/>
+        <text x="40" y="200" fill="#8b95a7" font-size="12">"The"</text>
+        <text x="160" y="200" fill="#8b95a7" font-size="12">"boy"</text>
+        <text x="280" y="200" fill="#8b95a7" font-size="12">"will"</text>
+        <text x="400" y="200" fill="#ffd479" font-size="13" font-weight="700">"eat"</text>
+        <text x="540" y="200" fill="#8b95a7" font-size="12">"the"</text>
+        <text x="660" y="200" fill="#8b95a7" font-size="12">"cake"</text>
+
+        <!-- α(cake) 曲线 -->
+        <path d="M40 165 L160 158 L280 150 L400 60 L540 50 L660 35" fill="none" stroke="#7ee2a8" stroke-width="3"/>
+        <!-- α(ball) 曲线 -->
+        <path d="M40 165 L160 162 L280 158 L400 145 L540 150 L660 158" fill="none" stroke="#ff8a8a" stroke-width="2" stroke-dasharray="4,3"/>
+        <!-- α(book) 曲线 -->
+        <path d="M40 166 L160 163 L280 159 L400 143 L540 152 L660 160" fill="none" stroke="#ffd479" stroke-width="2" stroke-dasharray="4,3"/>
+
+        <text x="50" y="22" fill="#cfd6e2" font-size="13">α<tspan font-style="italic">t</tspan>(referent) ← visual prior × P(referent | "eat", grammar)</text>
+        <text x="670" y="40" fill="#7ee2a8" font-size="12">cake</text>
+        <text x="670" y="155" fill="#ff8a8a" font-size="12">ball</text>
+        <text x="670" y="168" fill="#ffd479" font-size="12">book</text>
+      </svg>
+      <p class="legend">前向变量 α<sub>t</sub>(referent) = 在听到 t 时间步为止，referent 是即将被讨论之物的概率。"eat" 的 selectional restriction 把 likelihood 推到只剩 cake — 这就是 Tanenhaus 1995 / Altmann & Kamide 1999 的 ms 级行为对应。</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>④ 进一步阅读 / 课堂衔接</h2>
+    <p>把这个 demo 后接 Heilbron, Armeni, Schoffelen, Hagoort & de Lange (2022) PNAS 的图：用 GPT-2 量化听有声书时的 contextual prediction，分别在 EEG 和 MEG 中分离出 <span class="pill">syntactic</span><span class="pill">phonemic</span><span class="pill">semantic</span> 三层 prediction error。这是 HMM 多层级隐藏状态在大脑里逐层定位的最漂亮实证；本 demo 给学生的是 syntactic+semantic 那一层在 ms 级行为上的"宏观签名"。</p>
+  </section>
+
+</main>
+
+<script>
+const TRIALS = [
+  {
+    sent: ["The","boy","will","eat","the","cake"],
+    verbAt: 3,
+    cond: "restrictive",
+    objects: [
+      {emoji:"🍰", name:"cake", target:true},
+      {emoji:"⚽", name:"ball"},
+      {emoji:"📕", name:"book"},
+      {emoji:"🚂", name:"train"},
+    ]
+  },
+  {
+    sent: ["The","girl","will","ride","the","horse"],
+    verbAt: 3,
+    cond: "restrictive",
+    objects: [
+      {emoji:"🐴", name:"horse", target:true},
+      {emoji:"🍎", name:"apple"},
+      {emoji:"🪑", name:"chair"},
+      {emoji:"📕", name:"book"},
+    ]
+  },
+  {
+    sent: ["The","boy","will","move","the","cake"],
+    verbAt: 3,
+    cond: "neutral",
+    objects: [
+      {emoji:"🍰", name:"cake", target:true},
+      {emoji:"⚽", name:"ball"},
+      {emoji:"📕", name:"book"},
+      {emoji:"🚂", name:"train"},
+    ]
+  },
+  {
+    sent: ["The","man","will","drink","the","water"],
+    verbAt: 3,
+    cond: "restrictive",
+    objects: [
+      {emoji:"💧", name:"water", target:true},
+      {emoji:"🪨", name:"rock"},
+      {emoji:"📕", name:"book"},
+      {emoji:"🪑", name:"chair"},
+    ]
+  },
+  {
+    sent: ["The","girl","will","carry","the","book"],
+    verbAt: 3,
+    cond: "neutral",
+    objects: [
+      {emoji:"📕", name:"book", target:true},
+      {emoji:"🍎", name:"apple"},
+      {emoji:"🪑", name:"chair"},
+      {emoji:"🐴", name:"horse"},
+    ]
+  }
+];
+const $ = id=>document.getElementById(id);
+let trial=null, ti=-1, wordIdx=0, t0=0, verbT=0, locked=false;
+let data=[]; // {trial,cond,target,clicked,latencyFromVerb,latencyFromOnset}
+
+function nextTrial(){
+  ti = (ti+1) % TRIALS.length;
+  trial = TRIALS[ti];
+  $("cond").textContent = "条件: " + trial.cond;
+  $("scene").innerHTML = trial.objects.map((o,i)=>`
+    <div class="obj" data-name="${o.name}" data-target="${!!o.target}">${o.emoji}<div class="label">${o.name}${o.target?' (target)':''}</div></div>
+  `).join("");
+  document.querySelectorAll(".obj").forEach(el=>{
+    el.onclick = ()=>{
+      if(locked || !trial) return;
+      const t = performance.now();
+      const latVerb = t - verbT;
+      const latOnset = t - t0;
+      const isTarget = el.dataset.target==="true";
+      data.push({trial:ti,cond:trial.cond,target:isTarget,clicked:el.dataset.name,latencyFromVerb:latVerb,latencyFromOnset:latOnset});
+      el.classList.add("target");
+      document.querySelectorAll(".obj").forEach(x=>{ if(x!==el) x.classList.add("dim"); });
+      $("status").innerHTML = `点击 <b>${el.dataset.name}</b> ${isTarget?'<span class="ok">(target)':'<span class="no">(distractor)'}</span> · 距离动词起 <b>${latVerb.toFixed(0)} ms</b> · 距离句首 <b>${latOnset.toFixed(0)} ms</b>`;
+      locked=true;
+      renderAgg();
+    };
+  });
+  $("sent").innerHTML = trial.sent.map((w,i)=>`<span class="w" data-i="${i}">${w}</span>`).join(" ");
+  $("status").textContent = "按 ▶ 播放，听到动词时立刻点。";
+  locked=false;
+}
+
+function speakSequence(words, cb){
+  // 用 TTS 一个一个词讲，记录每个词出现时间
+  let i=0;
+  function step(){
+    if(i>=words.length){ cb && cb(); return; }
+    document.querySelectorAll(".sent .w").forEach((el,j)=>{
+      el.classList.toggle("now", j===i);
+      el.classList.toggle("past", j<i);
+    });
+    if(i===trial.verbAt) verbT = performance.now();
+    const u = new SpeechSynthesisUtterance(words[i]);
+    u.lang="en-US"; u.rate=0.95;
+    u.onend = ()=>{ i++; step(); };
+    speechSynthesis.speak(u);
+  }
+  step();
+}
+
+$("play").onclick = ()=>{
+  if(!trial) nextTrial();
+  speechSynthesis.cancel();
+  t0 = performance.now();
+  verbT = t0; // 默认到动词时会被覆盖
+  speakSequence(trial.sent, ()=>{
+    if(!locked){ $("status").textContent = "句子已结束，但你没在动词时点。下一试次再来。"; }
+  });
+};
+$("next").onclick = ()=>{ speechSynthesis.cancel(); nextTrial(); };
+
+function renderAgg(){
+  if(!data.length){ $("aggBox").textContent="尚无数据。"; return; }
+  function group(cond){
+    const rows = data.filter(d=>d.cond===cond);
+    if(!rows.length) return null;
+    const targHits = rows.filter(d=>d.target).length;
+    const meanV = rows.reduce((s,d)=>s+d.latencyFromVerb,0)/rows.length;
+    return {n:rows.length, hit:targHits, meanV};
+  }
+  const r = group("restrictive"), n = group("neutral");
+  let html = `<table><tr><th>条件</th><th>n</th><th>目标命中率</th><th>距动词起 click latency</th></tr>`;
+  if(r) html += `<tr><td>restrictive (e.g. "eat")</td><td>${r.n}</td><td class="ok">${(r.hit/r.n*100).toFixed(0)}%</td><td class="ok">${r.meanV.toFixed(0)} ms</td></tr>`;
+  if(n) html += `<tr><td>neutral (e.g. "move")</td><td>${n.n}</td><td>${(n.hit/n.n*100).toFixed(0)}%</td><td>${n.meanV.toFixed(0)} ms</td></tr>`;
+  html += `</table>`;
+  $("aggBox").innerHTML = html;
+}
+
+nextTrial();
+</script>
+</body>
+</html>
+</div></article></div></main><footer><div class="copyright"><p>&copy; 2026 <a href="http://QYangLab.github.io">LoT Lab</a><br>Powered by <a href="https://hexo.io/" rel="noreferrer" target="_blank">Hexo</a></p></div></footer></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.start()
+})</script></body></html>
