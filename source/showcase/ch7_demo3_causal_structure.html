@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 7-3：Gopnik 因果结构学习</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px}
+button.trial-btn{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 16px;cursor:pointer;font-size:13px;transition:all .15s}
+button.trial-btn:hover{background:#f1f5f9;border-color:var(--accent)}
+.trial-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}
+th,td{padding:8px 12px;border:1px solid var(--line);text-anchor:center}
+th{background:#f1f5f9;font-weight:600;font-size:13px}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 7-3：Gopnik Blicket Detector 因果结构学习</h1>
+    <p>儿童通过观察"哪些积木放在机器上会让机器响"来学习因果结构。这不只是学习参数，而是在不同因果图之间分配后验概率。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#8b5cf6"></span>隐变量：因果图结构 \(G\)</span>
+      <span class="badge"><span class="dot" style="background:#16a34a"></span>数据：trial 表</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[p(G \mid D) \propto p(D \mid G) \cdot p(G)\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>添加实验 Trial</h2>
+    <p>选择放置哪些积木以及机器是否响：</p>
+    <div class="trial-grid">
+      <button class="trial-btn" data-trial="A1B0M1">A 放 → 响</button>
+      <button class="trial-btn" data-trial="A1B0M0">A 放 → 不响</button>
+      <button class="trial-btn" data-trial="A0B1M1">B 放 → 响</button>
+      <button class="trial-btn" data-trial="A0B1M0">B 放 → 不响</button>
+      <button class="trial-btn" data-trial="A1B1M1">A+B 放 → 响</button>
+      <button class="trial-btn" data-trial="A1B1M0">A+B 放 → 不响</button>
+      <button class="trial-btn" data-trial="A0B0M0">无 → 不响</button>
+      <button class="trial-btn" data-trial="A0B0M1">无 → 响</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="secondary" id="btn-reset">重置所有 trials</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Trial 数据表</h2>
+    <div id="trial-table-wrap"></div>
+  </div>
+
+  <div class="card">
+    <h2>候选因果图与后验概率</h2>
+    <svg id="svg-graphs" width="100%" viewBox="0 0 860 300" style="display:block"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>如果"A 单独放→响"而"B 单独放→不响"，则结构"只有 A 是 blicket"获得最高后验。尝试添加"A+B 放→响"+"B 单独放→不响"，观察后验如何在不同结构之间转移。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    结构学习说明"学习即推断"不仅包括估计参数，也包括在不同结构假设之间分配概率。参考：Gopnik et al. (2004); Gopnik & Wellman (2012); Griffiths & Tenenbaum (2005).
+  </div>
+</main>
+
+<script>
+// 5 candidate structures
+const structures=[
+  {id:'G1',label:'无 blicket',desc:'A✗ B✗',pa:0,pb:0},
+  {id:'G2',label:'只有 A',desc:'A→M',pa:1,pb:0},
+  {id:'G3',label:'只有 B',desc:'B→M',pa:0,pb:1},
+  {id:'G4',label:'A 和 B 都是',desc:'A→M←B',pa:1,pb:1},
+  {id:'G5',label:'A 或 B 任一',desc:'A→M←B (OR)',pa:1,pb:1}
+];
+
+// Likelihood function: noisy-OR model
+// If blicket present and on detector: prob of activating = w (per block)
+// Background activation prob = epsilon
+const w=0.9, eps=0.05;
+
+function trialLikelihood(a,b,m,struct){
+  // Determine which causal powers are active
+  let pActive;
+  if(struct.id==='G1'){
+    pActive=eps;
+  } else if(struct.id==='G2'){
+    pActive=1-(1-eps)*(a?1-w:1);
+  } else if(struct.id==='G3'){
+    pActive=1-(1-eps)*(b?1-w:1);
+  } else if(struct.id==='G4'){
+    // Both are blickets (OR gate)
+    pActive=1-(1-eps)*(a?1-w:1)*(b?1-w:1);
+  } else if(struct.id==='G5'){
+    // Same as G4 but with different prior
+    pActive=1-(1-eps)*(a?1-w:1)*(b?1-w:1);
+  }
+  return m?pActive:(1-pActive);
+}
+
+let trials=[];
+
+function parseTrial(code){
+  return{
+    a:code[1]==='1',
+    b:code[3]==='1',
+    m:code[5]==='1'
+  };
+}
+
+function computePosterior(){
+  // Prior: slight preference for simpler
+  const priors=[0.15, 0.25, 0.25, 0.20, 0.15];
+  let posteriors=priors.slice();
+  trials.forEach(t=>{
+    posteriors=posteriors.map((p,i)=>p*trialLikelihood(t.a,t.b,t.m,structures[i]));
+  });
+  const Z=posteriors.reduce((a,b)=>a+b,0)||1;
+  return posteriors.map(p=>p/Z);
+}
+
+function draw(){
+  drawTable();drawGraphs();
+}
+
+function drawTable(){
+  const wrap=document.getElementById('trial-table-wrap');
+  if(trials.length===0){wrap.innerHTML='<p style="color:#94a3b8">尚无 trial 数据。点击上方按钮添加。</p>';return}
+  let html='<table><tr><th>#</th><th>A 在场</th><th>B 在场</th><th>机器响</th></tr>';
+  trials.forEach((t,i)=>{
+    html+=`<tr><td>${i+1}</td><td style="color:${t.a?'#2563eb':'#94a3b8'}">${t.a?'✓':'✗'}</td><td style="color:${t.b?'#2563eb':'#94a3b8'}">${t.b?'✓':'✗'}</td><td style="color:${t.m?'#16a34a':'#dc2626'}">${t.m?'响 ✓':'不响 ✗'}</td></tr>`;
+  });
+  html+='</table>';
+  wrap.innerHTML=html;
+}
+
+function drawGraphs(){
+  const svg=document.getElementById('svg-graphs');
+  const post=computePosterior();
+  const W=860,H=300;
+  const n=structures.length;
+  const gW=140, gH=120, gap=20;
+  const totalW=n*gW+(n-1)*gap;
+  const startX=(W-totalW)/2;
+  let html='';
+
+  structures.forEach((s,i)=>{
+    const x=startX+i*(gW+gap);
+    const y=20;
+    const p=post[i];
+    const intensity=Math.min(1,p*2.5);
+    const bgFill=`rgba(37,99,235,${0.04+intensity*0.4})`;
+    const borderCol=p>0.2?'#2563eb':'#cbd5e1';
+
+    // card background
+    html+=`<rect x="${x}" y="${y}" width="${gW}" height="${gH}" fill="${bgFill}" stroke="${borderCol}" stroke-width="${p>0.2?2:1}" rx="14"/>`;
+
+    // Draw mini graph
+    const cx=x+gW/2, cy=y+55;
+    const aX=cx-30, bX=cx+30, mX=cx, mY=cy+25, abY=cy-15;
+    // A node
+    html+=`<circle cx="${aX}" cy="${abY}" r="14" fill="${s.pa?'#f97316':'#e2e8f0'}" stroke="#f97316" stroke-width="1.5"/>`;
+    html+=`<text x="${aX}" y="${abY+4}" text-anchor="middle" font-size="12" fill="${s.pa?'#fff':'#94a3b8'}" font-weight="600">A</text>`;
+    // B node
+    html+=`<circle cx="${bX}" cy="${abY}" r="14" fill="${s.pb?'#8b5cf6':'#e2e8f0'}" stroke="#8b5cf6" stroke-width="1.5"/>`;
+    html+=`<text x="${bX}" y="${abY+4}" text-anchor="middle" font-size="12" fill="${s.pb?'#fff':'#94a3b8'}" font-weight="600">B</text>`;
+    // M node
+    html+=`<circle cx="${mX}" cy="${mY}" r="14" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>`;
+    html+=`<text x="${mX}" y="${mY+4}" text-anchor="middle" font-size="12" fill="#475569" font-weight="600">M</text>`;
+    // Arrows
+    if(s.pa) html+=`<line x1="${aX+8}" y1="${abY+14}" x2="${mX-8}" y2="${mY-14}" stroke="#f97316" stroke-width="2" marker-end="url(#ga)"/>`;
+    if(s.pb) html+=`<line x1="${bX-8}" y1="${abY+14}" x2="${mX+8}" y2="${mY-14}" stroke="#8b5cf6" stroke-width="2" marker-end="url(#gb)"/>`;
+
+    // Label
+    html+=`<text x="${cx}" y="${y+gH-4}" text-anchor="middle" font-size="12" fill="#475569" font-weight="600">${s.label}</text>`;
+  });
+
+  html+=`<defs><marker id="ga" viewBox="0 0 6 6" refX="6" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L6,3L0,6Z" fill="#f97316"/></marker>`;
+  html+=`<marker id="gb" viewBox="0 0 6 6" refX="6" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L6,3L0,6Z" fill="#8b5cf6"/></marker></defs>`;
+
+  // Posterior bar below
+  const barY=160, barH=100;
+  html+=`<line x1="${startX}" y1="${barY+barH}" x2="${startX+totalW}" y2="${barY+barH}" stroke="#cbd5e1" stroke-width="1"/>`;
+  structures.forEach((s,i)=>{
+    const x=startX+i*(gW+gap)+gW/2;
+    const p=post[i];
+    const h=p*barH;
+    const col=p===Math.max(...post)?'#2563eb':'#93c5fd';
+    html+=`<rect x="${x-25}" y="${barY+barH-h}" width="50" height="${h}" fill="${col}" rx="6"/>`;
+    html+=`<text x="${x}" y="${barY+barH+16}" text-anchor="middle" font-size="12" fill="#475569">${s.label}</text>`;
+    html+=`<text x="${x}" y="${barY+barH-h-6}" text-anchor="middle" font-size="12" fill="#2563eb" font-weight="600">${(p*100).toFixed(1)}%</text>`;
+  });
+
+  svg.innerHTML=html;
+}
+
+// Event handlers
+document.querySelectorAll('.trial-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const code=btn.dataset.trial;
+    trials.push(parseTrial(code));
+    draw();
+  });
+});
+document.getElementById('btn-reset').addEventListener('click',()=>{trials=[];draw()});
+draw();
+</script>
+</body>
+</html>

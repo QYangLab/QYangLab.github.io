@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 9：MCMCP 形状空间</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --line: #cbd5e1;
+  --accent: #2563eb;
+  --accent-2: #d97706;
+  --green: #16a34a;
+  --red: #dc2626;
+  --soft-blue: #eff6ff;
+  --soft-amber: #fffbeb;
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: radial-gradient(circle at top left, #e0f2fe 0, transparent 28rem), var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+main { max-width: 1360px; margin: 0 auto; padding: 28px 22px 64px; }
+h1, h2, h3 { margin: 0 0 10px; line-height: 1.25; }
+h1 { font-size: clamp(1.45rem, 2vw, 2rem); }
+h2 { font-size: 1.05rem; }
+h3 { font-size: 0.95rem; }
+p { margin: 0 0 12px; color: var(--muted); }
+button, select, input { font: inherit; }
+button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 15px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+  transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+button:hover { background: #f1f5f9; border-color: #94a3b8; }
+button:active { transform: translateY(1px) scale(0.99); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18); }
+button.primary:hover { background: #1d4ed8; }
+button.good { background: #ecfdf5; border-color: #86efac; color: #166534; }
+button.warning { background: #fffbeb; border-color: #fbbf24; color: #92400e; }
+button.ghost { background: transparent; }
+select {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 36px 8px 12px;
+  background: #fff;
+  color: var(--text);
+}
+.hero, .card, .hint-card, footer {
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+}
+.hero {
+  padding: 26px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+.hero p { max-width: 920px; font-size: 15px; }
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.badge-dot { width: 9px; height: 9px; border-radius: 999px; display: inline-block; }
+.card { padding: 20px; margin-bottom: 18px; }
+.controls-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(230px, 1.15fr) minmax(220px, 1.2fr);
+  gap: 14px;
+  align-items: end;
+}
+.control-block {
+  min-height: 86px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 13px;
+}
+.control-block label, .control-title {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-row input[type="range"] { width: 100%; accent-color: var(--accent); }
+.slider-value {
+  min-width: 48px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px 7px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--accent);
+}
+.button-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.check-row { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-top: 10px; }
+.check-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+.main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(340px, 0.98fr);
+  gap: 18px;
+  align-items: start;
+}
+.stimulus-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.choice-card {
+  position: relative;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  padding: 14px;
+  cursor: pointer;
+  min-width: 0;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.choice-card:hover, .choice-card:focus-within {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.13);
+}
+.choice-card.current { border-color: #cbd5e1; }
+.choice-card.candidate { border-color: #bfdbfe; }
+.choice-topline { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 8px; }
+.choice-title { font-weight: 850; }
+.choice-pill {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--soft-blue);
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.choice-card.current .choice-pill { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+.animal-wrap {
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(#f0f9ff 0 58%, #ecfccb 58% 100%);
+}
+.animal-wrap svg { display: block; width: 100%; height: auto; }
+.param-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.param-chip {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.param-chip strong { display: block; color: var(--text); font-size: 18px; line-height: 1.1; }
+.trial-instruction {
+  margin-top: 14px;
+  border: 1px dashed #93c5fd;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 14px;
+}
+.visual-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.plot-wrap, .hist-wrap {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+.plot-wrap canvas, .hist-wrap canvas { display: block; width: 100%; height: auto; }
+.plot-wrap canvas { aspect-ratio: 1 / 1; }
+.hist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hist-wrap { padding: 8px; }
+.hist-wrap canvas { aspect-ratio: 2.1 / 1; }
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.metric {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 11px;
+  min-width: 0;
+}
+.metric .label { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
+.metric .value { font-size: 18px; font-weight: 850; margin-top: 3px; white-space: nowrap; }
+.metric .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.status-line {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hint-card {
+  margin-top: 18px;
+  padding: 20px;
+  background: linear-gradient(135deg, #eff6ff, #fff7ed);
+}
+.hint-card ul { margin: 8px 0 0 18px; padding: 0; color: var(--muted); }
+.hint-card li { margin: 7px 0; }
+footer {
+  margin-top: 18px;
+  padding: 18px 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+footer strong { color: var(--text); }
+.inline-kbd {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 7px;
+  background: #fff;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+@media (max-width: 1100px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .controls-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  main { padding: 18px 12px 48px; }
+  .hero { grid-template-columns: 1fr; padding: 20px; }
+  .hero-actions { justify-content: flex-start; }
+  .controls-grid, .stimulus-grid, .hist-grid, .metric-grid { grid-template-columns: 1fr; }
+  .card { padding: 16px; }
+  button { width: 100%; }
+  .button-row button, .hero-actions button { width: auto; }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0f172a;
+    --card: #111827;
+    --text: #e5e7eb;
+    --muted: #a1a1aa;
+    --line: #334155;
+    --soft-blue: #172554;
+    --soft-amber: #451a03;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  }
+  body { background: radial-gradient(circle at top left, rgba(30,64,175,0.28) 0, transparent 28rem), var(--bg); }
+  button, select, .badge, .slider-value, .param-chip, .plot-wrap, .hist-wrap { background: #0b1220; color: var(--text); }
+  button:hover { background: #1e293b; }
+  .control-block, .metric { background: #0b1220; border-color: #1e293b; }
+  .choice-card { background: linear-gradient(180deg, #111827, #0b1220); }
+  .trial-instruction { background: #172554; border-color: #2563eb; color: #bfdbfe; }
+  .animal-wrap { background: linear-gradient(#0c4a6e 0 58%, #365314 58% 100%); }
+}
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div>
+      <h1>Demo 9：MCMCP 形状空间</h1>
+      <p>你在这里扮演 Markov Chain Monte Carlo with People 的<strong>接受函数</strong>：系统从当前动物形状出发，随机游走提出一个候选形状；你只需二选一，判断哪一个更像目标类别。若你选择候选，链移动到候选；若你选择当前，链停留原地。</p>
+      <div class="badges" aria-label="图例">
+        <span class="badge"><span class="badge-dot" style="background:#93c5fd"></span>前 10 个点为 burn-in</span>
+        <span class="badge"><span class="badge-dot" style="background:#ef4444"></span>颜色越红迭代越晚</span>
+        <span class="badge"><span class="badge-dot" style="background:#f59e0b"></span>隐藏效用只用于模拟/等高线</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button type="button" id="export-csv" class="primary">导出 CSV</button>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="controls-title">
+    <h2 id="controls-title">控制面板</h2>
+    <div class="controls-grid">
+      <div class="control-block">
+        <label for="target-select">目标类别</label>
+        <select id="target-select" aria-label="选择目标类别">
+          <option value="giraffe">长颈鹿</option>
+          <option value="penguin">企鹅</option>
+          <option value="elephant">大象</option>
+          <option value="dinosaur">恐龙</option>
+        </select>
+        <div class="check-row">
+          <input type="checkbox" id="show-contours">
+          <label for="show-contours" style="margin:0;font-weight:650;letter-spacing:0;">显示隐藏目标等高线</label>
+        </div>
+      </div>
+      <div class="control-block">
+        <label for="sigma-slider">提议宽度 σ（高斯随机游走）</label>
+        <div class="slider-row">
+          <input type="range" id="sigma-slider" min="0.20" max="3.00" step="0.05" value="1.05">
+          <span class="slider-value" id="sigma-value">1.05</span>
+        </div>
+        <p style="font-size:12px;margin:8px 0 0;">σ 太小会慢慢爬；σ 太大则候选常常跳到“不像”的地方。</p>
+      </div>
+      <div class="control-block">
+        <div class="control-title">链操作</div>
+        <div class="button-row">
+          <button type="button" id="reset-chain" class="warning">开始/重置链</button>
+          <button type="button" id="next-proposal">下一候选</button>
+          <button type="button" id="auto-50" class="good">自动模拟 50 试次</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="main-layout">
+    <div class="card">
+      <h2>二选一：哪一个更像 <span id="target-name">长颈鹿</span>？</h2>
+      <p>点击左侧表示“拒绝候选、原地停留”；点击右侧表示“接受候选、移动到新状态”。每次点击只贡献约 1 bit 信息。</p>
+      <div class="stimulus-grid">
+        <article class="choice-card current" id="choose-current" tabindex="0" role="button" aria-label="选择当前刺激，拒绝候选">
+          <div class="choice-topline">
+            <span class="choice-title">当前状态 x</span>
+            <span class="choice-pill">拒绝：stay</span>
+          </div>
+          <div class="animal-wrap" id="current-animal"></div>
+          <div class="param-row">
+            <div class="param-chip">脖子长 <strong id="current-neck">0.0</strong></div>
+            <div class="param-chip">腿长 <strong id="current-leg">0.0</strong></div>
+          </div>
+        </article>
+        <article class="choice-card candidate" id="choose-candidate" tabindex="0" role="button" aria-label="选择候选刺激，接受移动">
+          <div class="choice-topline">
+            <span class="choice-title">候选状态 x′</span>
+            <span class="choice-pill">接受：move</span>
+          </div>
+          <div class="animal-wrap" id="candidate-animal"></div>
+          <div class="param-row">
+            <div class="param-chip">脖子长 <strong id="candidate-neck">0.0</strong></div>
+            <div class="param-chip">腿长 <strong id="candidate-leg">0.0</strong></div>
+          </div>
+        </article>
+      </div>
+      <div class="trial-instruction" id="trial-note">请点击更像目标类别的动物。系统会把你的选择当作 MH/Barker 接受步骤。</div>
+      <div class="metric-grid" aria-label="链统计">
+        <div class="metric"><div class="label">试次</div><div class="value" id="metric-trials">0</div><div class="sub">建议课堂做 30–50 次</div></div>
+        <div class="metric"><div class="label">移动率</div><div class="value" id="metric-accept">—</div><div class="sub">candidate 被选中比例</div></div>
+        <div class="metric"><div class="label">burn-in 后均值</div><div class="value" id="metric-mean">—</div><div class="sub">丢弃前 10 点</div></div>
+        <div class="metric"><div class="label">当前坐标</div><div class="value" id="metric-current">—</div><div class="sub">(脖子, 腿)</div></div>
+      </div>
+      <div class="status-line" id="status-line">链已初始化。先观察随机起点与候选，再作判断。</div>
+    </div>
+
+    <div class="visual-grid">
+      <div class="card">
+        <h2>二维脖子–腿长空间中的 MCMCP 轨迹</h2>
+        <p>横轴为脖子长度，纵轴为腿长，范围均为 [0,10]。浅色前 10 点是 burn-in；后续点逐渐逼近你心中的目标类别区域。</p>
+        <div class="plot-wrap"><canvas id="plane-canvas" width="560" height="560" aria-label="二维链轨迹图"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>边缘直方图与摘要</h2>
+        <p>直方图默认使用 burn-in 之后的样本；样本少于 10 时临时显示全部点。</p>
+        <div class="hist-grid">
+          <div class="hist-wrap"><canvas id="neck-hist" width="360" height="170" aria-label="脖子长度边缘直方图"></canvas></div>
+          <div class="hist-wrap"><canvas id="leg-hist" width="360" height="170" aria-label="腿长边缘直方图"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hint-card">
+    <h2>观察提示</h2>
+    <ul>
+      <li><strong>Burn-in：</strong>前 5–10 个试次常常还受随机起点影响，图中已用浅色标出；课堂分析时可先丢弃。</li>
+      <li><strong>每个试次只有 1 bit：</strong>二选一只能告诉算法“左/右哪个更像”，因此 30–50 次后轨迹才慢慢显出主观分布。</li>
+      <li><strong>为什么引出 GSP：</strong>Gibbs Sampling with People 的滑块一次能给出更细粒度的数值反馈，比这里的二选一提供更多信息。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <h2>文献与案例意图</h2>
+    <p><strong>对应章节:</strong> §3.2 算法也可以变成实验方法；<strong>对应文献:</strong> Sanborn2010Uncovering, Harrison2020GibbsPeople。</p>
+    <p><strong>完整引用:</strong></p>
+    <ol>
+      <li>Sanborn, Adam N., Thomas L. Griffiths, and Richard M. Shiffrin. 2010. <cite>Uncovering mental representations with Markov chain Monte Carlo</cite>. <em>Cognitive Psychology</em> 60(2): 63–106. https://doi.org/10.1016/j.cogpsych.2009.07.001.</li>
+      <li>Harrison, Peter M. C., Raja Marjieh, Federico Adolfi, Pol van Rijn, Manuel Anglada-Tort, Ofer Tchernichovski, Pauline Larrouy-Maestri, and Nori Jacoby. 2020. <cite>Gibbs Sampling with People</cite>. <em>Advances in Neural Information Processing Systems</em> 33: 10659–10671.</li>
+    </ol>
+    <p><strong>案例想表达的想法:</strong> 这个“长颈鹿”形状空间 demo 想说明，MCMC 不只是一种后台算法，也可以变成心理表征测量方法。二选一的 MCMCP 把被试选择解释成 MH 接受/拒绝，逐步显露心中的类别分布；GSP 则把同一思想改成条件维度调整，每次反应提供更细粒度信息。学生应看到：算法流程本身可以被设计成实验范式。</p>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const BURN_IN = 10;
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+
+  function normalRandom() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  function reflectToRange(x, lo = 0, hi = 10) {
+    const span = hi - lo;
+    if (span <= 0) return lo;
+    let y = x;
+    while (y < lo || y > hi) {
+      if (y < lo) y = lo + (lo - y);
+      if (y > hi) y = hi - (y - hi);
+    }
+    return clamp(y, lo, hi);
+  }
+
+  function quadLog(neck, leg, mn, ml, sn, sl, rho = 0) {
+    const xn = (neck - mn) / sn;
+    const yl = (leg - ml) / sl;
+    const denom = Math.max(0.05, 1 - rho * rho);
+    return -0.5 / denom * (xn * xn - 2 * rho * xn * yl + yl * yl);
+  }
+
+  function logMix(parts) {
+    const maxVal = Math.max(...parts.map(p => p.logv));
+    const sum = parts.reduce((acc, p) => acc + p.w * Math.exp(p.logv - maxVal), 0);
+    return maxVal + Math.log(sum);
+  }
+
+  const categories = {
+    giraffe: {
+      name: '长颈鹿', palette: { body: '#f2c14e', body2: '#f59e0b', dark: '#7c2d12', accent: '#92400e' },
+      utility: (n, l) => logMix([
+        { w: 0.82, logv: quadLog(n, l, 8.4, 8.0, 1.05, 1.30, 0.35) },
+        { w: 0.18, logv: quadLog(n, l, 7.2, 7.2, 1.55, 1.75, 0.20) }
+      ])
+    },
+    penguin: {
+      name: '企鹅', palette: { body: '#111827', body2: '#f8fafc', dark: '#020617', accent: '#f97316' },
+      utility: (n, l) => logMix([
+        { w: 0.92, logv: quadLog(n, l, 1.4, 1.2, 1.00, 0.85, 0.10) },
+        { w: 0.08, logv: quadLog(n, l, 2.3, 2.0, 1.30, 1.10, 0.25) }
+      ])
+    },
+    elephant: {
+      name: '大象', palette: { body: '#94a3b8', body2: '#cbd5e1', dark: '#475569', accent: '#e2e8f0' },
+      utility: (n, l) => logMix([
+        { w: 0.75, logv: quadLog(n, l, 2.0, 4.5, 1.15, 1.55, -0.05) },
+        { w: 0.25, logv: quadLog(n, l, 1.2, 5.7, 0.90, 1.30, 0.10) }
+      ])
+    },
+    dinosaur: {
+      name: '恐龙', palette: { body: '#22c55e', body2: '#86efac', dark: '#166534', accent: '#fef08a' },
+      utility: (n, l) => logMix([
+        { w: 0.58, logv: quadLog(n, l, 6.8, 5.3, 1.45, 1.35, 0.05) },
+        { w: 0.42, logv: quadLog(n, l, 3.2, 6.7, 1.10, 1.25, -0.20) }
+      ])
+    }
+  };
+
+  const contourMaxCache = {};
+  const state = {
+    target: 'giraffe',
+    sigma: 1.05,
+    current: { neck: 0, leg: 0 },
+    candidate: { neck: 0, leg: 0 },
+    chain: [],
+    rows: [],
+    lastMessage: ''
+  };
+
+  const el = {
+    targetSelect: document.getElementById('target-select'),
+    targetName: document.getElementById('target-name'),
+    sigmaSlider: document.getElementById('sigma-slider'),
+    sigmaValue: document.getElementById('sigma-value'),
+    showContours: document.getElementById('show-contours'),
+    reset: document.getElementById('reset-chain'),
+    next: document.getElementById('next-proposal'),
+    auto: document.getElementById('auto-50'),
+    exportCsv: document.getElementById('export-csv'),
+    chooseCurrent: document.getElementById('choose-current'),
+    chooseCandidate: document.getElementById('choose-candidate'),
+    currentAnimal: document.getElementById('current-animal'),
+    candidateAnimal: document.getElementById('candidate-animal'),
+    currentNeck: document.getElementById('current-neck'),
+    currentLeg: document.getElementById('current-leg'),
+    candidateNeck: document.getElementById('candidate-neck'),
+    candidateLeg: document.getElementById('candidate-leg'),
+    trials: document.getElementById('metric-trials'),
+    accept: document.getElementById('metric-accept'),
+    mean: document.getElementById('metric-mean'),
+    currentMetric: document.getElementById('metric-current'),
+    status: document.getElementById('status-line'),
+    note: document.getElementById('trial-note'),
+    plane: document.getElementById('plane-canvas'),
+    neckHist: document.getElementById('neck-hist'),
+    legHist: document.getElementById('leg-hist')
+  };
+
+  function currentCategory() {
+    return categories[state.target];
+  }
+
+  function utility(point) {
+    return currentCategory().utility(point.neck, point.leg);
+  }
+
+  function getContourMax(targetKey) {
+    if (contourMaxCache[targetKey] !== undefined) return contourMaxCache[targetKey];
+    const cat = categories[targetKey];
+    let maxU = -Infinity;
+    for (let i = 0; i <= 60; i++) {
+      for (let j = 0; j <= 60; j++) {
+        maxU = Math.max(maxU, cat.utility(i / 6, j / 6));
+      }
+    }
+    contourMaxCache[targetKey] = maxU;
+    return maxU;
+  }
+
+  function propose(from) {
+    return {
+      neck: reflectToRange(from.neck + normalRandom() * state.sigma),
+      leg: reflectToRange(from.leg + normalRandom() * state.sigma)
+    };
+  }
+
+  function resetChain(message = '链已重置。请从随机起点开始，用二选一推动链移动。') {
+    state.current = { neck: Math.random() * 10, leg: Math.random() * 10 };
+    state.candidate = propose(state.current);
+    state.chain = [{ neck: state.current.neck, leg: state.current.leg, iter: 0 }];
+    state.rows = [];
+    state.lastMessage = message;
+    renderAll();
+  }
+
+  function nextProposal() {
+    state.candidate = propose(state.current);
+    state.lastMessage = '已从当前状态重新提出候选（未记录试次）。真实实验中通常不要跳过太多候选。';
+    renderAll();
+  }
+
+  function choose(which, simulated = false, silent = false) {
+    const before = { neck: state.current.neck, leg: state.current.leg };
+    const cand = { neck: state.candidate.neck, leg: state.candidate.leg };
+    const moved = which === 'candidate';
+    const trial = state.rows.length + 1;
+    state.rows.push({
+      trial,
+      current_neck: before.neck,
+      current_leg: before.leg,
+      candidate_neck: cand.neck,
+      candidate_leg: cand.leg,
+      choice: moved ? 'candidate' : 'current',
+      moved: moved ? 1 : 0,
+      target: currentCategory().name
+    });
+    if (moved) state.current = cand;
+    state.chain.push({ neck: state.current.neck, leg: state.current.leg, iter: state.chain.length });
+    state.candidate = propose(state.current);
+    if (!silent) {
+      const verb = moved ? '接受候选，链移动到 x′。' : '拒绝候选，链在 x 原地停留。';
+      state.lastMessage = (simulated ? '模拟助手：' : '你的选择：') + verb;
+      renderAll();
+    }
+  }
+
+  function autoSimulate50() {
+    for (let i = 0; i < 50; i++) {
+      const uCur = utility(state.current);
+      const uCand = utility(state.candidate);
+      const diff = clamp(uCand - uCur, -30, 30);
+      const pChooseCandidate = 1 / (1 + Math.exp(-diff));
+      choose(Math.random() < pChooseCandidate ? 'candidate' : 'current', true, true);
+    }
+    state.lastMessage = '已用隐藏效用函数模拟 50 次二选一（Barker/softmax 选择）：这仅供课堂演示，CSV 中仍按试次记录。';
+    renderAll();
+  }
+
+  function animalSvg(point) {
+    const cat = currentCategory();
+    const pal = cat.palette;
+    const n = point.neck;
+    const l = point.leg;
+    const legH = 16 + l * 5.2;
+    const neckH = 8 + n * 6.0;
+    const isPenguin = state.target === 'penguin';
+    const isElephant = state.target === 'elephant';
+    const bodyCx = isPenguin ? 132 : 142;
+    const bodyCy = isPenguin ? 120 : 118;
+    const bodyRx = isPenguin ? 40 : (isElephant ? 64 : 58);
+    const bodyRy = isPenguin ? 54 : (isElephant ? 34 : 30);
+    const legBaseY = bodyCy + bodyRy * 0.55;
+    const footY = legBaseY + legH;
+    const neckBaseX = bodyCx - bodyRx * (isPenguin ? 0.15 : 0.52);
+    const neckBaseY = bodyCy - bodyRy * 0.72;
+    const neckTopY = neckBaseY - neckH;
+    const neckW = isElephant ? 18 : (isPenguin ? 20 : 13);
+    const headCx = neckBaseX - (state.target === 'dinosaur' ? 8 : 2);
+    const headCy = neckTopY - 2;
+    const legW = isElephant ? 16 : (isPenguin ? 9 : 10);
+    const legXs = isPenguin ? [bodyCx - 13, bodyCx + 13] : [bodyCx - 34, bodyCx - 10, bodyCx + 18, bodyCx + 42];
+
+    const legs = legXs.map((x, idx) => {
+      const shade = idx % 2 ? pal.body2 : pal.body;
+      return `<rect x="${x - legW / 2}" y="${legBaseY - 3}" width="${legW}" height="${legH + 4}" rx="${legW / 2}" fill="${shade}" stroke="${pal.dark}" stroke-width="2"/>
+              <ellipse cx="${x}" cy="${footY + 2}" rx="${legW * 0.95}" ry="5" fill="${pal.dark}" opacity="0.75"/>`;
+    }).join('');
+
+    let extras = '';
+    let body = `<ellipse cx="${bodyCx}" cy="${bodyCy}" rx="${bodyRx}" ry="${bodyRy}" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2.5"/>`;
+    let neck = `<path d="M ${neckBaseX - neckW / 2} ${neckBaseY} C ${neckBaseX - neckW * 0.8} ${neckBaseY - neckH * 0.45}, ${neckBaseX - neckW * 0.65} ${neckTopY + 12}, ${headCx - neckW / 2} ${headCy + 12} L ${headCx + neckW / 2} ${headCy + 12} C ${neckBaseX + neckW * 0.55} ${neckTopY + 14}, ${neckBaseX + neckW * 0.7} ${neckBaseY - neckH * 0.45}, ${neckBaseX + neckW / 2} ${neckBaseY} Z" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>`;
+    let head = `<ellipse cx="${headCx}" cy="${headCy}" rx="22" ry="16" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>
+                <circle cx="${headCx + 8}" cy="${headCy - 4}" r="2.5" fill="#0f172a"/>`;
+
+    if (state.target === 'giraffe') {
+      extras += `<path d="M ${bodyCx + bodyRx - 2} ${bodyCy - 5} q 24 10 14 34" fill="none" stroke="${pal.dark}" stroke-width="4" stroke-linecap="round"/>
+                 <circle cx="${bodyCx + bodyRx + 12}" cy="${bodyCy + 28}" r="5" fill="${pal.dark}"/>
+                 <g fill="${pal.dark}" opacity="0.72">
+                   <circle cx="${bodyCx - 25}" cy="${bodyCy - 6}" r="7"/><circle cx="${bodyCx + 5}" cy="${bodyCy + 8}" r="8"/>
+                   <circle cx="${bodyCx + 34}" cy="${bodyCy - 8}" r="6"/><circle cx="${neckBaseX - 3}" cy="${neckBaseY - neckH * 0.46}" r="5"/>
+                   <circle cx="${neckBaseX + 3}" cy="${neckBaseY - neckH * 0.24}" r="4"/>
+                 </g>`;
+      head += `<line x1="${headCx - 9}" y1="${headCy - 14}" x2="${headCx - 12}" y2="${headCy - 25}" stroke="${pal.dark}" stroke-width="3" stroke-linecap="round"/>
+               <line x1="${headCx + 4}" y1="${headCy - 15}" x2="${headCx + 6}" y2="${headCy - 25}" stroke="${pal.dark}" stroke-width="3" stroke-linecap="round"/>
+               <circle cx="${headCx - 12}" cy="${headCy - 26}" r="3" fill="${pal.dark}"/><circle cx="${headCx + 6}" cy="${headCy - 26}" r="3" fill="${pal.dark}"/>`;
+    } else if (state.target === 'penguin') {
+      body = `<ellipse cx="${bodyCx}" cy="${bodyCy}" rx="${bodyRx}" ry="${bodyRy}" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2.5"/>
+              <ellipse cx="${bodyCx + 1}" cy="${bodyCy + 10}" rx="${bodyRx * 0.58}" ry="${bodyRy * 0.64}" fill="${pal.body2}" opacity="0.98"/>
+              <path d="M ${bodyCx - bodyRx + 5} ${bodyCy - 3} q -30 22 -13 58" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>
+              <path d="M ${bodyCx + bodyRx - 5} ${bodyCy - 3} q 30 22 13 58" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>`;
+      neck = `<rect x="${neckBaseX - neckW / 2}" y="${headCy + 10}" width="${neckW}" height="${Math.max(10, neckBaseY - headCy - 8)}" rx="10" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>`;
+      head = `<circle cx="${headCx}" cy="${headCy}" r="21" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>
+              <ellipse cx="${headCx}" cy="${headCy + 7}" rx="13" ry="10" fill="${pal.body2}"/>
+              <circle cx="${headCx + 7}" cy="${headCy - 5}" r="2.6" fill="#f8fafc"/>
+              <path d="M ${headCx + 18} ${headCy} l 15 6 l -15 6 z" fill="${pal.accent}" stroke="#c2410c" stroke-width="1.5"/>`;
+      extras += `<ellipse cx="${bodyCx - 13}" cy="${footY + 4}" rx="14" ry="5" fill="${pal.accent}"/><ellipse cx="${bodyCx + 13}" cy="${footY + 4}" rx="14" ry="5" fill="${pal.accent}"/>`;
+    } else if (state.target === 'elephant') {
+      extras += `<path d="M ${bodyCx + bodyRx - 2} ${bodyCy - 5} q 20 6 22 24" fill="none" stroke="${pal.dark}" stroke-width="5" stroke-linecap="round" opacity="0.85"/>`;
+      head = `<ellipse cx="${headCx - 1}" cy="${headCy + 2}" rx="25" ry="19" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>
+              <ellipse cx="${headCx - 18}" cy="${headCy + 5}" rx="18" ry="24" fill="${pal.body2}" stroke="${pal.dark}" stroke-width="2" opacity="0.96"/>
+              <path d="M ${headCx + 18} ${headCy + 7} C ${headCx + 42} ${headCy + 30}, ${headCx + 35} ${headCy + 66}, ${headCx + 18} ${headCy + 58}" fill="none" stroke="${pal.body}" stroke-width="14" stroke-linecap="round"/>
+              <path d="M ${headCx + 18} ${headCy + 7} C ${headCx + 42} ${headCy + 30}, ${headCx + 35} ${headCy + 66}, ${headCx + 18} ${headCy + 58}" fill="none" stroke="${pal.dark}" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+              <path d="M ${headCx + 12} ${headCy + 13} q 18 5 24 -9" fill="none" stroke="#fff7ed" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="${headCx + 7}" cy="${headCy - 4}" r="2.5" fill="#0f172a"/>`;
+    } else if (state.target === 'dinosaur') {
+      extras += `<path d="M ${bodyCx + bodyRx - 4} ${bodyCy - 2} C ${bodyCx + 96} ${bodyCy + 4}, ${bodyCx + 100} ${bodyCy + 35}, ${bodyCx + 58} ${bodyCy + 26}" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2.5"/>
+                 <g fill="${pal.accent}" stroke="${pal.dark}" stroke-width="1.2">
+                   <path d="M ${bodyCx - 34} ${bodyCy - bodyRy + 2} l 8 -13 l 8 13 z"/>
+                   <path d="M ${bodyCx - 8} ${bodyCy - bodyRy - 3} l 8 -13 l 8 13 z"/>
+                   <path d="M ${bodyCx + 20} ${bodyCy - bodyRy + 1} l 8 -12 l 8 12 z"/>
+                 </g>
+                 <path d="M ${bodyCx - 12} ${bodyCy + 5} q -18 11 -22 27" fill="none" stroke="${pal.dark}" stroke-width="5" stroke-linecap="round"/>`;
+      head = `<ellipse cx="${headCx}" cy="${headCy}" rx="24" ry="16" fill="${pal.body}" stroke="${pal.dark}" stroke-width="2"/>
+              <path d="M ${headCx + 13} ${headCy + 8} q 11 4 22 -1" fill="none" stroke="#f8fafc" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="${headCx + 8}" cy="${headCy - 5}" r="2.7" fill="#0f172a"/>`;
+    }
+
+    return `<svg viewBox="0 0 260 230" role="img" aria-label="${cat.name} 卡通动物，脖子长 ${n.toFixed(1)}，腿长 ${l.toFixed(1)}">
+      <ellipse cx="136" cy="213" rx="92" ry="10" fill="#0f172a" opacity="0.12"/>
+      ${legs}
+      ${extras}
+      ${body}
+      ${neck}
+      ${head}
+    </svg>`;
+  }
+
+  function renderStimuli() {
+    el.targetName.textContent = currentCategory().name;
+    el.currentAnimal.innerHTML = animalSvg(state.current);
+    el.candidateAnimal.innerHTML = animalSvg(state.candidate);
+    el.currentNeck.textContent = state.current.neck.toFixed(1);
+    el.currentLeg.textContent = state.current.leg.toFixed(1);
+    el.candidateNeck.textContent = state.candidate.neck.toFixed(1);
+    el.candidateLeg.textContent = state.candidate.leg.toFixed(1);
+  }
+
+  function setupCanvas(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(320, Math.round(rect.width * dpr));
+    canvas.height = Math.max(260, Math.round(rect.height * dpr));
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, width: rect.width, height: rect.height };
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function iterColor(i, maxI, alpha = 1) {
+    const t = maxI <= 1 ? 0 : i / maxI;
+    const r = Math.round(lerp(59, 220, t));
+    const g = Math.round(lerp(130, 38, t));
+    const b = Math.round(lerp(246, 38, t));
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function renderPlane() {
+    const { ctx, width, height } = setupCanvas(el.plane);
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#fff';
+    ctx.fillRect(0, 0, width, height);
+
+    const pad = { l: 52, r: 18, t: 24, b: 48 };
+    const pw = width - pad.l - pad.r;
+    const ph = height - pad.t - pad.b;
+    const sx = n => pad.l + n / 10 * pw;
+    const sy = l => pad.t + (10 - l) / 10 * ph;
+
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f8fafc';
+    ctx.fillRect(pad.l, pad.t, pw, ph);
+
+    if (el.showContours.checked) drawContours(ctx, sx, sy);
+
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.fillStyle = '#64748b';
+    for (let v = 0; v <= 10; v += 2) {
+      const x = sx(v), y = sy(v);
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+      ctx.fillText(String(v), x - 4, pad.t + ph + 20);
+      ctx.fillText(String(v), pad.l - 27, y + 4);
+    }
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(pad.l, pad.t, pw, ph);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '600 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.fillText('脖子长度', pad.l + pw / 2 - 30, height - 12);
+    ctx.save();
+    ctx.translate(15, pad.t + ph / 2 + 28);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('腿长', 0, 0);
+    ctx.restore();
+
+    if (state.chain.length >= 2) {
+      for (let i = 1; i < state.chain.length; i++) {
+        const a = state.chain[i - 1], b = state.chain[i];
+        ctx.strokeStyle = iterColor(i, state.chain.length - 1, i <= BURN_IN ? 0.20 : 0.60);
+        ctx.lineWidth = i <= BURN_IN ? 1.5 : 2.4;
+        ctx.beginPath(); ctx.moveTo(sx(a.neck), sy(a.leg)); ctx.lineTo(sx(b.neck), sy(b.leg)); ctx.stroke();
+      }
+    }
+
+    state.chain.forEach((p, i) => {
+      const burn = i > 0 && i <= BURN_IN;
+      ctx.fillStyle = iterColor(i, Math.max(1, state.chain.length - 1), burn ? 0.30 : 0.90);
+      ctx.strokeStyle = burn ? 'rgba(100,116,139,0.35)' : '#fff';
+      ctx.lineWidth = burn ? 1 : 1.6;
+      ctx.beginPath(); ctx.arc(sx(p.neck), sy(p.leg), i === 0 ? 4.6 : 4.0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (i === BURN_IN && state.chain.length > BURN_IN) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText('burn-in 结束', sx(p.neck) + 7, sy(p.leg) - 7);
+      }
+    });
+
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = 'rgba(217,119,6,0.75)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(sx(state.current.neck), sy(state.current.leg)); ctx.lineTo(sx(state.candidate.neck), sy(state.candidate.leg)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f59e0b';
+    ctx.strokeStyle = '#7c2d12';
+    ctx.lineWidth = 1.5;
+    drawDiamond(ctx, sx(state.candidate.neck), sy(state.candidate.leg), 6);
+    ctx.fillStyle = '#ef4444';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(sx(state.current.neck), sy(state.current.leg), 6.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = 'rgba(248,250,252,0.92)';
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    roundedRect(ctx, pad.l + 10, pad.t + 10, 188, 44, 10, true, true);
+    ctx.fillStyle = '#475569';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.fillText('● 当前   ◆ 候选   虚线=提议', pad.l + 22, pad.t + 28);
+    ctx.fillText(el.showContours.checked ? '橙线=隐藏目标等高线' : '可勾选显示隐藏等高线', pad.l + 22, pad.t + 46);
+  }
+
+  function roundedRect(ctx, x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  function drawDiamond(ctx, x, y, r) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+
+  function drawContours(ctx, sx, sy) {
+    const gridN = 44;
+    const maxU = getContourMax(state.target);
+    const vals = [];
+    const cat = currentCategory();
+    for (let i = 0; i <= gridN; i++) {
+      vals[i] = [];
+      for (let j = 0; j <= gridN; j++) {
+        const n = i / gridN * 10;
+        const l = j / gridN * 10;
+        vals[i][j] = Math.exp(cat.utility(n, l) - maxU);
+      }
+    }
+    const levels = [0.18, 0.36, 0.58, 0.78];
+    levels.forEach((level, idx) => {
+      ctx.strokeStyle = `rgba(217,119,6,${0.28 + idx * 0.14})`;
+      ctx.lineWidth = 1.2 + idx * 0.35;
+      for (let i = 0; i < gridN; i++) {
+        for (let j = 0; j < gridN; j++) {
+          const p00 = { n: i / gridN * 10, l: j / gridN * 10, v: vals[i][j] };
+          const p10 = { n: (i + 1) / gridN * 10, l: j / gridN * 10, v: vals[i + 1][j] };
+          const p11 = { n: (i + 1) / gridN * 10, l: (j + 1) / gridN * 10, v: vals[i + 1][j + 1] };
+          const p01 = { n: i / gridN * 10, l: (j + 1) / gridN * 10, v: vals[i][j + 1] };
+          const hits = [];
+          edgeHit(p00, p10, level, hits);
+          edgeHit(p10, p11, level, hits);
+          edgeHit(p01, p11, level, hits);
+          edgeHit(p00, p01, level, hits);
+          if (hits.length === 2) drawLineData(ctx, hits[0], hits[1], sx, sy);
+          if (hits.length === 4) {
+            drawLineData(ctx, hits[0], hits[1], sx, sy);
+            drawLineData(ctx, hits[2], hits[3], sx, sy);
+          }
+        }
+      }
+    });
+  }
+
+  function edgeHit(a, b, level, hits) {
+    const da = a.v - level;
+    const db = b.v - level;
+    if (da === 0 && db === 0) return;
+    if ((da <= 0 && db >= 0) || (da >= 0 && db <= 0)) {
+      if (Math.abs(a.v - b.v) < 1e-9) return;
+      const t = clamp((level - a.v) / (b.v - a.v), 0, 1);
+      hits.push({ n: lerp(a.n, b.n, t), l: lerp(a.l, b.l, t) });
+    }
+  }
+
+  function drawLineData(ctx, a, b, sx, sy) {
+    ctx.beginPath(); ctx.moveTo(sx(a.n), sy(a.l)); ctx.lineTo(sx(b.n), sy(b.l)); ctx.stroke();
+  }
+
+  function renderHist(canvas, dimension, title) {
+    const { ctx, width, height } = setupCanvas(canvas);
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#fff';
+    ctx.fillRect(0, 0, width, height);
+    const samples = state.chain.length > BURN_IN ? state.chain.slice(BURN_IN) : state.chain;
+    const bins = new Array(10).fill(0);
+    samples.forEach(p => {
+      const idx = Math.min(9, Math.max(0, Math.floor(p[dimension])));
+      bins[idx] += 1;
+    });
+    const maxCount = Math.max(1, ...bins);
+    const pad = { l: 34, r: 12, t: 26, b: 30 };
+    const bw = (width - pad.l - pad.r) / bins.length;
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, height - pad.b); ctx.lineTo(width - pad.r, height - pad.b); ctx.stroke();
+    bins.forEach((c, i) => {
+      const h = (height - pad.t - pad.b - 6) * c / maxCount;
+      const x = pad.l + i * bw + 2;
+      const y = height - pad.b - h;
+      ctx.fillStyle = iterColor(i, 9, 0.72);
+      ctx.fillRect(x, y, Math.max(2, bw - 4), h);
+    });
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '700 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.fillText(title, pad.l, 16);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.fillText('0', pad.l - 2, height - 10);
+    ctx.fillText('10', width - pad.r - 14, height - 10);
+    ctx.fillText(String(maxCount), 6, pad.t + 4);
+  }
+
+  function renderMetrics() {
+    const trials = state.rows.length;
+    const moved = state.rows.filter(r => r.moved).length;
+    el.trials.textContent = String(trials);
+    el.accept.textContent = trials ? `${Math.round(moved / trials * 100)}%` : '—';
+    const samples = state.chain.length > BURN_IN ? state.chain.slice(BURN_IN) : [];
+    if (samples.length) {
+      const mn = samples.reduce((a, p) => a + p.neck, 0) / samples.length;
+      const ml = samples.reduce((a, p) => a + p.leg, 0) / samples.length;
+      el.mean.textContent = `(${mn.toFixed(1)}, ${ml.toFixed(1)})`;
+    } else {
+      el.mean.textContent = '—';
+    }
+    el.currentMetric.textContent = `(${state.current.neck.toFixed(1)}, ${state.current.leg.toFixed(1)})`;
+    el.status.textContent = state.lastMessage;
+    el.note.innerHTML = `目标：<strong>${currentCategory().name}</strong>。点击“当前状态”=拒绝候选；点击“候选状态”=接受候选。`;
+  }
+
+  function renderAll() {
+    renderStimuli();
+    renderPlane();
+    renderHist(el.neckHist, 'neck', '脖子长度边缘分布');
+    renderHist(el.legHist, 'leg', '腿长边缘分布');
+    renderMetrics();
+  }
+
+  function exportCsv() {
+    const header = ['trial','current_neck','current_leg','candidate_neck','candidate_leg','choice','moved','target'];
+    const lines = [header.join(',')];
+    state.rows.forEach(r => {
+      lines.push([
+        r.trial,
+        r.current_neck.toFixed(4),
+        r.current_leg.toFixed(4),
+        r.candidate_neck.toFixed(4),
+        r.candidate_leg.toFixed(4),
+        r.choice,
+        r.moved,
+        `"${String(r.target).replace(/"/g, '""')}"`
+      ].join(','));
+    });
+    const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = url;
+    a.download = `mcmcp_shape_${state.target}_${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function activateByKeyboard(evt, fn) {
+    if (evt.key === 'Enter' || evt.key === ' ') {
+      evt.preventDefault();
+      fn();
+    }
+  }
+
+  el.sigmaSlider.addEventListener('input', () => {
+    state.sigma = parseFloat(el.sigmaSlider.value);
+    el.sigmaValue.textContent = state.sigma.toFixed(2);
+  });
+  el.targetSelect.addEventListener('change', () => {
+    state.target = el.targetSelect.value;
+    resetChain(`目标已切换为 ${currentCategory().name}，链已重置。隐藏效用函数也随之更换。`);
+  });
+  el.showContours.addEventListener('change', renderPlane);
+  el.reset.addEventListener('click', () => resetChain());
+  el.next.addEventListener('click', nextProposal);
+  el.auto.addEventListener('click', autoSimulate50);
+  el.exportCsv.addEventListener('click', exportCsv);
+  el.chooseCurrent.addEventListener('click', () => choose('current'));
+  el.chooseCandidate.addEventListener('click', () => choose('candidate'));
+  el.chooseCurrent.addEventListener('keydown', evt => activateByKeyboard(evt, () => choose('current')));
+  el.chooseCandidate.addEventListener('keydown', evt => activateByKeyboard(evt, () => choose('candidate')));
+  window.addEventListener('resize', () => renderAll());
+
+  resetChain('链已初始化。先观察随机起点与候选，再作判断。');
+})();
+</script>
+</body>
+</html>

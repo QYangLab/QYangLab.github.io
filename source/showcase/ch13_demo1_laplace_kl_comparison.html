@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 1：Laplace 与 KL 近似比较</title>
+<style>
+:root{color-scheme:light;--bg:#f6f8fb;--card:#fff;--card2:#f8fafc;--text:#0f172a;--muted:#526176;--line:#d7dee9;--blue:#2563eb;--blue2:#dbeafe;--red:#dc2626;--red2:#fee2e2;--green:#059669;--green2:#d1fae5;--orange:#d97706;--orange2:#ffedd5;--purple:#7c3aed;--shadow:0 18px 48px rgba(15,23,42,.08)}
+*{box-sizing:border-box}html{min-width:360px}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(37,99,235,.12),transparent 34rem),radial-gradient(circle at top right,rgba(124,58,237,.10),transparent 32rem),var(--bg);line-height:1.55}main{max-width:1240px;margin:0 auto;padding:28px 20px 58px}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,4vw,38px);line-height:1.12;margin-bottom:12px;letter-spacing:-.03em}h2{font-size:18px;margin-bottom:12px}h3{font-size:15px;margin-bottom:8px}p{color:var(--muted)}button,input,select{font:inherit}button{border:1px solid var(--line);border-radius:999px;padding:10px 16px;background:#fff;color:var(--text);cursor:pointer;font-weight:800;transition:.16s}button:hover:not(:disabled){transform:translateY(-1px);border-color:#94a3b8;box-shadow:0 8px 18px rgba(15,23,42,.08)}button:disabled{opacity:.48;cursor:not-allowed}.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.danger{background:var(--red);color:#fff;border-color:var(--red)}.hero,.card,.footer{background:rgba(255,255,255,.88);border:1px solid rgba(215,222,233,.95);border-radius:24px;box-shadow:var(--shadow);backdrop-filter:blur(10px)}.hero{padding:28px;margin-bottom:18px}.hero p{max-width:900px;margin-bottom:0}.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:var(--card2);color:var(--muted);border:1px solid var(--line);font-size:13px}.dot{width:10px;height:10px;border-radius:999px;display:inline-block}.layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:18px;align-items:start}.stack{display:grid;gap:18px}.card{padding:20px}.controls-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.control{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:13px}.control label{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;font-weight:800;margin-bottom:8px}.control label span:last-child{color:var(--text);font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:var(--blue)}.action-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}.notice{margin:12px 0 0;padding:11px 13px;border-radius:16px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:13px}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric{border:1px solid var(--line);border-radius:18px;padding:13px;background:var(--card2);min-height:78px}.metric .label{color:var(--muted);font-size:12px;font-weight:900;letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px}.metric .value{font-size:20px;font-weight:950;font-variant-numeric:tabular-nums}.metric .sub{color:var(--muted);font-size:12px;margin-top:4px}.chart-wrap{border:1px solid var(--line);border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#fff,#f8fafc)}svg{display:block;width:100%;height:auto}.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:18px}table{border-collapse:collapse;width:100%;min-width:420px;background:#fff}th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);background:var(--card2);font-size:12px}tr:last-child td{border-bottom:0}.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;color:var(--muted);font-size:13px}.legend-item{display:inline-flex;align-items:center;gap:6px}.footer{padding:18px 20px;margin-top:18px;color:var(--muted);font-size:14px}.formula{font-family:"SFMono-Regular",Consolas,monospace;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:var(--text);overflow:auto}.bar{height:10px;border-radius:999px;background:var(--blue2);overflow:hidden}.bar>span{display:block;height:100%;background:var(--blue);border-radius:999px}.grid-cells{display:grid;gap:2px;background:#cbd5e1;border:1px solid #cbd5e1;border-radius:14px;overflow:hidden}.cell{aspect-ratio:1/1}.cell.dark{background:#0f172a}.cell.light{background:#fff}.cell.obs-pos{background:#dbeafe}.cell.obs-neg{background:#fee2e2}.cell.rec-pos{background:#2563eb}.cell.rec-neg{background:#dc2626}.small{font-size:12px;color:var(--muted)}@media(max-width:980px){.layout{grid-template-columns:1fr}.metric-grid{grid-template-columns:1fr}}@media(max-width:660px){main{padding:18px 12px 42px}.hero,.card{border-radius:20px;padding:16px}.controls-grid{grid-template-columns:1fr}}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#0b1120;--card:#111827;--card2:#172033;--text:#e5edf8;--muted:#a8b4c7;--line:#304055;--blue2:rgba(37,99,235,.24);--red2:rgba(220,38,38,.22);--green2:rgba(5,150,105,.22);--orange2:rgba(217,119,6,.22);--shadow:0 18px 48px rgba(0,0,0,.28)}button{background:#172033}.hero,.card,.footer{background:rgba(17,24,39,.88)}.chart-wrap,table,.notice{background:#111827}th{background:#172033}}
+.stage-row{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}.stage-btn{border-radius:999px;padding:9px 12px;background:#fff;border:1px solid var(--line);color:var(--muted);font-weight:900}.stage-btn.active{background:var(--blue);border-color:var(--blue);color:#fff}.stage-explain{background:var(--blue2);border:1px solid rgba(37,99,235,.25);border-radius:16px;padding:12px 14px;color:var(--text);font-weight:700}.grid-cells{display:grid;gap:2px}.cell{aspect-ratio:1;border-radius:4px;border:1px solid rgba(15,23,42,.08)}.mini-legend{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:13px;margin-top:8px}.kbd{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:1px 6px;background:var(--card2);font-weight:900}.problem-note{margin-top:14px;max-width:1060px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 16px;color:var(--ink)}.problem-note ul{margin:8px 0 0 20px;padding:0}.problem-note li{margin:4px 0}.curve-label{font-weight:900}
+
+</style>
+</head>
+<body>
+<main>
+<section class="hero"><h1>Demo 1：Laplace 与 KL 近似比较</h1><p>把 Laplace 局部高斯、reverse KL 的单峰锁定、forward KL 的质量覆盖放到同一个目标分布中比较。</p><div class="pill-row"><span class="pill"><span class="dot" style="background:#2563eb"></span>蓝线：目标分布</span>
+<span class="pill"><span class="dot" style="background:#7c3aed"></span>紫线：Laplace</span>
+<span class="pill"><span class="dot" style="background:#dc2626"></span>红线：reverse KL</span>
+<span class="pill"><span class="dot" style="background:#d97706"></span>橙线：forward KL</span></div></section>
+
+<section class="layout">
+  <div class="stack">
+    <section class="card">
+      <h2>同一目标分布下的三种近似</h2>
+      <div class="chart-wrap"><svg id="chart" viewBox="0 0 760 430"></svg></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot" style="background:#2563eb"></span>目标 p(h)</span>
+        <span class="legend-item"><span class="dot" style="background:#7c3aed"></span>Laplace：MAP + 曲率</span>
+        <span class="legend-item"><span class="dot" style="background:#dc2626"></span>reverse KL：锁定一峰</span>
+        <span class="legend-item"><span class="dot" style="background:#d97706"></span>forward KL：覆盖质量</span>
+      </div>
+    </section>
+    <section class="card">
+      <h2>近似读数</h2>
+      <div class="metric-grid">
+        <div class="metric"><div class="label">MAP</div><div class="value" id="mapVal">—</div><div class="sub">Laplace 中心</div></div>
+        <div class="metric"><div class="label">Laplace σ</div><div class="value" id="lapSd">—</div><div class="sub">由局部曲率得到</div></div>
+        <div class="metric"><div class="label">reverse KL μ</div><div class="value" id="revMu">—</div><div class="sub">mode-seeking</div></div>
+        <div class="metric"><div class="label">forward KL σ</div><div class="value" id="forSd">—</div><div class="sub">mass-covering</div></div>
+      </div>
+      <p class="notice" id="note"></p>
+    </section>
+    <section class="card">
+      <h2>数学知识卡片：局部近似与 KL 方向</h2>
+      <p>Laplace 近似先找众数，再用该点的二阶曲率给出局部高斯；reverse KL \(\mathrm{KL}(q\|p)\) 惩罚把质量放到目标低密度区，因此倾向锁定一个峰；forward KL \(\mathrm{KL}(p\|q)\) 要覆盖目标的概率质量，因此会变宽。</p>
+      <div class="formula">Laplace: q(h)=N(h_MAP, H^{-1})，H=-d² log p(h)/dh² | h_MAP<br>Forward KL 的单高斯近似在这里用目标分布的均值和方差表示。</div>
+    </section>
+  </div>
+  <aside class="stack">
+    <section class="card">
+      <h2>共享目标分布控制面板</h2>
+      <div class="controls-grid">
+        <div class="control"><label><span>左峰权重</span><span id="wlVal"></span></label><input id="wl" type="range" min="0.1" max="0.9" step="0.02" value="0.50"></div>
+        <div class="control"><label><span>两峰距离</span><span id="dVal"></span></label><input id="dist" type="range" min="0.4" max="4" step="0.05" value="2.20"></div>
+        <div class="control"><label><span>峰宽 σ</span><span id="sVal"></span></label><input id="sig" type="range" min="0.25" max="1" step="0.05" value="0.45"></div>
+      </div>
+      <p class="notice">改变同一组目标分布参数，三条近似曲线会一起更新。峰越远，局部化与覆盖式近似的差异越明显。</p>
+    </section>
+    <section class="card">
+      <h2>心理学映射</h2>
+      <p>蓝色双峰可看作一个歧义刺激的两个解释。Laplace 与 reverse KL 像快速锁定一个解释；forward KL 像保留“两个解释都可能”的不确定性。</p>
+    </section>
+  </aside>
+</section>
+
+<footer class="footer">对应章节：§1 拉普拉斯近似、KL 方向与 ELBO。</footer>
+</main>
+<script>
+
+function $(id){return document.getElementById(id)}
+function fmt(x,d=2){return Number.isFinite(x)?x.toFixed(d):"—"}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function svgEl(n,a){const e=document.createElementNS("http://www.w3.org/2000/svg",n);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));return e}
+function clear(n){while(n.firstChild)n.removeChild(n.firstChild)}
+function normalPdf(x,m,s){return Math.exp(-0.5*((x-m)/s)**2)/(Math.sqrt(2*Math.PI)*s)}
+function normalLogPdf(x,m,s){return -0.5*Math.log(2*Math.PI*s*s)-0.5*((x-m)/s)**2}
+function pathFrom(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}
+function drawAxes(svg,W,H,pad,yLabel,xLabel){svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'transparent'}));svg.appendChild(svgEl('line',{x1:pad,x2:W-pad,y1:H-pad,y2:H-pad,stroke:'#94a3b8'}));svg.appendChild(svgEl('line',{x1:pad,x2:pad,y1:pad,y2:H-pad,stroke:'#94a3b8'}));svg.appendChild(svgEl('text',{x:W/2,y:H-10,fill:'#64748b','font-size':12,'font-weight':800,'text-anchor':'middle'})).textContent=xLabel||'潜变量 h';svg.appendChild(svgEl('text',{x:15,y:H/2,fill:'#64748b','font-size':12,'font-weight':800,'text-anchor':'middle',transform:`rotate(-90 15 ${H/2})`})).textContent=yLabel||'密度'}
+function addCurve(svg,xs,ys,X,Y,color,width,dash){svg.appendChild(svgEl('path',{d:pathFrom(xs.map((x,i)=>[X(x),Y(ys[i])])),fill:'none',stroke:color,'stroke-width':width||3,'stroke-dasharray':dash||''}))}
+
+
+['wl','dist','sig'].forEach(id=>$(id).addEventListener('input',render));
+function params(){const wl=+$('wl').value,d=+$('dist').value,s=+$('sig').value;return{wl,wr:1-wl,d,s,ml:-d/2,mr:d/2}}
+function target(x,c){return c.wl*normalPdf(x,c.ml,c.s)+c.wr*normalPdf(x,c.mr,c.s)}
+function findMap(c){let bx=-4.5,by=-1;for(let i=0;i<=900;i++){const x=-4.5+9*i/900,y=target(x,c);if(y>by){by=y;bx=x}}return bx}
+function laplace(c,map){const eps=.025,l0=Math.log(Math.max(target(map,c),1e-12)),lp=Math.log(Math.max(target(map+eps,c),1e-12)),lm=Math.log(Math.max(target(map-eps,c),1e-12));const curv=-(lp-2*l0+lm)/(eps*eps);return Math.sqrt(1/Math.max(curv,.04))}
+function render(){const c=params();$('wlVal').textContent=fmt(c.wl,2);$('dVal').textContent=fmt(c.d,2);$('sVal').textContent=fmt(c.s,2);const map=findMap(c),lapSd=laplace(c,map);const revMu=c.wl>=c.wr?c.ml:c.mr,revSd=c.s;const fMu=c.wl*c.ml+c.wr*c.mr;const fVar=c.s*c.s+c.wl*(c.ml-fMu)**2+c.wr*(c.mr-fMu)**2;const fSd=Math.sqrt(fVar);$('mapVal').textContent=fmt(map,2);$('lapSd').textContent=fmt(lapSd,2);$('revMu').textContent=fmt(revMu,2);$('forSd').textContent=fmt(fSd,2);$('note').textContent=c.d>2.5?'两个解释相距很远：reverse KL 与 Laplace 更容易只呈现一个峰，forward KL 必须变宽来覆盖两边。':'两个峰较近时，三种近似差异较小；此时局部曲率仍能给出相对合理的单高斯。';const W=760,H=430,pad=54,svg=$('chart');clear(svg);drawAxes(svg,W,H,pad,'密度');let xs=[],yp=[],yl=[],yr=[],yf=[];for(let i=0;i<=650;i++){const x=-4.5+9*i/650;xs.push(x);yp.push(target(x,c));yl.push(normalPdf(x,map,lapSd));yr.push(normalPdf(x,revMu,revSd));yf.push(normalPdf(x,fMu,fSd));}const ymax=Math.max(...yp,...yl,...yr,...yf);const X=x=>pad+(x+4.5)/9*(W-2*pad),Y=y=>H-pad-y/ymax*(H-2*pad);addCurve(svg,xs,yp,X,Y,'#2563eb',3,'');addCurve(svg,xs,yl,X,Y,'#7c3aed',3,'10 4');addCurve(svg,xs,yr,X,Y,'#dc2626',3,'7 6');addCurve(svg,xs,yf,X,Y,'#d97706',3,'2 6');svg.appendChild(svgEl('line',{x1:X(map),x2:X(map),y1:pad,y2:H-pad,stroke:'#7c3aed','stroke-width':1.8,opacity:.65}));[['p(h)','#2563eb',70],['Laplace','#7c3aed',145],['reverse KL','#dc2626',245],['forward KL','#d97706',365]].forEach(([t,col,x])=>{svg.appendChild(svgEl('text',{x,y:32,fill:col,'font-size':12,'font-weight':900})).textContent=t});}
+render();
+
+</script>
+</body>
+</html>

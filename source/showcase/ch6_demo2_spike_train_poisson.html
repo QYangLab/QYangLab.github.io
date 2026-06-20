@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 6-2：神经 Spike Train 的 Poisson / GLM 模型</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:13px;color:var(--muted)}
+.ctrl-group input[type=range]{width:150px}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 6-2：神经 Spike Train 的 Poisson / GLM 模型</h1>
+    <p>神经元对随时间变化的刺激发放 spike。GLM 把刺激通过线性滤波器映射到瞬时发放率 \(\lambda(t)\)，每个时间 bin 的 spike count 服从 Poisson 分布。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#f97316"></span>刺激时间序列 \(x(t)\)</span>
+      <span class="badge"><span class="dot" style="background:#dc2626"></span>发放率 \(\lambda(t) = \exp(w \cdot x(t) + b)\)</span>
+      <span class="badge"><span class="dot" style="background:#2563eb"></span>Spike raster</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[p(k \mid \lambda) = \frac{\lambda^k e^{-\lambda}}{k!}, \qquad \lambda(t) = \exp(w \cdot x(t) + b)\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>参数控制</h2>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>刺激增益 \(w\): <strong id="v-gain">1.5</strong></label>
+        <input type="range" id="sl-gain" min="0.2" max="3.0" value="1.5" step="0.1">
+      </div>
+      <div class="ctrl-group">
+        <label>基线发放 \(b\): <strong id="v-base">1.0</strong></label>
+        <input type="range" id="sl-base" min="-1.0" max="3.0" value="1.0" step="0.1">
+      </div>
+      <div class="ctrl-group">
+        <label>试验重复数: <strong id="v-rep">8</strong></label>
+        <input type="range" id="sl-rep" min="1" max="20" value="8" step="1">
+      </div>
+      <div style="display:flex;gap:8px;align-items:end">
+        <button class="primary" id="btn-sample">重新采样</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>刺激 → 发放率 → Spike Raster</h2>
+    <svg id="svg-main" width="100%" viewBox="0 0 860 520" style="display:block"></svg>
+  </div>
+
+  <div class="card">
+    <h2>Spike Count 分布 (所有 bin 合并)</h2>
+    <svg id="svg-dist" width="100%" viewBox="0 0 860 200" style="display:block"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>增大刺激增益 \(w\)，注意 spike raster 在刺激高峰处变得更密集。增大基线 \(b\)，整体发放率上升。Poisson 分布的方差等于均值——均值越高，count 分布越宽。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    Poisson GLM 是神经编码的基础统计模型。本 demo 说明统计分布不仅描述问卷或行为数据，也描述神经发放这种离散随机事件。参考：Paninski (2004); Pillow et al. (2008); Truccolo et al. (2005).
+  </div>
+</main>
+
+<script>
+const W=860, nBins=50;
+let stimulus=[], firingRate=[], spikes=[];
+
+function genStimulus(){
+  stimulus=[];
+  for(let t=0;t<nBins;t++){
+    stimulus.push(Math.sin(2*Math.PI*t/nBins*2)+0.5*Math.sin(2*Math.PI*t/nBins*5)+0.3*(Math.random()-.5));
+  }
+}
+genStimulus();
+
+function poissonSample(lam){let L=Math.exp(-lam),k=0,p=1;do{k++;p*=Math.random()}while(p>L);return k-1}
+
+function sampleSpikes(){
+  const w=+document.getElementById('sl-gain').value;
+  const b=+document.getElementById('sl-base').value;
+  const nRep=+document.getElementById('sl-rep').value;
+  firingRate=stimulus.map(x=>Math.exp(w*x+b));
+  spikes=[];
+  for(let r=0;r<nRep;r++){
+    const trial=[];
+    for(let t=0;t<nBins;t++){
+      trial.push(poissonSample(firingRate[t]*0.5)); // dt=0.5
+    }
+    spikes.push(trial);
+  }
+}
+
+function drawAll(){
+  sampleSpikes();drawMain();drawDist();
+}
+
+function drawMain(){
+  const svg=document.getElementById('svg-main');
+  const pad={l:60,r:20,t:10,b:30};
+  const pw=W-pad.l-pad.r;
+  const panelH=140, gap=20;
+  const xScale=t=>pad.l+(t/nBins)*pw;
+  let html='';
+
+  // Panel 1: stimulus
+  const sy0=pad.t, sy1=sy0+panelH;
+  const sMin=Math.min(...stimulus)-.3, sMax=Math.max(...stimulus)+.3;
+  const sY=v=>sy1-(v-sMin)/(sMax-sMin)*panelH;
+  html+=`<text x="${pad.l-8}" y="${(sy0+sy1)/2}" font-size="12" fill="#475569" text-anchor="end">刺激</text>`;
+  html+=`<rect x="${pad.l}" y="${sy0}" width="${pw}" height="${panelH}" fill="#fafaf9" rx="6"/>`;
+  let stimPath='';
+  stimulus.forEach((v,t)=>{stimPath+=(t===0?'M':'L')+xScale(t+.5).toFixed(1)+','+sY(v).toFixed(1)});
+  html+=`<path d="${stimPath}" fill="none" stroke="#f97316" stroke-width="2"/>`;
+
+  // Panel 2: firing rate
+  const ry0=sy1+gap, ry1=ry0+panelH;
+  const rMax=Math.max(...firingRate)*1.1+.1;
+  const rY=v=>ry1-(v/rMax)*panelH;
+  html+=`<text x="${pad.l-8}" y="${(ry0+ry1)/2}" font-size="12" fill="#475569" text-anchor="end">λ(t)</text>`;
+  html+=`<rect x="${pad.l}" y="${ry0}" width="${pw}" height="${panelH}" fill="#fefce8" rx="6"/>`;
+  // area fill
+  let areaPath=`M${xScale(0)},${ry1}`;
+  firingRate.forEach((v,t)=>{areaPath+='L'+xScale(t+.5).toFixed(1)+','+rY(v).toFixed(1)});
+  areaPath+=`L${xScale(nBins)},${ry1}Z`;
+  html+=`<path d="${areaPath}" fill="#fef08a" opacity=".5"/>`;
+  let ratePath='';
+  firingRate.forEach((v,t)=>{ratePath+=(t===0?'M':'L')+xScale(t+.5).toFixed(1)+','+rY(v).toFixed(1)});
+  html+=`<path d="${ratePath}" fill="none" stroke="#dc2626" stroke-width="2"/>`;
+
+  // Panel 3: spike raster
+  const kY0=ry1+gap;
+  const trialH=Math.min(16,180/spikes.length);
+  html+=`<text x="${pad.l-8}" y="${kY0+spikes.length*trialH/2}" font-size="12" fill="#475569" text-anchor="end">spikes</text>`;
+  spikes.forEach((trial,r)=>{
+    trial.forEach((count,t)=>{
+      for(let s=0;s<Math.min(count,5);s++){
+        const x=xScale(t+Math.random());
+        const y=kY0+r*trialH+trialH*.5;
+        html+=`<line x1="${x}" y1="${y-trialH*.35}" x2="${x}" y2="${y+trialH*.35}" stroke="#2563eb" stroke-width="1.5" opacity=".7"/>`;
+      }
+    });
+  });
+
+  // time axis
+  const axY=kY0+spikes.length*trialH+10;
+  html+=`<line x1="${pad.l}" y1="${axY}" x2="${W-pad.r}" y2="${axY}" stroke="#cbd5e1" stroke-width="1"/>`;
+  for(let t=0;t<=nBins;t+=10){
+    html+=`<text x="${xScale(t)}" y="${axY+16}" text-anchor="middle" font-size="11" fill="#94a3b8">${t*20}ms</text>`;
+  }
+  svg.innerHTML=html;
+  svg.setAttribute('viewBox',`0 0 ${W} ${axY+30}`);
+}
+
+function drawDist(){
+  const svg=document.getElementById('svg-dist');
+  const pad={l:60,r:20,t:10,b:40};
+  const pw=W-pad.l-pad.r, ph=150;
+  // collect all counts
+  const allCounts=spikes.flat();
+  const maxK=Math.max(15,Math.max(...allCounts)+2);
+  const freq=Array(maxK+1).fill(0);
+  allCounts.forEach(k=>{if(k<=maxK)freq[k]++});
+  const total=allCounts.length;
+  const maxF=Math.max(...freq)/total;
+
+  // theoretical Poisson with mean lambda
+  const meanLam=firingRate.reduce((a,b)=>a+b,0)/firingRate.length*0.5;
+  function poissPmf(k,l){let lp=-l;for(let i=1;i<=k;i++)lp+=Math.log(l)-Math.log(i);return Math.exp(lp)}
+  const theoMax=Math.max(...Array.from({length:maxK+1},(_,k)=>poissPmf(k,meanLam)));
+  const yMax=Math.max(maxF,theoMax)*1.15;
+
+  const barW=pw/(maxK+1)*.8;
+  const xScale=k=>pad.l+((k+.5)/(maxK+1))*pw;
+  const yScale=v=>pad.t+ph-(v/yMax)*ph;
+
+  let html='';
+  html+=`<line x1="${pad.l}" y1="${pad.t+ph}" x2="${W-pad.r}" y2="${pad.t+ph}" stroke="#cbd5e1" stroke-width="1"/>`;
+  // bars
+  freq.forEach((f,k)=>{
+    if(f===0)return;
+    const h=f/total;
+    html+=`<rect x="${xScale(k)-barW/2}" y="${yScale(h)}" width="${barW}" height="${pad.t+ph-yScale(h)}" fill="#dbeafe" stroke="#93c5fd" rx="2"/>`;
+  });
+  // Poisson curve
+  let pPath='';
+  for(let k=0;k<=maxK;k++){
+    const p=poissPmf(k,meanLam);
+    const x=xScale(k),y=yScale(p);
+    pPath+=(k===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+  }
+  html+=`<path d="${pPath}" fill="none" stroke="#dc2626" stroke-width="2"/>`;
+  for(let k=0;k<=maxK;k+=Math.max(1,Math.floor(maxK/10))){
+    html+=`<text x="${xScale(k)}" y="${pad.t+ph+18}" text-anchor="middle" font-size="11" fill="#94a3b8">${k}</text>`;
+  }
+  html+=`<text x="${W/2}" y="${pad.t+ph+36}" text-anchor="middle" font-size="13" fill="#475569">spike count k</text>`;
+  html+=`<text x="${pad.l-8}" y="${pad.t+ph/2}" text-anchor="end" font-size="12" fill="#475569" transform="rotate(-90,${pad.l-8},${pad.t+ph/2})">概率</text>`;
+  svg.innerHTML=html;
+}
+
+['sl-gain','sl-base','sl-rep'].forEach(id=>{
+  const el=document.getElementById(id);
+  const lbl=document.getElementById('v-'+id.split('-')[1]);
+  el.addEventListener('input',()=>{lbl.textContent=el.value;drawAll()});
+});
+document.getElementById('btn-sample').addEventListener('click',()=>{genStimulus();drawAll()});
+drawAll();
+</script>
+</body>
+</html>

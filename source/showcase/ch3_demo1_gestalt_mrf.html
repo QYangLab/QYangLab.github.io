@@ -1,0 +1,199 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ch3 Demo 1: Gestalt MRF 视觉补全</title><style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--soft:#dbeafe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.6}
+.page{max-width:1200px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+.kicker{font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:8px}
+h1{font-size:26px;line-height:1.25;margin:0 0 10px}
+.subtitle{color:var(--muted);max-width:900px}
+.formula{margin-top:14px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:12px 14px;color:#0f172a;font-size:15px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(15,23,42,.04)}
+h2{font-size:17px;margin:0 0 10px}
+.controls{display:grid;gap:12px}
+.control span{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.control input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn:hover{opacity:.85}
+.stage{min-height:300px}
+svg.viz{width:100%;border:1px solid #e2e8f0;border-radius:18px;background:#f8fafc}
+.intent{background:#f8fafc;border-left:4px solid var(--accent);margin-top:14px}
+.refs{font-size:13px;color:var(--muted);padding-left:18px}
+.obs{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px;font-size:14px;margin-top:8px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+</style></head><body><div class="page">
+<section class="hero"><div class="kicker">Chapter 3 · Demo 1 · 马尔可夫网络</div>
+<h1>Gestalt MRF 视觉补全</h1>
+<div class="subtitle">被试看到带噪声的图形，视觉系统倾向于补全平滑连续结构。MRF 把这一过程写成局部证据与邻域一致性之间的能量最小化。</div>
+<div class="formula">核心公式：\(E(x)=\sum_i D_i(x_i,y_i)+\lambda\sum_{(i,j)}\mathbf{1}[x_i\neq x_j]\)</div></section>
+<div class="layout"><aside class="card"><h2>交互参数</h2><div class="controls">
+<div class="control"><span>邻域平滑 λ <b id="vLam"></b></span><input type="range" id="sLam" min="0" max="3" step="0.1" value="1.2"></div>
+<div class="control"><span>噪声强度 <b id="vNoise"></b></span><input type="range" id="sNoise" min="0" max="0.5" step="0.02" value="0.25"></div>
+<button class="btn primary" id="btnReset">重新生成噪声</button>
+<button class="btn" id="btnStep">执行一轮局部更新</button>
+</div>
+<div class="card intent" style="margin-top:14px"><h2>心理学映射</h2><p>视觉系统在看不完整的图形时会自动补全——Gestalt 心理学中的"闭合法则"。MRF 把这种倾向表示为邻域像素一致性的能量惩罚。</p></div>
+</aside><main>
+<section class="card"><h2>观测 vs 隐藏 vs 能量</h2><div id="viz" class="stage"></div></section>
+<section class="card"><h2>观察提示</h2><div id="obs" class="obs"></div></section>
+<section class="card intent"><h2>文献与案例意图</h2><p>参考 Attneave (1954) 关于视觉信息冗余、Barlow (1961) efficient coding hypothesis，以及 Bishop PRML Ch8 Graphical Models 中 MRF image restoration 示例。案例说明 MRF 势函数如何把视觉格式塔原则（接近性、相似性、闭合）数学化为能量最小化。</p>
+<ul class="refs"><li>BRML Ch5 Graphical Models</li><li>Bishop PRML Ch8 Graphical Models</li><li>PML2 Ch24 Energy-based models</li></ul></section>
+</main></div></div>
+<script>
+const liteMathCss = `
+<style id="lite-math-style">
+.math-lite{font-family:"Times New Roman","STIX Two Text","Cambria Math",serif;color:#0f172a;font-size:1.04em;white-space:nowrap}
+.math-lite.display{display:block;white-space:normal;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+.math-lite sub{font-size:.72em;vertical-align:-.25em}.math-lite sup{font-size:.72em}.math-lite .frac{display:inline-grid;grid-template-rows:auto auto;text-align:center;vertical-align:middle;margin:0 .18em}.math-lite .frac .num{border-bottom:1px solid currentColor;padding:0 .22em .08em}.math-lite .frac .den{padding:.08em .22em 0}.math-lite .sqrt{border-top:1px solid currentColor;padding-left:.1em}.math-lite .op{font-family:"Times New Roman",serif}.math-lite .kw{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:.9em}
+</style>`;
+
+function latexToHtml(src) {
+  let s = src.trim();
+  const esc = x => x.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  function convertFrac(t) {
+    return t.replace(/\\(?:dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, (_, a, b) => `<span class="frac"><span class="num">${latexToHtml(a)}</span><span class="den">${latexToHtml(b)}</span></span>`);
+  }
+  s = esc(s);
+  s = convertFrac(s);
+  const map = [
+    [/\\qquad/g,'  '],[/\\quad/g,' '],[/\\;/g,' '],[/\\,/g,' '],[/\\!/g,''],[/\\\|/g,'‖'],[/\\bigl/g,''],[/\\bigr/g,''],[/\\Bigl/g,''],[/\\Bigr/g,''],
+    [/\\leftarrow/g,'←'],[/\\rightarrow/g,'→'],[/\\Rightarrow/g,'⇒'],[/\\to/g,'→'],
+    [/\\leq/g,'≤'],[/\\geq/g,'≥'],[/\\neq/g,'≠'],[/\\times/g,'×'],[/\\cdot/g,'·'],[/\\odot/g,'⊙'],
+    [/\\mid/g,'|'],[/\\neg/g,'¬'],[/\\setminus/g,'∖'],[/\\in/g,'∈'],[/\\notin/g,'∉'],[/\\propto/g,'∝'],[/\\approx/g,'≈'],[/\\sim/g,'∼'],[/\\left/g,''],[/\\right/g,''],[/\\\{/g,'{'],[/\\\}/g,'}'],[/\\pm/g,'±'],[/\\ldots/g,'…'],[/\\cdots/g,'⋯'],
+    [/\\alpha/g,'α'],[/\\beta/g,'β'],[/\\gamma/g,'γ'],[/\\Gamma/g,'Γ'],[/\\theta/g,'θ'],[/\\Theta/g,'Θ'],[/\\mu/g,'μ'],[/\\sigma/g,'σ'],[/\\Sigma/g,'Σ'],[/\\pi/g,'π'],[/\\rho/g,'ρ'],[/\\lambda/g,'λ'],[/\\Lambda/g,'Λ'],[/\\Delta/g,'Δ'],[/\\epsilon/g,'ε'],[/\\varepsilon/g,'ε'],
+    [/\\mathcal\{N\}/g,'𝒩'],[/\\mathcal\s*\{?L\}?/g,'𝓛'],[/\\mathcal\s*\{?N\}?/g,'𝒩'],[/\\mathbb\s*\{?E\}?/g,'𝔼'],[/\\mathbb\s*\{?H\}?/g,'ℍ'],[/\\mathrm\{Var\}/g,'Var'],[/\\mathrm\{Cov\}/g,'Cov'],[/\\mathrm\{KL\}/g,'KL'],[/\\mathrm\{Beta\}/g,'Beta'],[/\\mathbf\{1\}/g,'1']
+  ];
+  map.forEach(([r,v]) => { s = s.replace(r,v); });
+  s = s.replace(/\\text\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\mathcal\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathbb\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathrm\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\operatorname\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\exp/g,'exp').replace(/\\log/g,'log').replace(/\\min/g,'min').replace(/\\max/g,'max').replace(/\\tanh/g,'tanh').replace(/\\argmax/g,'argmax').replace(/\\argmin/g,'argmin').replace(/\\partial/g,'∂').replace(/\\sum/g,'∑').replace(/\\prod/g,'∏').replace(/\\int/g,'∫');
+  s = s.replace(/\\dot\s*\{([^{}]*)\}/g,'$1̇').replace(/\\dot\s+([A-Za-z])/g,'$1̇');
+  s = s.replace(/\\sqrt\{([^{}]*)\}/g,'√<span class="sqrt">$1</span>');
+  s = s.replace(/\^\{([^{}]*)\}/g,'<sup>$1</sup>').replace(/_\{([^{}]*)\}/g,'<sub>$1</sub>');
+  s = s.replace(/\^([A-Za-z0-9*+\-])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9*+\-])/g,'<sub>$1</sub>');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));
+  s = s.replace(/\s+/g,' ');
+  return s;
+}
+
+function renderLiteMath(root) {
+  if (!root || root.__liteMathRendering) return;
+  root.__liteMathRendering = true;
+  try {
+    const doc = root.nodeType === 9 ? root : root.ownerDocument;
+    if (doc && doc.head && !doc.getElementById('lite-math-style')) doc.head.insertAdjacentHTML('beforeend', liteMathCss);
+    const walker = doc.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('script,style,textarea,pre,code,.math-lite')) return NodeFilter.FILTER_REJECT;
+        return /\\\(|\\\[|\$/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const text = node.nodeValue;
+      const parts = [];
+      let i = 0;
+      const re = /\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$([\s\S]*?)\$\$|\$([^$\n]{1,240})\$/g;
+      let m;
+      while ((m = re.exec(text))) {
+        if (m.index > i) parts.push(doc.createTextNode(text.slice(i, m.index)));
+        const raw = m[1] ?? m[2] ?? m[3] ?? m[4] ?? '';
+        const span = doc.createElement('span');
+        span.className = 'math-lite' + ((m[1] || m[3]) ? ' display' : '');
+        span.innerHTML = latexToHtml(raw);
+        parts.push(span);
+        i = m.index + m[0].length;
+      }
+      if (!parts.length) return;
+      if (i < text.length) parts.push(doc.createTextNode(text.slice(i)));
+      node.replaceWith(...parts);
+    });
+  } finally {
+    root.__liteMathRendering = false;
+  }
+}
+const N=12;
+let clean=[], noisy=[], recon=[];
+function initGrids(){
+  clean=Array.from({length:N*N},()=>0);
+  // Draw a cross pattern
+  for(let i=0;i<N;i++){clean[Math.floor(N/2)*N+i]=1; clean[i*N+Math.floor(N/2)]=1;}
+  // Add a circle
+  const cx=N/2-.5,cy=N/2-.5,r=N/3;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const d=Math.sqrt((x-cx)**2+(y-cy)**2);
+    if(Math.abs(d-r)<1.2)clean[y*N+x]=1;
+  }
+  addNoise();
+}
+function addNoise(){
+  const p=parseFloat(document.getElementById('sNoise').value);
+  noisy=clean.map(v=>Math.random()<p?1-v:v);
+  recon=noisy.slice();
+  render();
+}
+function stepUpdate(){
+  const lam=parseFloat(document.getElementById('sLam').value);
+  const next=recon.slice();
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const i=y*N+x;
+    const obs=noisy[i];
+    let nb=0,cnt=0;
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dy,dx])=>{
+      const ny2=y+dy,nx2=x+dx;
+      if(ny2>=0&&ny2<N&&nx2>=0&&nx2<N){nb+=recon[ny2*N+nx2];cnt++;}
+    });
+    const e0=((obs===0)?0:1)+lam*(cnt-nb);// energy if pixel=0: data + neighbors disagree
+    const e1=((obs===1)?0:1)+lam*nb;// energy if pixel=1
+    next[i]=e1<e0?1:0;
+  }
+  recon=next;
+  render();
+}
+function drawGrid(svg,data,ox,oy,label){
+  const s=22,g=2;
+  let h='<text x="'+(ox+N*s/2)+'" y="'+(oy-6)+'" text-anchor="middle" font-size="13" fill="#475569">'+label+'</text>';
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const v=data[y*N+x];
+    const fill=v?'#1d4ed8':'#e2e8f0';
+    h+=`<rect x="${ox+x*(s+g)}" y="${oy+y*(s+g)}" width="${s}" height="${s}" rx="4" fill="${fill}"/>`;
+  }
+  return h;
+}
+function render(){
+  document.getElementById('vLam').textContent=document.getElementById('sLam').value;
+  document.getElementById('vNoise').textContent=document.getElementById('sNoise').value;
+  const w=3*(N*24+20)+40, h2=N*24+40;
+  let svg=`<svg class="viz" viewBox="0 0 ${w} ${h2+10}">`;
+  svg+=drawGrid(svg,[...clean],10,24,'真实图形 (clean)');
+  svg+=drawGrid(svg,[...noisy],N*24+30,24,'带噪观测 (noisy)');
+  svg+=drawGrid(svg,[...recon],2*(N*24+20)+10,24,'MRF 复原 (recon)');
+  // compute energy
+  const lam=parseFloat(document.getElementById('sLam').value);
+  let eData=0,eSmooth=0;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const i=y*N+x;
+    if(recon[i]!==noisy[i])eData++;
+    if(x<N-1&&recon[i]!==recon[i+1])eSmooth++;
+    if(y<N-1&&recon[i]!==recon[(y+1)*N+x])eSmooth++;
+  }
+  svg+='</svg>';
+  document.getElementById('viz').innerHTML=svg;
+  const acc=clean.reduce((a,v,i)=>a+(v===recon[i]?1:0),0)/(N*N);
+  document.getElementById('obs').innerHTML=`数据能量=${eData}，平滑能量=${(lam*eSmooth).toFixed(1)}，总能量=${(eData+lam*eSmooth).toFixed(1)}。复原准确率=${(acc*100).toFixed(1)}%。λ 越大，邻域一致性约束越强，噪点越容易被修正。`;
+  renderLiteMath(document);
+}
+document.getElementById('sLam').addEventListener('input',render);
+document.getElementById('sNoise').addEventListener('input',render);
+document.getElementById('btnReset').addEventListener('click',addNoise);
+document.getElementById('btnStep').addEventListener('click',stepUpdate);
+initGrids();
+</script></body></html>

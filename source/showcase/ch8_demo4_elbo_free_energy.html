@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 8-4：ELBO / Free Energy 与知觉学习</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:13px;color:var(--muted)}
+.ctrl-group input[type=range]{width:160px}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{text-align:center;padding:8px 14px;border-radius:14px;min-width:110px}
+.stat .val{font-size:1.15em;font-weight:700}
+.stat .lbl{font-size:11px;color:var(--muted)}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 8-4：ELBO / Free Energy 与知觉学习</h1>
+    <p>大脑用近似后验 \(q(h)\) 解释感觉输入 \(v\)。学习过程提高 evidence lower bound (ELBO)，缩小 KL gap。E-step 最小化 KL，M-step 提高 ELBO。两步交替使 ELBO 逼近 log evidence。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#94a3b8"></span>log p(v) 证据</span>
+      <span class="badge"><span class="dot" style="background:#2563eb"></span>ELBO = \(\mathcal{L}(q)\)</span>
+      <span class="badge"><span class="dot" style="background:rgba(220,38,38,0.3)"></span>KL gap</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[\log p(v) = \underbrace{\mathcal{L}(q)}_{\text{ELBO}} + \underbrace{KL(q(h) \| p(h \mid v))}_{\geq 0}\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>控制</h2>
+    <div class="controls">
+      <button class="primary" id="btn-estep">E-step（优化 q）</button>
+      <button class="primary" id="btn-mstep">M-step（优化 θ）</button>
+      <button class="secondary" id="btn-auto">自动 10 步</button>
+      <button class="secondary" id="btn-reset">重置</button>
+      <div class="ctrl-group">
+        <label>q 锐度（手动调节）: <strong id="v-sharp">1.0</strong></label>
+        <input type="range" id="sl-sharp" min="0.2" max="5.0" value="1.0" step="0.1">
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat" style="background:#f1f5f9;border:2px solid #94a3b8"><div class="val" style="color:#475569" id="st-logev">—</div><div class="lbl">log p(v)</div></div>
+      <div class="stat" style="background:#dbeafe;border:2px solid #2563eb"><div class="val" style="color:#2563eb" id="st-elbo">—</div><div class="lbl">ELBO</div></div>
+      <div class="stat" style="background:#fee2e2;border:2px solid #dc2626"><div class="val" style="color:#dc2626" id="st-kl">—</div><div class="lbl">KL gap</div></div>
+      <div class="stat" style="background:var(--accent-soft)"><div class="val" style="color:var(--accent)" id="st-iter">0</div><div class="lbl">EM 迭代</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>分布曲线：p(h|v) 真实后验 vs q(h) 近似</h2>
+    <svg id="svg-dist" width="100%" viewBox="0 0 860 280" style="display:block"></svg>
+  </div>
+
+  <div class="card">
+    <h2>ELBO 收敛与 KL gap</h2>
+    <svg id="svg-elbo" width="100%" viewBox="0 0 860 280" style="display:block"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>E-step 使 \(q\) 逼近真实后验（减小 KL），ELBO 上升。M-step 改变模型参数 θ 使 ELBO 进一步上升（但 KL 可能暂时增大）。手动调节 q 锐度观察 ELBO 和 KL 如何变化——过宽或过窄的 q 都会增大 KL。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    EM 和变分自由能共享同一核心：用可计算的下界逐步逼近难以直接计算的证据。参考：Dempster, Laird & Rubin (1977); Neal & Hinton (1998); Friston (2003); Parr & Friston (2022).
+  </div>
+</main>
+
+<script>
+// Simple 1D Gaussian model: p(v|h) = N(v; h, sigma_lik^2), p(h) = N(h; 0, sigma_prior^2)
+// True posterior: p(h|v) = N(h; mu_post, sigma_post^2)
+// q(h) = N(h; mu_q, sigma_q^2)
+
+const v_obs = 3.0; // observed data
+let sigma_lik = 1.5; // likelihood noise (model parameter θ)
+let sigma_prior = 2.0;
+let mu_q = 0.5, sigma_q = 1.0; // approximate posterior
+let emIter = 0;
+let elboHistory = [], klHistory = [];
+
+function gaussPdf(x,mu,sig){return Math.exp(-.5*((x-mu)/sig)**2)/(sig*Math.sqrt(2*Math.PI))}
+
+function truePost(){
+  const prec_prior = 1/(sigma_prior**2);
+  const prec_lik = 1/(sigma_lik**2);
+  const prec_post = prec_prior + prec_lik;
+  const mu_post = prec_lik * v_obs / prec_post;
+  const sigma_post = 1/Math.sqrt(prec_post);
+  return {mu: mu_post, sigma: sigma_post};
+}
+
+function logEvidence(){
+  // log p(v) = log N(v; 0, sigma_prior^2 + sigma_lik^2)
+  const sigTotal = Math.sqrt(sigma_prior**2 + sigma_lik**2);
+  return Math.log(gaussPdf(v_obs, 0, sigTotal));
+}
+
+function computeELBO(){
+  // ELBO = E_q[log p(v,h)] - E_q[log q(h)]
+  // = E_q[log p(v|h)] + E_q[log p(h)] - E_q[log q(h)]
+  // For Gaussians, these have closed forms
+  const Eq_logpvh = -0.5*Math.log(2*Math.PI) - Math.log(sigma_lik) - 0.5*(sigma_q**2 + (mu_q-v_obs)**2)/(sigma_lik**2);
+  const Eq_logph = -0.5*Math.log(2*Math.PI) - Math.log(sigma_prior) - 0.5*(sigma_q**2 + mu_q**2)/(sigma_prior**2);
+  const Eq_logq = -0.5*Math.log(2*Math.PI) - Math.log(sigma_q) - 0.5;
+  return Eq_logpvh + Eq_logph - Eq_logq;
+}
+
+function computeKL(){
+  // KL(q || p(h|v))
+  const post = truePost();
+  return Math.log(post.sigma/sigma_q) + (sigma_q**2 + (mu_q-post.mu)**2)/(2*post.sigma**2) - 0.5;
+}
+
+function doEstep(){
+  // Optimal q = true posterior
+  const post = truePost();
+  mu_q = post.mu;
+  sigma_q = post.sigma;
+  emIter++;
+  elboHistory.push(computeELBO());
+  klHistory.push(computeKL());
+}
+
+function doMstep(){
+  // Optimize sigma_lik given current q
+  // d ELBO / d sigma_lik = 0 => sigma_lik^2 = E_q[(v-h)^2] = sigma_q^2 + (mu_q - v)^2
+  sigma_lik = Math.sqrt(sigma_q**2 + (mu_q - v_obs)**2);
+  sigma_lik = Math.max(0.3, sigma_lik);
+  emIter++;
+  elboHistory.push(computeELBO());
+  klHistory.push(computeKL());
+}
+
+function reset(){
+  sigma_lik = 1.5;
+  mu_q = 0.5;
+  sigma_q = +document.getElementById('sl-sharp').value;
+  emIter = 0;
+  elboHistory = [computeELBO()];
+  klHistory = [computeKL()];
+  draw();
+}
+
+function draw(){
+  document.getElementById('st-logev').textContent = logEvidence().toFixed(3);
+  document.getElementById('st-elbo').textContent = computeELBO().toFixed(3);
+  document.getElementById('st-kl').textContent = computeKL().toFixed(3);
+  document.getElementById('st-iter').textContent = emIter;
+  drawDist();
+  drawELBO();
+}
+
+function drawDist(){
+  const svg = document.getElementById('svg-dist');
+  const W=860,H=280,pad={l:60,r:30,t:20,b:50};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const xLo=-4, xHi=8;
+  const post = truePost();
+
+  let yMax = 0;
+  const nPts = 200;
+  for(let i=0;i<nPts;i++){
+    const x = xLo + (i/nPts)*(xHi-xLo);
+    yMax = Math.max(yMax, gaussPdf(x, post.mu, post.sigma), gaussPdf(x, mu_q, sigma_q));
+  }
+  yMax *= 1.2;
+
+  const xS = v => pad.l + ((v-xLo)/(xHi-xLo))*pw;
+  const yS = v => pad.t + ph - v/yMax*ph;
+
+  let html = '';
+  html += `<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  html += `<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  html += `<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="13" fill="#475569">h (隐变量)</text>`;
+
+  // KL gap shading (difference between q and true posterior)
+  let gapPath = '';
+  for(let i=0;i<nPts;i++){
+    const x = xLo + (i/nPts)*(xHi-xLo);
+    const qVal = gaussPdf(x, mu_q, sigma_q);
+    const pVal = gaussPdf(x, post.mu, post.sigma);
+    const diff = Math.abs(qVal - pVal);
+    gapPath += (i===0?'M':'L') + xS(x).toFixed(1) + ',' + yS(diff).toFixed(1);
+  }
+  gapPath += `L${xS(xHi)},${yS(0)}L${xS(xLo)},${yS(0)}Z`;
+  html += `<path d="${gapPath}" fill="rgba(220,38,38,0.12)"/>`;
+
+  // True posterior
+  let postPath = '';
+  for(let i=0;i<nPts;i++){
+    const x = xLo + (i/nPts)*(xHi-xLo);
+    postPath += (i===0?'M':'L') + xS(x).toFixed(1) + ',' + yS(gaussPdf(x, post.mu, post.sigma)).toFixed(1);
+  }
+  html += `<path d="${postPath}" fill="none" stroke="#475569" stroke-width="2.5"/>`;
+  html += `<text x="${xS(post.mu+post.sigma*1.5)}" y="${yS(gaussPdf(post.mu+post.sigma*1.5,post.mu,post.sigma))-8}" font-size="12" fill="#475569" font-weight="600">p(h|v) 真实后验</text>`;
+
+  // q(h) approximate
+  let qFill = `M${xS(xLo)},${yS(0)}`;
+  let qPath = '';
+  for(let i=0;i<nPts;i++){
+    const x = xLo + (i/nPts)*(xHi-xLo);
+    const y = gaussPdf(x, mu_q, sigma_q);
+    qFill += 'L' + xS(x).toFixed(1) + ',' + yS(y).toFixed(1);
+    qPath += (i===0?'M':'L') + xS(x).toFixed(1) + ',' + yS(y).toFixed(1);
+  }
+  qFill += `L${xS(xHi)},${yS(0)}Z`;
+  html += `<path d="${qFill}" fill="rgba(37,99,235,0.1)"/>`;
+  html += `<path d="${qPath}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="6,4"/>`;
+  html += `<text x="${xS(mu_q-sigma_q*1.5)}" y="${yS(gaussPdf(mu_q-sigma_q*1.5,mu_q,sigma_q))-8}" font-size="12" fill="#2563eb" font-weight="600">q(h) 近似后验</text>`;
+
+  // Observed v marker
+  html += `<line x1="${xS(v_obs)}" y1="${pad.t}" x2="${xS(v_obs)}" y2="${H-pad.b}" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+  html += `<text x="${xS(v_obs)+6}" y="${pad.t+14}" font-size="12" fill="#f97316" font-weight="600">v=${v_obs}</text>`;
+
+  svg.innerHTML = html;
+}
+
+function drawELBO(){
+  const svg = document.getElementById('svg-elbo');
+  const W=860,H=280,pad={l:60,r:30,t:20,b:50};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  if(elboHistory.length === 0){svg.innerHTML='';return}
+
+  const logEv = logEvidence();
+  const allVals = [...elboHistory, logEv];
+  const yMin = Math.min(...allVals) - 0.3;
+  const yMax = Math.max(...allVals) + 0.3;
+  const n = elboHistory.length;
+
+  const xS = i => pad.l + (i/Math.max(n-1,1))*pw;
+  const yS = v => pad.t + ph - (v-yMin)/(yMax-yMin)*ph;
+
+  let html = '';
+  html += `<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  html += `<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+
+  // log p(v) horizontal line
+  html += `<line x1="${pad.l}" y1="${yS(logEv)}" x2="${W-pad.r}" y2="${yS(logEv)}" stroke="#475569" stroke-width="2" stroke-dasharray="8,4"/>`;
+  html += `<text x="${W-pad.r+4}" y="${yS(logEv)+4}" font-size="12" fill="#475569" font-weight="600">log p(v)</text>`;
+
+  // KL gap shading between log p(v) and ELBO
+  for(let i=0;i<n;i++){
+    const x = xS(i);
+    const w = n>1?pw/(n-1)*0.6:20;
+    const y1 = yS(logEv);
+    const y2 = yS(elboHistory[i]);
+    html += `<rect x="${x-w/2}" y="${y1}" width="${w}" height="${y2-y1}" fill="rgba(220,38,38,0.15)" rx="3"/>`;
+  }
+
+  // ELBO curve
+  let elboPath = '';
+  elboHistory.forEach((v,i) => {
+    elboPath += (i===0?'M':'L') + xS(i).toFixed(1) + ',' + yS(v).toFixed(1);
+  });
+  html += `<path d="${elboPath}" fill="none" stroke="#2563eb" stroke-width="2.5"/>`;
+  elboHistory.forEach((v,i) => {
+    html += `<circle cx="${xS(i)}" cy="${yS(v)}" r="4" fill="#2563eb"/>`;
+  });
+
+  // Labels
+  html += `<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="13" fill="#475569">EM 步骤</text>`;
+  html += `<text x="${pad.l+10}" y="${pad.t+16}" font-size="12" fill="#2563eb" font-weight="600">ELBO ↑</text>`;
+  html += `<text x="${pad.l+10}" y="${pad.t+32}" font-size="12" fill="rgba(220,38,38,0.7)">红色 = KL gap</text>`;
+
+  // x ticks
+  for(let i=0;i<n;i++){
+    html += `<text x="${xS(i)}" y="${H-pad.b+18}" text-anchor="middle" font-size="11" fill="#94a3b8">${i}</text>`;
+  }
+
+  svg.innerHTML = html;
+}
+
+document.getElementById('btn-estep').addEventListener('click', () => {doEstep();draw()});
+document.getElementById('btn-mstep').addEventListener('click', () => {doMstep();draw()});
+document.getElementById('btn-auto').addEventListener('click', () => {
+  for(let i=0;i<10;i++){doEstep();doMstep()}
+  draw();
+});
+document.getElementById('btn-reset').addEventListener('click', reset);
+document.getElementById('sl-sharp').addEventListener('input', e => {
+  document.getElementById('v-sharp').textContent = e.target.value;
+  sigma_q = +e.target.value;
+  // don't reset iter, just update displays
+  elboHistory.push(computeELBO());
+  klHistory.push(computeKL());
+  draw();
+});
+
+reset();
+</script>
+</body>
+</html>

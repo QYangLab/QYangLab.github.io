@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 2：联合分布与边缘化 — 两道心理问卷题</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#ffffff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:white}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.view-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.view-tabs button{border:1px solid var(--line);background:white;border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px;transition:.15s}
+.view-tabs button.active{background:var(--accent);color:white;border-color:var(--accent)}
+.cell-control{margin-bottom:12px}
+.cell-control label{display:block;font-weight:600;margin-bottom:3px;font-size:13px}
+.cell-control input[type=range]{width:100%;accent-color:var(--accent)}
+.cell-control .val{font-size:12px;color:var(--muted)}
+.obs-hint{background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:14px;font-size:14px;color:#0c4a6e;margin-top:16px}
+.ref-section{background:#fefce8;border:1px solid #fde68a;border-radius:14px;padding:14px;font-size:13px;color:#92400e;margin-top:16px}
+.formula-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:10px 0;font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<div class="hero">
+  <h1>Demo 2：联合分布与边缘化 — 两道心理问卷题</h1>
+  <p>Chapter 1 · 概率推断与贝叶斯心智</p>
+  <p>核心公式：\( p(A) = \sum_B p(A,B) \)，\( p(A,B) = p(A|B)p(B) \)</p>
+  <div class="badges">
+    <span class="badge">A = 焦虑</span>
+    <span class="badge">B = 回避社交</span>
+    <span class="badge">联合 · 边缘 · 条件</span>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- Left: Controls -->
+  <div class="card">
+    <h2>调节联合分布</h2>
+    <p>拖动四个格子的权重（自动归一化为总和 1）。</p>
+    <div class="cell-control">
+      <label>p(A=0, B=0) <span class="val" id="v00">0.40</span></label>
+      <input type="range" id="s00" min="1" max="100" value="40">
+    </div>
+    <div class="cell-control">
+      <label>p(A=0, B=1) <span class="val" id="v01">0.10</span></label>
+      <input type="range" id="s01" min="1" max="100" value="10">
+    </div>
+    <div class="cell-control">
+      <label>p(A=1, B=0) <span class="val" id="v10">0.20</span></label>
+      <input type="range" id="s10" min="1" max="100" value="20">
+    </div>
+    <div class="cell-control">
+      <label>p(A=1, B=1) <span class="val" id="v11">0.30</span></label>
+      <input type="range" id="s11" min="1" max="100" value="30">
+    </div>
+
+    <h2 style="margin-top:18px">视图切换</h2>
+    <div class="view-tabs">
+      <button class="active" data-view="joint">联合分布</button>
+      <button data-view="marginal">边缘分布</button>
+      <button data-view="conditional">条件分布</button>
+    </div>
+    <div id="formula-display" class="formula-box"></div>
+  </div>
+
+  <!-- Right: Heatmap -->
+  <div class="card">
+    <h2>2 × 2 联合概率热力图</h2>
+    <svg id="heatmap-svg" width="100%" height="380" viewBox="0 0 440 380"></svg>
+  </div>
+</div>
+
+<div class="obs-hint">
+  <strong>观察提示：</strong>切换到"边缘分布"视图，观察行/列外侧的加总条 —— 这就是边缘化：把不关心的变量求和消去。切换到"条件分布"，看看在固定 B 的条件下，A 的概率如何变化 —— 条件概率是联合除以边缘。
+</div>
+
+<div class="ref-section">
+  <strong>文献与案例意图：</strong>本 demo 对应教材 §1.1 乘法规则与求和规则。联合分布 \(p(A,B)\) 是所有组合事件的概率地图；边缘化 \(p(A)=\sum_B p(A,B)\) 就是把不关心的变量求和消去。焦虑-回避的例子来自临床心理学中 comorbidity 研究的常见模式。教学点：联合分布是认知建模的基础，边缘化是从复杂联合世界中提取单变量信息的基本操作。
+</div>
+</main>
+
+<script>
+let currentView = 'joint';
+const cellIds = ['s00','s01','s10','s11'];
+const valIds = ['v00','v01','v10','v11'];
+
+function getJoint(){
+  const raw = cellIds.map(id => +document.getElementById(id).value);
+  const s = raw.reduce((a,b)=>a+b,0);
+  return raw.map(v=>v/s);
+}
+
+function updateVals(){
+  const j = getJoint();
+  valIds.forEach((id,i)=>{
+    document.getElementById(id).textContent = j[i].toFixed(2);
+  });
+}
+
+// Colors for heatmap
+function probColor(p, maxP){
+  const t = maxP > 0 ? p/maxP : 0;
+  const r = Math.round(37 + (219-37)*(1-t));
+  const g = Math.round(99 + (234-99)*(1-t));
+  const b = Math.round(235 + (250-235)*(1-t));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawHeatmap(){
+  const svg = document.getElementById('heatmap-svg');
+  const j = getJoint();
+  // j = [p00, p01, p10, p11]
+  const pA0 = j[0]+j[1], pA1 = j[2]+j[3]; // marginal A
+  const pB0 = j[0]+j[2], pB1 = j[1]+j[3]; // marginal B
+
+  const ox=100, oy=60, cw=120, ch=100;
+  let html = '';
+
+  // Labels
+  html += `<text x="${ox+cw}" y="20" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="700">B = 不回避 (0)</text>`;
+  html += `<text x="${ox+2*cw}" y="20" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="700">B = 回避 (1)</text>`;
+  html += `<text x="10" y="${oy+ch/2}" fill="var(--text)" font-size="14" font-weight="700" dominant-baseline="middle">A=不焦虑(0)</text>`;
+  html += `<text x="10" y="${oy+ch+ch/2}" fill="var(--text)" font-size="14" font-weight="700" dominant-baseline="middle">A=焦虑(1)</text>`;
+
+  const cells = [
+    {r:0,c:0,v:j[0]},{r:0,c:1,v:j[1]},
+    {r:1,c:0,v:j[2]},{r:1,c:1,v:j[3]}
+  ];
+  const maxJ = Math.max(...j);
+
+  if(currentView === 'joint'){
+    // Draw joint cells
+    cells.forEach(({r,c,v})=>{
+      const x = ox + c*cw, y = oy + r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,maxJ)}" stroke="white" stroke-width="2" rx="4"/>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2}" text-anchor="middle" dominant-baseline="middle" font-size="18" font-weight="700" fill="${v>maxJ*0.6?'white':'var(--text)'}">${v.toFixed(3)}</text>`;
+    });
+  } else if(currentView === 'marginal'){
+    // Draw joint cells lighter
+    cells.forEach(({r,c,v})=>{
+      const x = ox + c*cw, y = oy + r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,maxJ)}" stroke="white" stroke-width="2" rx="4" opacity="0.4"/>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2}" text-anchor="middle" dominant-baseline="middle" font-size="14" fill="#94a3b8">${v.toFixed(3)}</text>`;
+    });
+    // Marginal A (right side)
+    const mA = [pA0, pA1];
+    const maxMA = Math.max(...mA);
+    mA.forEach((v,r)=>{
+      const x = ox + 2*cw + 10, y = oy + r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw*0.6}" height="${ch}" fill="${probColor(v,maxMA)}" stroke="#2563eb" stroke-width="2" rx="4"/>`;
+      html += `<text x="${x+cw*0.3}" y="${y+ch/2}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="${v>maxMA*0.6?'white':'var(--accent)'}">${v.toFixed(3)}</text>`;
+      html += `<text x="${x+cw*0.3}" y="${y+ch/2+18}" text-anchor="middle" font-size="11" fill="${v>maxMA*0.6?'white':'var(--muted)'}">p(A=${r})</text>`;
+    });
+    // Marginal B (bottom)
+    const mB = [pB0, pB1];
+    const maxMB = Math.max(...mB);
+    mB.forEach((v,c)=>{
+      const x = ox + c*cw, y = oy + 2*ch + 10;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch*0.5}" fill="${probColor(v,maxMB)}" stroke="#2563eb" stroke-width="2" rx="4"/>`;
+      html += `<text x="${x+cw/2}" y="${y+ch*0.25}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="${v>maxMB*0.6?'white':'var(--accent)'}">${v.toFixed(3)}</text>`;
+      html += `<text x="${x+cw/2}" y="${y+ch*0.25+18}" text-anchor="middle" font-size="11" fill="${v>maxMB*0.6?'white':'var(--muted)'}">p(B=${c})</text>`;
+    });
+    // Sum arrows
+    html += `<text x="${ox+2*cw+10+cw*0.3}" y="${oy-8}" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="600">= 行求和</text>`;
+    html += `<text x="${ox+cw}" y="${oy+2*ch+10+ch*0.5+16}" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="600">= 列求和</text>`;
+  } else {
+    // Conditional: p(A|B=b) for each column
+    const condA_B0 = pB0>0 ? [j[0]/pB0, j[2]/pB0] : [0.5,0.5];
+    const condA_B1 = pB1>0 ? [j[1]/pB1, j[3]/pB1] : [0.5,0.5];
+    const allCond = [...condA_B0, ...condA_B1];
+    const maxC = Math.max(...allCond);
+    // Column B=0
+    condA_B0.forEach((v,r)=>{
+      const x = ox, y = oy + r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,maxC)}" stroke="#f59e0b" stroke-width="2" rx="4"/>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2-8}" text-anchor="middle" font-size="16" font-weight="700" fill="${v>maxC*0.6?'white':'var(--text)'}">${v.toFixed(3)}</text>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" font-size="11" fill="${v>maxC*0.6?'white':'var(--muted)'}">p(A=${r}|B=0)</text>`;
+    });
+    // Column B=1
+    condA_B1.forEach((v,r)=>{
+      const x = ox+cw, y = oy + r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,maxC)}" stroke="#f59e0b" stroke-width="2" rx="4"/>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2-8}" text-anchor="middle" font-size="16" font-weight="700" fill="${v>maxC*0.6?'white':'var(--text)'}">${v.toFixed(3)}</text>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" font-size="11" fill="${v>maxC*0.6?'white':'var(--muted)'}">p(A=${r}|B=1)</text>`;
+    });
+    // Note
+    html += `<text x="${ox+cw}" y="${oy+2*ch+20}" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="600">条件分布：每列归一化为 1</text>`;
+    html += `<text x="${ox+cw}" y="${oy+2*ch+38}" text-anchor="middle" font-size="12" fill="var(--muted)">p(A|B) = p(A,B) / p(B)</text>`;
+  }
+
+  svg.innerHTML = html;
+  updateFormula();
+}
+
+function updateFormula(){
+  const el = document.getElementById('formula-display');
+  const j = getJoint();
+  const pA0 = j[0]+j[1], pA1 = j[2]+j[3];
+  const pB0 = j[0]+j[2], pB1 = j[1]+j[3];
+  if(currentView === 'joint'){
+    el.innerHTML = `联合分布 p(A,B)：四个格子的概率之和 = ${j.reduce((a,b)=>a+b,0).toFixed(3)}（归一化）`;
+  } else if(currentView === 'marginal'){
+    el.innerHTML = `边缘化：p(A=0) = ${j[0].toFixed(3)} + ${j[1].toFixed(3)} = ${pA0.toFixed(3)}，p(A=1) = ${j[2].toFixed(3)} + ${j[3].toFixed(3)} = ${pA1.toFixed(3)}`;
+  } else {
+    const c00 = pB0>0?(j[0]/pB0):0;
+    el.innerHTML = `条件概率：p(A=0|B=0) = p(A=0,B=0)/p(B=0) = ${j[0].toFixed(3)}/${pB0.toFixed(3)} = ${c00.toFixed(3)}`;
+  }
+}
+
+// View tabs
+document.querySelectorAll('.view-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.view-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    drawHeatmap();
+  });
+});
+
+// Sliders
+cellIds.forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{
+    updateVals();
+    drawHeatmap();
+  });
+});
+
+updateVals();
+drawHeatmap();
+</script>
+</body>
+</html>
