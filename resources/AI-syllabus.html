@@ -78,6 +78,30 @@
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
   <!--[if lt IE 9]> <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script> <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script> <![endif]-->
 
+  <!-- Safari layout fix: ensure full-width rendering -->
+  <style>
+    html, body {
+      width: 100%;
+      max-width: 100%;
+    }
+    /* Safari: prevent overflow-x:hidden from shrinking layout width */
+    body {
+      min-width: 0;
+    }
+    .container {
+      width: 100% !important;
+      max-width: 1170px;
+      padding-left: 15px;
+      padding-right: 15px;
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
+    }
+    @media (min-width: 768px)  { .container { max-width: 750px; } }
+    @media (min-width: 992px)  { .container { max-width: 970px; } }
+    @media (min-width: 1200px) { .container { max-width: 1170px; } }
+  </style>
+
   <!-- ga & ba script hoook -->
   <link rel="canonical" href="https://QYangLab.github.io/resources/AI-syllabus.html">
   <title>
