@@ -105,16 +105,27 @@
     --light-mode: block;
     --dark-mode: none;
   }
-  i.mdui-icon.material-icons.light-mode {
+  .toggle-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+  .toggle-icon.light-mode {
     display: var(--light-mode);
   }
-  i.mdui-icon.material-icons.dark-mode {
+  .toggle-icon.dark-mode {
     display: var(--dark-mode);
   }
 </style>
 <div class="toggle" onclick="document.body.classList.toggle('body--dark')">
-  <i class="mdui-icon material-icons light-mode"></i>
-  <i class="mdui-icon material-icons dark-mode"></i>
+  <!-- sun icon: shown in dark mode (click to switch to light) -->
+  <svg class="toggle-icon light-mode" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7zm0-2a1 1 0 0 0 1-1V2a1 1 0 0 0-2 0v2a1 1 0 0 0 1 1zm0 16a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1zm9-9h-2a1 1 0 0 0 0 2h2a1 1 0 0 0 0-2zM5 12a1 1 0 0 0-1-1H2a1 1 0 0 0 0 2h2a1 1 0 0 0 1-1zm12.66-6.24-1.41 1.41a1 1 0 1 0 1.41 1.41l1.41-1.41a1 1 0 0 0-1.41-1.41zM6.34 17.66l-1.41 1.41a1 1 0 1 0 1.41 1.41l1.41-1.41a1 1 0 0 0-1.41-1.41zM17.66 18.34a1 1 0 0 0 1.41-1.41l-1.41-1.41a1 1 0 1 0-1.41 1.41zm-12.73-12a1 1 0 0 0 1.41-1.41L4.93 3.52a1 1 0 0 0-1.41 1.41z"/>
+  </svg>
+  <!-- moon icon: shown in light mode (click to switch to dark) -->
+  <svg class="toggle-icon dark-mode" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
 </div>
 <script>
   //getCookieValue
@@ -395,13 +406,9 @@
   <div class="short-about">
 
     
-    <img id="avatar_pic" src="/img/avatar/lab_avatar.png" alt="avatar_pic" style="box-shadow: 5px 5px 10px 5px rgba(0, 0, 0, .5);
-    -moz-box-shadow: 5px 5px 10px 5px rgba(0, 0, 0, .5);
-    -webkit-box-shadow: 5px 5px 10px 5px rgba(0, 0, 0, .5);" />
-    
 
     
-    <p>Probabilistic models of mind and brain</p>
+    <p>We use probabilistic models and Bayesian theory to study how the brain perceives, reasons, and learns — bridging computational neuroscience, cognitive psychology, and AI.</p>
     
 
     <!-- SNS Link -->
