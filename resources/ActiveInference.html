@@ -18,5 +18,10 @@
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-F9QV54TWHC');</script><script src="https://cdnjs.cloudflare.com/ajax/libs/barba.js/1.0.0/barba.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {
+    Barba.Pjax.ignoreClassLink = 'no-barba'
+    // Mark all post-content links as no-barba so they navigate directly
+    document.querySelectorAll('.post-content a').forEach(function(a) {
+        a.classList.add('no-barba')
+    })
     Barba.Pjax.start()
 })</script></body></html>
