@@ -95,6 +95,11 @@ hide: false
 - [先验、似然、后验与 ELBO 匹配](https://qyanglab.github.io/showcase/ch13_demo2_elbo_posterior_matching.html)（自由能原理可视化：变分推断与大脑最小化自由能）
 - [平均场社交去噪](https://qyanglab.github.io/showcase/ch13_demo5_human_mean_field_classroom.html)（课堂社交网络的 Ising 平均场推断）
 
+### 课程知识图谱（全课程串联）
+
+- [PGM 知识图谱](https://qyanglab.github.io/showcase/pgm_knowledge_map_game.html)（复习全课知识点之间的依赖关系）
+- [PGM 知识导航游戏](https://qyanglab.github.io/showcase/pgm_knowledge_map_fpv.html)（以第一视角穿行整门课的概念网络，发现概念之间的连接路径）
+
 ---
 
 ## 课程作业说明

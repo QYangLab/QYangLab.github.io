@@ -1,5 +1,8 @@
 ---
+title: Research
 date: 2025-04-20 15:54:57
+layout: "page"
+header-img: https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=2400&q=85&auto=format&fit=crop&fm=jpg
 ---
 <style>
 .img-float-right {
@@ -66,4 +69,3 @@ Inevitably, our brain must transform continuous variables—such as perceived ph
 <div class="img-caption"><i></i></div>
 <div style="clear:both;"></div>
 
----

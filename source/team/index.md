@@ -1,7 +1,8 @@
 ---
-title: team
+title: People
 type: "team"
 layout: "page"
+header-img: https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=2400&q=85&auto=format&fit=crop&fm=jpg
 ---
 
 

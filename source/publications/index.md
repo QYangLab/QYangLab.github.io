@@ -1,6 +1,8 @@
 ---
-title: publications
+title: Publications
 date: 2025-07-16 21:39:31
+layout: "page"
+header-img: https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=2400&q=85&auto=format&fit=crop&fm=jpg
 ---
 <style>
 .post-content table {

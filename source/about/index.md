@@ -1,9 +1,9 @@
 ---
-title: Language of Thought Lab
+title: About
 layout: "page"
 type: "about"
 date: false
-
+header-img: https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=2400&q=85&auto=format&fit=crop&fm=jpg
 ---
 
 ### 🔬 Research Directions
@@ -47,5 +47,3 @@ No. 3663 Zhongshan North Road, Shanghai
 qlyang AT psy.ecnu.edu.cn  
 yangqianli90 AT hotmail.com  
 (please replace "AT" with "@")
-
----
