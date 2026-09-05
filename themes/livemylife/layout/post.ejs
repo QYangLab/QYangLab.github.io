@@ -1,0 +1,59 @@
+---
+layout: layout
+---
+<!-- Modify by Yu-Hsuan Yen -->
+<!-- Post Content -->
+<article>
+  <div class="container">
+    <div class="row">
+      <!-- Post Container -->
+      <div class="col-lg-8 col-lg-offset-1 col-md-8 col-md-offset-1 post-container">
+
+        <%- page.content %>
+
+        <hr>
+        <!-- Pager -->
+        <ul class="pager">
+          <% if (page.prev){ %>
+          <li class="previous">
+            <a href="<%- config.root %><%- page.prev.path %>" data-toggle="tooltip" data-placement="top" title="<%- page.prev.title %>">&larr; Previous Post</a>
+          </li>
+          <% } %>
+          <% if (page.next){ %>
+          <li class="next">
+            <a href="<%- config.root %><%- page.next.path %>" data-toggle="tooltip" data-placement="top" title="<%- page.next.title %>">Next Post &rarr;</a>
+          </li>
+          <% } %>
+        </ul>
+
+        <% if(config['tip']['enable']){ %>
+        <!-- tip start -->
+        <%- partial('_partial/tip') %>
+        <!-- tip end -->
+        <% } %>
+
+        <% if(config['socialshare']) { %>
+        <!-- Sharing Srtart -->
+        <%- partial('_partial/socialshare') %>
+        <!-- Sharing End -->
+        <% } %>
+        <!-- comments start -->
+        <%- partial('_partial/comment',{cache: true}) %>
+        <!-- comments end -->
+
+      </div>
+
+      <!-- Catalog: Table of Content -->
+      <%- partial('_partial/catalog') %>
+
+      <%- partial('_partial/sidebar') %>
+    </div>
+  </div>
+</article>
+
+
+<% if(config['anchorjs']) { %>
+<!-- anchorjs start -->
+<%- partial('_partial/anchorjs') %>
+<!-- anchorjs end -->
+<% } %>
