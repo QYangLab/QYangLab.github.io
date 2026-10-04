@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 1：糖果罐抽球 — 概率分布与归一化</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#ffffff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe;--red:#ef4444;--blue:#3b82f6;--green:#22c55e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}
+h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:white}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.control-group{margin-bottom:16px}
+.control-group label{display:block;font-weight:600;margin-bottom:4px;font-size:14px}
+.control-group input[type=range]{width:100%;accent-color:var(--accent)}
+.control-group .val{font-size:13px;color:var(--muted)}
+button.primary{background:var(--accent);color:white;border:none;border-radius:12px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.9}
+button.secondary{background:white;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 20px;cursor:pointer;font-size:14px}
+.jar-area{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap}
+.jar-svg{flex-shrink:0}
+.pie-area{text-align:center}
+.sample-log{max-height:180px;overflow-y:auto;font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px}
+.freq-row{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
+.freq-item{flex:1;min-width:80px;text-align:center;padding:8px;border-radius:12px;border:1px solid var(--line);font-size:13px}
+.freq-item .big{font-size:22px;font-weight:700}
+.obs-hint{background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:14px;font-size:14px;color:#0c4a6e;margin-top:16px}
+.ref-section{background:#fefce8;border:1px solid #fde68a;border-radius:14px;padding:14px;font-size:13px;color:#92400e;margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+<!-- Hero -->
+<div class="hero">
+  <h1>Demo 1：糖果罐抽球 — 概率分布与归一化</h1>
+  <p>Chapter 1 · 概率推断与贝叶斯心智</p>
+  <p>核心公式：\( p(x_i) = \frac{s_i}{\sum_j s_j}, \quad \sum_i p(x_i) = 1 \)</p>
+  <div class="badges">
+    <span class="badge"><span class="dot" style="background:var(--red)"></span>红色糖果</span>
+    <span class="badge"><span class="dot" style="background:var(--blue)"></span>蓝色糖果</span>
+    <span class="badge"><span class="dot" style="background:var(--green)"></span>绿色糖果</span>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- Left: Controls -->
+  <div class="card">
+    <h2>参数控制</h2>
+    <p>调整每种颜色糖果的"权重"（相对数量），观察归一化概率如何变化。</p>
+    <div class="control-group">
+      <label>红色权重 <span class="val" id="v-red">3</span></label>
+      <input type="range" id="s-red" min="0" max="10" step="1" value="3">
+    </div>
+    <div class="control-group">
+      <label>蓝色权重 <span class="val" id="v-blue">5</span></label>
+      <input type="range" id="s-blue" min="0" max="10" step="1" value="5">
+    </div>
+    <div class="control-group">
+      <label>绿色权重 <span class="val" id="v-green">2</span></label>
+      <input type="range" id="s-green" min="0" max="10" step="1" value="2">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      <button class="primary" id="btn-sample">抽一次</button>
+      <button class="primary" id="btn-sample10">抽 10 次</button>
+      <button class="secondary" id="btn-reset">重置记录</button>
+    </div>
+    <div class="freq-row" id="freq-row">
+      <div class="freq-item" style="border-color:var(--red)"><div class="big" id="f-red">0</div>红色</div>
+      <div class="freq-item" style="border-color:var(--blue)"><div class="big" id="f-blue">0</div>蓝色</div>
+      <div class="freq-item" style="border-color:var(--green)"><div class="big" id="f-green">0</div>绿色</div>
+    </div>
+    <div id="sample-log" class="sample-log" style="display:none"></div>
+  </div>
+
+  <!-- Right: Visualization -->
+  <div class="card">
+    <h2>可视化</h2>
+    <!-- Candy Jar Icon Array -->
+    <div class="jar-area">
+      <svg class="jar-svg" id="jar-svg" width="180" height="220" viewBox="0 0 180 220"></svg>
+      <div class="pie-area">
+        <svg id="pie-svg" width="180" height="180" viewBox="0 0 180 180"></svg>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">概率分布（饼图）</div>
+      </div>
+    </div>
+    <!-- Empirical vs Theoretical -->
+    <div style="margin-top:16px">
+      <h2>经验频率 vs 理论概率</h2>
+      <svg id="bar-svg" width="100%" height="160" viewBox="0 0 400 160"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- Observation hint -->
+<div class="obs-hint">
+  <strong>观察提示：</strong>试试把某种颜色的权重拨到 0，看看饼图和抽球结果会怎么变化。抽球次数越多，经验频率越接近理论概率 —— 这就是大数定律的直觉。
+</div>
+
+<!-- References -->
+<div class="ref-section">
+  <strong>文献与案例意图：</strong>本 demo 对应教材 §1.1 概率分布的基本定义。概率分布要求非负且归一化（\(\sum_i p(x_i)=1\)）。糖果罐模型是 Bayesian cognitive science 中常用于说明离散概率空间的教学例子（Phillips, 1966; Sanborn & Chater, 2016; Vul et al., 2014）。核心教学点：概率不是任意分数，而是非负且总和为 1 的归一化信念。
+</div>
+</main>
+
+<script>
+const colors = ['red','blue','green'];
+const colorHex = {red:'#ef4444',blue:'#3b82f6',green:'#22c55e'};
+const colorName = {red:'红',blue:'蓝',green:'绿'};
+let counts = {red:0,blue:0,green:0};
+let total = 0;
+
+function getWeights(){
+  return {
+    red: +document.getElementById('s-red').value,
+    blue: +document.getElementById('s-blue').value,
+    green: +document.getElementById('s-green').value
+  };
+}
+function getProbs(){
+  const w = getWeights();
+  const s = w.red+w.blue+w.green;
+  if(s===0) return {red:0,blue:0,green:0};
+  return {red:w.red/s, blue:w.blue/s, green:w.green/s};
+}
+
+// ========== Jar SVG ==========
+function drawJar(){
+  const svg = document.getElementById('jar-svg');
+  const w = getWeights();
+  // Jar outline
+  let html = `<rect x="30" y="10" width="120" height="20" rx="6" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>`;
+  html += `<path d="M30 30 Q30 30 25 50 L20 190 Q20 210 40 210 L140 210 Q160 210 160 190 L155 50 Q150 30 150 30 Z" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>`;
+  // Candies as circles inside jar
+  const candies = [];
+  colors.forEach(c => { for(let i=0;i<w[c];i++) candies.push(c); });
+  // Arrange in grid inside jar
+  const cols = 5;
+  const startX = 38, startY = 50, dx = 22, dy = 22, r = 8;
+  candies.forEach((c,i)=>{
+    const row = Math.floor(i/cols), col = i%cols;
+    const cx = startX + col*dx + (row%2?8:0);
+    const cy = startY + row*dy;
+    if(cy < 200){
+      html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${colorHex[c]}" opacity="0.9" stroke="white" stroke-width="1"/>`;
+    }
+  });
+  if(candies.length===0){
+    html += `<text x="90" y="130" text-anchor="middle" fill="#94a3b8" font-size="13">空罐</text>`;
+  }
+  svg.innerHTML = html;
+}
+
+// ========== Pie SVG ==========
+function drawPie(){
+  const svg = document.getElementById('pie-svg');
+  const p = getProbs();
+  const cx=90, cy=90, R=75;
+  let html = '';
+  let startAngle = -Math.PI/2;
+  const order = ['red','blue','green'];
+  const allZero = p.red===0 && p.blue===0 && p.green===0;
+  if(allZero){
+    html = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>`;
+    html += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="#94a3b8" font-size="13">无数据</text>`;
+  } else {
+    order.forEach(c => {
+      if(p[c]===0) return;
+      const angle = p[c]*2*Math.PI;
+      const endAngle = startAngle + angle;
+      const large = angle > Math.PI ? 1 : 0;
+      const x1 = cx + R*Math.cos(startAngle);
+      const y1 = cy + R*Math.sin(startAngle);
+      const x2 = cx + R*Math.cos(endAngle);
+      const y2 = cy + R*Math.sin(endAngle);
+      if(p[c] > 0.999){
+        html += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${colorHex[c]}" opacity="0.8"/>`;
+      } else {
+        html += `<path d="M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${large} 1 ${x2},${y2} Z" fill="${colorHex[c]}" opacity="0.8"/>`;
+      }
+      // Label
+      const mid = startAngle + angle/2;
+      const lr = R*0.6;
+      const lx = cx + lr*Math.cos(mid);
+      const ly = cy + lr*Math.sin(mid);
+      if(p[c]>0.05){
+        html += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="12" font-weight="700">${(p[c]*100).toFixed(0)}%</text>`;
+      }
+      startAngle = endAngle;
+    });
+  }
+  svg.innerHTML = html;
+}
+
+// ========== Comparison Bar ==========
+function drawBars(){
+  const svg = document.getElementById('bar-svg');
+  const p = getProbs();
+  const empFreq = {};
+  colors.forEach(c => empFreq[c] = total>0 ? counts[c]/total : 0);
+  const barW = 40, gap = 20, groupW = barW*2+gap;
+  const startX = 50, maxH = 120, baseY = 140;
+  let html = `<line x1="40" y1="${baseY}" x2="390" y2="${baseY}" stroke="#cbd5e1" stroke-width="1"/>`;
+  // Y axis labels
+  for(let t=0;t<=1;t+=0.25){
+    const y = baseY - t*maxH;
+    html += `<text x="35" y="${y+4}" text-anchor="end" fill="#94a3b8" font-size="11">${(t*100).toFixed(0)}%</text>`;
+    html += `<line x1="40" y1="${y}" x2="390" y2="${y}" stroke="#f1f5f9" stroke-width="1"/>`;
+  }
+  colors.forEach((c,i)=>{
+    const gx = startX + i*(groupW+40);
+    // Theoretical bar
+    const th = p[c]*maxH;
+    html += `<rect x="${gx}" y="${baseY-th}" width="${barW}" height="${th}" fill="${colorHex[c]}" opacity="0.3" rx="4"/>`;
+    html += `<text x="${gx+barW/2}" y="${baseY-th-4}" text-anchor="middle" fill="${colorHex[c]}" font-size="10">${(p[c]*100).toFixed(1)}%</text>`;
+    // Empirical bar
+    const eh = empFreq[c]*maxH;
+    html += `<rect x="${gx+barW+gap/2}" y="${baseY-eh}" width="${barW}" height="${eh}" fill="${colorHex[c]}" rx="4"/>`;
+    if(total>0){
+      html += `<text x="${gx+barW+gap/2+barW/2}" y="${baseY-eh-4}" text-anchor="middle" fill="${colorHex[c]}" font-size="10" font-weight="700">${(empFreq[c]*100).toFixed(1)}%</text>`;
+    }
+    // Label
+    html += `<text x="${gx+barW+gap/4}" y="${baseY+14}" text-anchor="middle" fill="var(--muted)" font-size="12">${colorName[c]}</text>`;
+  });
+  // Legend
+  html += `<rect x="300" y="5" width="12" height="12" rx="2" fill="#94a3b8" opacity="0.3"/>`;
+  html += `<text x="316" y="15" fill="#94a3b8" font-size="11">理论</text>`;
+  html += `<rect x="300" y="22" width="12" height="12" rx="2" fill="#94a3b8"/>`;
+  html += `<text x="316" y="32" fill="#94a3b8" font-size="11">经验 (n=${total})</text>`;
+  svg.innerHTML = html;
+}
+
+// ========== Sampling ==========
+function sampleOnce(){
+  const p = getProbs();
+  if(p.red+p.blue+p.green===0) return null;
+  const r = Math.random();
+  if(r < p.red) return 'red';
+  if(r < p.red+p.blue) return 'blue';
+  return 'green';
+}
+
+function doSample(n){
+  const log = document.getElementById('sample-log');
+  log.style.display = 'block';
+  for(let i=0;i<n;i++){
+    const c = sampleOnce();
+    if(!c) return;
+    counts[c]++;
+    total++;
+    const span = document.createElement('span');
+    span.style.cssText = `display:inline-block;width:14px;height:14px;border-radius:50%;background:${colorHex[c]};margin:2px;vertical-align:middle;`;
+    log.appendChild(span);
+  }
+  log.scrollTop = log.scrollHeight;
+  updateFreqDisplay();
+  drawBars();
+}
+
+function updateFreqDisplay(){
+  document.getElementById('f-red').textContent = counts.red;
+  document.getElementById('f-blue').textContent = counts.blue;
+  document.getElementById('f-green').textContent = counts.green;
+}
+
+// ========== Events ==========
+['s-red','s-blue','s-green'].forEach(id=>{
+  const el = document.getElementById(id);
+  el.addEventListener('input', ()=>{
+    document.getElementById('v-'+id.split('-')[1]).textContent = el.value;
+    drawJar(); drawPie(); drawBars();
+  });
+});
+document.getElementById('btn-sample').addEventListener('click', ()=>doSample(1));
+document.getElementById('btn-sample10').addEventListener('click', ()=>doSample(10));
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  counts={red:0,blue:0,green:0}; total=0;
+  updateFreqDisplay();
+  document.getElementById('sample-log').innerHTML='';
+  document.getElementById('sample-log').style.display='none';
+  drawBars();
+});
+
+// Initial draw
+drawJar(); drawPie(); drawBars();
+</script>
+</body>
+</html>

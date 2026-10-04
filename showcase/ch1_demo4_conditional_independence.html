@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 4：条件独立 — 共同原因（Fork）</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#ffffff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe;--z-color:#8b5cf6;--x-color:#f97316;--y-color:#06b6d4}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:white}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.control-group{margin-bottom:16px}
+.control-group label{display:block;font-weight:600;margin-bottom:4px;font-size:14px}
+.control-group input[type=range]{width:100%;accent-color:var(--accent)}
+.control-group .val{font-size:13px;color:var(--muted)}
+.toggle-group{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.toggle-group button{border:1px solid var(--line);background:white;border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px;transition:.15s}
+.toggle-group button.active{background:var(--z-color);color:white;border-color:var(--z-color)}
+.corr-display{text-align:center;margin:16px 0;padding:16px;border-radius:14px;border:1px solid var(--line)}
+.corr-display .big{font-size:28px;font-weight:800}
+.obs-hint{background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:14px;font-size:14px;color:#0c4a6e;margin-top:16px}
+.ref-section{background:#fefce8;border:1px solid #fde68a;border-radius:14px;padding:14px;font-size:13px;color:#92400e;margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+<div class="hero">
+  <h1>Demo 4：条件独立 — 共同原因解释两个线索</h1>
+  <p>Chapter 1 · 概率推断与贝叶斯心智</p>
+  <p>核心公式：\( X \perp Y \mid Z \)，即 \( p(X,Y|Z) = p(X|Z) \cdot p(Y|Z) \)</p>
+  <div class="badges">
+    <span class="badge"><span class="dot" style="background:var(--z-color)"></span>Z = 疲劳状态</span>
+    <span class="badge"><span class="dot" style="background:var(--x-color)"></span>X = 反应时变慢</span>
+    <span class="badge"><span class="dot" style="background:var(--y-color)"></span>Y = 错误率上升</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="card">
+    <h2>Fork 图结构</h2>
+    <svg id="dag-svg" width="100%" height="180" viewBox="0 0 400 180"></svg>
+
+    <h2 style="margin-top:16px">观察 Z 的状态</h2>
+    <div class="toggle-group" id="z-toggles">
+      <button class="active" data-z="unknown">Z 未观察</button>
+      <button data-z="tired">Z = 疲劳</button>
+      <button data-z="alert">Z = 不疲劳</button>
+    </div>
+
+    <div class="control-group">
+      <label>Z 对 X 的影响强度 <span class="val" id="v-sx">0.70</span></label>
+      <input type="range" id="s-sx" min="50" max="99" value="70">
+    </div>
+    <div class="control-group">
+      <label>Z 对 Y 的影响强度 <span class="val" id="v-sy">0.80</span></label>
+      <input type="range" id="s-sy" min="50" max="99" value="80">
+    </div>
+    <div class="control-group">
+      <label>p(Z=疲劳) 先验 <span class="val" id="v-pz">0.40</span></label>
+      <input type="range" id="s-pz" min="5" max="95" value="40">
+    </div>
+
+    <div class="corr-display" id="corr-display">
+      <div style="font-size:13px;color:var(--muted)">X 与 Y 的相关度</div>
+      <div class="big" id="corr-val" style="color:var(--accent)">0.23</div>
+      <div style="font-size:12px;color:var(--muted)" id="corr-explain">未观察 Z：X 与 Y 有正相关（共同原因引起）</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="heatmap-title">p(X, Y) 联合分布热力图</h2>
+    <svg id="heatmap-svg" width="100%" height="260" viewBox="0 0 400 260"></svg>
+
+    <h2 style="margin-top:16px">独立性检验：联合 vs 边缘之积</h2>
+    <svg id="compare-svg" width="100%" height="200" viewBox="0 0 400 200"></svg>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px" id="indep-text">
+      若 p(X,Y|Z) ≈ p(X|Z)·p(Y|Z)，说明给定 Z 后 X⊥Y
+    </div>
+  </div>
+</div>
+
+<div class="obs-hint">
+  <strong>观察提示：</strong>在"Z 未观察"时，X 和 Y 的热力图不是外积形式（有相关）。切换到"Z = 疲劳"或"Z = 不疲劳"后，条件热力图接近外积 —— 这就是条件独立/屏蔽（screening-off）。调大影响强度，未观察 Z 时的相关更明显，给定 Z 后的独立更干净。
+</div>
+
+<div class="ref-section">
+  <strong>文献与案例意图：</strong>本 demo 对应教材 §1.1 条件独立的定义。Fork 结构（\(X \leftarrow Z \rightarrow Y\)）在心理学中非常常见：疲劳/压力等隐变量同时影响多个行为指标。给定共同原因 Z 后，两个效应线索不再携带关于彼此的额外信息 —— 这就是 d-separation 中 fork 的 screening-off 性质。教学点：条件独立不是"完全无关"，而是在给定共同解释后，两个线索不再提供额外信息。
+</div>
+</main>
+
+<script>
+let zState = 'unknown'; // 'unknown', 'tired', 'alert'
+
+function getParams(){
+  const sx = +document.getElementById('s-sx').value / 100;
+  const sy = +document.getElementById('s-sy').value / 100;
+  const pz = +document.getElementById('s-pz').value / 100;
+  return {sx, sy, pz};
+}
+
+// Model: Z -> X, Z -> Y (all binary)
+// p(X=1|Z=1) = sx, p(X=1|Z=0) = 1-sx
+// p(Y=1|Z=1) = sy, p(Y=1|Z=0) = 1-sy
+function computeJoint(){
+  const {sx, sy, pz} = getParams();
+  // Full joint p(X,Y,Z)
+  const pXY = [[0,0],[0,0]]; // pXY[x][y]
+
+  if(zState === 'unknown'){
+    // Marginalize over Z
+    for(let x=0;x<2;x++){
+      for(let y=0;y<2;y++){
+        // p(X=x,Y=y) = sum_z p(X=x|Z=z)p(Y=y|Z=z)p(Z=z)
+        const pX_z1 = x===1 ? sx : 1-sx;
+        const pX_z0 = x===1 ? 1-sx : sx;
+        const pY_z1 = y===1 ? sy : 1-sy;
+        const pY_z0 = y===1 ? 1-sy : sy;
+        pXY[x][y] = pX_z1*pY_z1*pz + pX_z0*pY_z0*(1-pz);
+      }
+    }
+  } else {
+    const z = zState === 'tired' ? 1 : 0;
+    for(let x=0;x<2;x++){
+      for(let y=0;y<2;y++){
+        const pX_z = z===1 ? (x===1?sx:1-sx) : (x===1?1-sx:sx);
+        const pY_z = z===1 ? (y===1?sy:1-sy) : (y===1?1-sy:sy);
+        pXY[x][y] = pX_z * pY_z;
+      }
+    }
+  }
+  return pXY;
+}
+
+function correlation(pXY){
+  const pX1 = pXY[1][0]+pXY[1][1];
+  const pY1 = pXY[0][1]+pXY[1][1];
+  const eXY = pXY[1][1]; // E[XY] since both binary 0/1
+  const covXY = eXY - pX1*pY1;
+  const varX = pX1*(1-pX1);
+  const varY = pY1*(1-pY1);
+  if(varX<1e-10 || varY<1e-10) return 0;
+  return covXY / Math.sqrt(varX*varY);
+}
+
+function probColor(p, maxP){
+  const t = maxP>0 ? p/maxP : 0;
+  const r = Math.round(139 + (237-139)*(1-t));
+  const g = Math.round(92 + (233-92)*(1-t));
+  const b = Math.round(246 + (250-246)*(1-t));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawDAG(){
+  const svg = document.getElementById('dag-svg');
+  const observed = zState !== 'unknown';
+  let html = '';
+
+  // Z node (top center)
+  const zx=200, zy=40, xx=100, xy=140, yx=300, yy=140, nr=28;
+  html += `<line x1="${zx}" y1="${zy+nr}" x2="${xx}" y2="${xy-nr}" stroke="${observed?'#8b5cf6':'#94a3b8'}" stroke-width="2" marker-end="url(#arrowD)"/>`;
+  html += `<line x1="${zx}" y1="${zy+nr}" x2="${yx}" y2="${yy-nr}" stroke="${observed?'#8b5cf6':'#94a3b8'}" stroke-width="2" marker-end="url(#arrowD)"/>`;
+
+  // Z node
+  html += `<circle cx="${zx}" cy="${zy}" r="${nr}" fill="${observed?'#8b5cf6':'white'}" stroke="#8b5cf6" stroke-width="2.5"/>`;
+  html += `<text x="${zx}" y="${zy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="${observed?'white':'#8b5cf6'}">Z</text>`;
+  if(observed){
+    html += `<text x="${zx}" y="${zy+nr+16}" text-anchor="middle" font-size="11" fill="#8b5cf6" font-weight="600">${zState==='tired'?'疲劳':'不疲劳'}</text>`;
+  } else {
+    html += `<text x="${zx}" y="${zy+nr+16}" text-anchor="middle" font-size="11" fill="#94a3b8">未观察</text>`;
+  }
+
+  // X node
+  html += `<circle cx="${xx}" cy="${xy}" r="${nr}" fill="white" stroke="#f97316" stroke-width="2.5"/>`;
+  html += `<text x="${xx}" y="${xy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#f97316">X</text>`;
+  html += `<text x="${xx}" y="${xy+nr+16}" text-anchor="middle" font-size="10" fill="var(--muted)">反应时</text>`;
+
+  // Y node
+  html += `<circle cx="${yx}" cy="${yy}" r="${nr}" fill="white" stroke="#06b6d4" stroke-width="2.5"/>`;
+  html += `<text x="${yx}" y="${yy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#06b6d4">Y</text>`;
+  html += `<text x="${yx}" y="${yy+nr+16}" text-anchor="middle" font-size="10" fill="var(--muted)">错误率</text>`;
+
+  // Arrow marker
+  html = `<defs><marker id="arrowD" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#94a3b8"/></marker></defs>` + html;
+
+  svg.innerHTML = html;
+}
+
+function drawHeatmap(){
+  const pXY = computeJoint();
+  const svg = document.getElementById('heatmap-svg');
+  const title = document.getElementById('heatmap-title');
+
+  if(zState === 'unknown') title.textContent = 'p(X, Y) 联合分布热力图';
+  else title.textContent = `p(X, Y | Z=${zState==='tired'?'疲劳':'不疲劳'}) 条件联合热力图`;
+
+  const ox=120, oy=50, cw=110, ch=80;
+  const flat = [pXY[0][0], pXY[0][1], pXY[1][0], pXY[1][1]];
+  const maxP = Math.max(...flat);
+  let html = '';
+
+  // Labels
+  html += `<text x="${ox+cw/2}" y="18" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="600">Y=正常</text>`;
+  html += `<text x="${ox+cw+cw/2}" y="18" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="600">Y=高错误</text>`;
+  html += `<text x="${ox-10}" y="${oy+ch/2+4}" text-anchor="end" fill="var(--text)" font-size="13" font-weight="600">X=快</text>`;
+  html += `<text x="${ox-10}" y="${oy+ch+ch/2+4}" text-anchor="end" fill="var(--text)" font-size="13" font-weight="600">X=慢</text>`;
+
+  // Cells
+  const grid = [[pXY[0][0],pXY[0][1]],[pXY[1][0],pXY[1][1]]];
+  for(let r=0;r<2;r++){
+    for(let c=0;c<2;c++){
+      const v = grid[r][c];
+      const x = ox+c*cw, y = oy+r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,maxP)}" stroke="white" stroke-width="2" rx="6"/>`;
+      const dark = v > maxP*0.5;
+      html += `<text x="${x+cw/2}" y="${y+ch/2+5}" text-anchor="middle" font-size="16" font-weight="700" fill="${dark?'white':'var(--text)'}">${v.toFixed(3)}</text>`;
+    }
+  }
+
+  svg.innerHTML = html;
+}
+
+function drawCompare(){
+  const pXY = computeJoint();
+  const svg = document.getElementById('compare-svg');
+
+  // Marginals
+  const pX = [pXY[0][0]+pXY[0][1], pXY[1][0]+pXY[1][1]];
+  const pY = [pXY[0][0]+pXY[1][0], pXY[0][1]+pXY[1][1]];
+
+  // Product of marginals
+  const prod = [[pX[0]*pY[0], pX[0]*pY[1]], [pX[1]*pY[0], pX[1]*pY[1]]];
+
+  const ox=30, oy=30, cw=70, ch=50, gap=60;
+  let html = '';
+
+  // Left: actual joint
+  html += `<text x="${ox+cw}" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent)">实际联合</text>`;
+  const flat1 = [pXY[0][0],pXY[0][1],pXY[1][0],pXY[1][1]];
+  const max1 = Math.max(...flat1);
+  for(let r=0;r<2;r++){
+    for(let c=0;c<2;c++){
+      const v = pXY[r][c];
+      const x = ox+c*cw, y = oy+r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,max1)}" stroke="white" stroke-width="1.5" rx="4"/>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2+5}" text-anchor="middle" font-size="13" font-weight="600" fill="${v>max1*0.5?'white':'var(--text)'}">${v.toFixed(3)}</text>`;
+    }
+  }
+
+  // Equals / approx sign
+  const mx = ox + 2*cw + gap/2;
+  const corr = Math.abs(correlation(pXY));
+  const isIndep = corr < 0.03;
+  html += `<text x="${mx}" y="${oy+ch}" text-anchor="middle" font-size="24" font-weight="700" fill="${isIndep?'#16a34a':'#ef4444'}">${isIndep?'≈':'≠'}</text>`;
+
+  // Right: product of marginals
+  const rx = ox + 2*cw + gap;
+  html += `<text x="${rx+cw}" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="#8b5cf6">边缘之积</text>`;
+  const flat2 = [prod[0][0],prod[0][1],prod[1][0],prod[1][1]];
+  const max2 = Math.max(...flat2);
+  for(let r=0;r<2;r++){
+    for(let c=0;c<2;c++){
+      const v = prod[r][c];
+      const x = rx+c*cw, y = oy+r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,max2)}" stroke="white" stroke-width="1.5" rx="4"/>`;
+      html += `<text x="${x+cw/2}" y="${y+ch/2+5}" text-anchor="middle" font-size="13" font-weight="600" fill="${v>max2*0.5?'white':'var(--text)'}">${v.toFixed(3)}</text>`;
+    }
+  }
+
+  svg.innerHTML = html;
+
+  // Update correlation display
+  const r = correlation(pXY);
+  document.getElementById('corr-val').textContent = r.toFixed(3);
+  document.getElementById('corr-val').style.color = Math.abs(r)<0.03 ? '#16a34a' : '#ef4444';
+  if(zState === 'unknown'){
+    document.getElementById('corr-explain').textContent = `未观察 Z：X 与 Y 有${Math.abs(r)<0.03?'近似零':'正'}相关（共同原因引起）`;
+  } else {
+    document.getElementById('corr-explain').textContent = `已观察 Z=${zState==='tired'?'疲劳':'不疲劳'}：条件相关${Math.abs(r)<0.03?' ≈ 0，满足条件独立！':'仍存在（可能因离散化截断）'}`;
+  }
+  document.getElementById('indep-text').textContent = isIndep ?
+    '✓ 联合 ≈ 边缘之积 → 条件独立成立' :
+    '✗ 联合 ≠ 边缘之积 → X 与 Y 仍有依赖';
+}
+
+function update(){
+  const {sx, sy, pz} = getParams();
+  document.getElementById('v-sx').textContent = sx.toFixed(2);
+  document.getElementById('v-sy').textContent = sy.toFixed(2);
+  document.getElementById('v-pz').textContent = pz.toFixed(2);
+  drawDAG();
+  drawHeatmap();
+  drawCompare();
+}
+
+// Z toggles
+document.querySelectorAll('#z-toggles button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#z-toggles button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    zState = btn.dataset.z;
+    update();
+  });
+});
+
+// Sliders
+['s-sx','s-sy','s-pz'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', update);
+});
+
+update();
+</script>
+</body>
+</html>

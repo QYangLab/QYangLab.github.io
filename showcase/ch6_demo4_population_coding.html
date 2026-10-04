@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 6-4：Population Coding 的 Poisson Likelihood</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:13px;color:var(--muted)}
+.ctrl-group input[type=range]{width:150px}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 6-4：Population Coding 与 Poisson Likelihood</h1>
+    <p>多个神经元对同一方向刺激有不同的 tuning curves。大脑从群体 spike count 计算 likelihood，推断刺激方向。拖动红色箭头改变真实方向，观察 likelihood 峰的移动。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#dc2626"></span>真实刺激方向 \(s\)</span>
+      <span class="badge"><span class="dot" style="background:#f97316"></span>Tuning curves \(f_i(s)\)</span>
+      <span class="badge"><span class="dot" style="background:#2563eb"></span>Population likelihood \(p(r|s)\)</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[p(\mathbf{r} \mid s) = \prod_i \frac{f_i(s)^{r_i} e^{-f_i(s)}}{r_i!}\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>参数控制</h2>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>真实方向 \(s\): <strong id="v-dir">90</strong>°</label>
+        <input type="range" id="sl-dir" min="0" max="359" value="90" step="1">
+      </div>
+      <div class="ctrl-group">
+        <label>Tuning 宽度 \(\sigma_f\): <strong id="v-tw">30</strong>°</label>
+        <input type="range" id="sl-tw" min="10" max="80" value="30" step="2">
+      </div>
+      <div class="ctrl-group">
+        <label>最大发放率: <strong id="v-fr">20</strong> Hz</label>
+        <input type="range" id="sl-fr" min="5" max="50" value="20" step="1">
+      </div>
+      <div class="ctrl-group">
+        <label>神经元数: <strong id="v-nn">8</strong></label>
+        <input type="range" id="sl-nn" min="4" max="16" value="8" step="1">
+      </div>
+      <div><button class="primary" id="btn-sample">重新采样</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>圆环：Tuning Curves + Spike Counts</h2>
+    <svg id="svg-ring" width="100%" viewBox="0 0 500 500" style="display:block;max-width:500px;margin:0 auto"></svg>
+  </div>
+
+  <div class="card">
+    <h2>Population Likelihood \(p(\mathbf{r} \mid s)\)</h2>
+    <svg id="svg-lik" width="100%" viewBox="0 0 860 250" style="display:block"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>增大 tuning 宽度使 likelihood 峰更宽（不确定性更大）。增加神经元数使 likelihood 更尖锐。即使单个神经元噪声很大，群体编码仍可提供精确估计。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    Population coding 是感觉皮层表征刺激特征的核心机制。似然函数把群体响应转为对刺激的概率估计。参考：Ma, Beck, Latham & Pouget (2006); Pouget, Beck & Latham (2013).
+  </div>
+</main>
+
+<script>
+const nColors=['#2563eb','#dc2626','#16a34a','#f97316','#8b5cf6','#ec4899','#14b8a6','#eab308',
+  '#6366f1','#f43f5e','#06b6d4','#84cc16','#a855f7','#f59e0b','#10b981','#e11d48'];
+let spikeCounts=[];
+
+function poissonSample(lam){if(lam<=0)return 0;let L=Math.exp(-Math.min(lam,700)),k=0,p=1;do{k++;p*=Math.random()}while(p>L&&k<100);return k-1}
+
+function vonMises(theta,mu,kappa){return Math.exp(kappa*Math.cos((theta-mu)*Math.PI/180))}
+
+function getP(){
+  return{
+    dir:+document.getElementById('sl-dir').value,
+    tw:+document.getElementById('sl-tw').value,
+    fr:+document.getElementById('sl-fr').value,
+    nn:+document.getElementById('sl-nn').value
+  };
+}
+
+function tuningRate(s,preferred,tw,fmax){
+  const kappa=1/(tw*Math.PI/180)**2;
+  return fmax*Math.exp(kappa*(Math.cos((s-preferred)*Math.PI/180)-1));
+}
+
+function sampleAll(){
+  const {dir,tw,fr,nn}=getP();
+  spikeCounts=[];
+  for(let i=0;i<nn;i++){
+    const pref=i*360/nn;
+    const rate=tuningRate(dir,pref,tw,fr);
+    spikeCounts.push(poissonSample(rate));
+  }
+  draw();
+}
+
+function draw(){drawRing();drawLikelihood();}
+
+function drawRing(){
+  const svg=document.getElementById('svg-ring');
+  const {dir,tw,fr,nn}=getP();
+  const cx=250,cy=250,R=180,rInner=80;
+  let html='';
+  // outer ring
+  html+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#e2e8f0" stroke-width="2"/>`;
+  html+=`<circle cx="${cx}" cy="${cy}" r="${rInner}" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>`;
+
+  // tuning curves as polar plot
+  for(let i=0;i<nn;i++){
+    const pref=i*360/nn;
+    const col=nColors[i%nColors.length];
+    // draw tuning curve arc
+    let curvePath='';
+    for(let a=0;a<360;a+=2){
+      const rate=tuningRate(a,pref,tw,fr);
+      const rr=rInner+(R-rInner)*(rate/fr);
+      const rad=(a-90)*Math.PI/180;
+      const x=cx+rr*Math.cos(rad), y=cy+rr*Math.sin(rad);
+      curvePath+=(a===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+    }
+    curvePath+='Z';
+    html+=`<path d="${curvePath}" fill="${col}" fill-opacity=".08" stroke="${col}" stroke-width="1.5" opacity=".6"/>`;
+    // preferred direction marker
+    const rad0=(pref-90)*Math.PI/180;
+    const mx=cx+R*Math.cos(rad0), my=cy+R*Math.sin(rad0);
+    html+=`<circle cx="${mx}" cy="${my}" r="5" fill="${col}"/>`;
+    html+=`<text x="${cx+(R+18)*Math.cos(rad0)}" y="${cy+(R+18)*Math.sin(rad0)+4}" text-anchor="middle" font-size="11" fill="${col}">${pref}°</text>`;
+    // spike count dot
+    if(spikeCounts[i]!==undefined){
+      const barR=rInner+(R-rInner)*Math.min(spikeCounts[i]/fr,1.2);
+      const bx=cx+barR*Math.cos(rad0), by=cy+barR*Math.sin(rad0);
+      html+=`<circle cx="${bx}" cy="${by}" r="${Math.min(4+spikeCounts[i],14)}" fill="${col}" opacity=".7"/>`;
+      html+=`<text x="${bx}" y="${by+4}" text-anchor="middle" font-size="10" fill="white" font-weight="700">${spikeCounts[i]}</text>`;
+    }
+  }
+
+  // True direction arrow
+  const dRad=(dir-90)*Math.PI/180;
+  const ax=cx+rInner*.7*Math.cos(dRad), ay=cy+rInner*.7*Math.sin(dRad);
+  html+=`<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow)"/>`;
+  html+=`<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0L10,5L0,10Z" fill="#dc2626"/></marker></defs>`;
+  html+=`<text x="${cx}" y="${cy+rInner*.7+20}" text-anchor="middle" font-size="13" fill="#dc2626" font-weight="600">s=${dir}°</text>`;
+
+  svg.innerHTML=html;
+}
+
+function drawLikelihood(){
+  const svg=document.getElementById('svg-lik');
+  const {dir,tw,fr,nn}=getP();
+  const W=860,H=250,pad={l:60,r:30,t:20,b:50};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  // compute log likelihood for each angle
+  const nAngles=360;
+  const logLik=[];
+  for(let a=0;a<nAngles;a++){
+    let ll=0;
+    for(let i=0;i<nn;i++){
+      const pref=i*360/nn;
+      const rate=Math.max(0.01,tuningRate(a,pref,tw,fr));
+      const k=spikeCounts[i]||0;
+      ll+=k*Math.log(rate)-rate; // drop factorial constant
+    }
+    logLik.push(ll);
+  }
+  // normalize to probability
+  const maxLL=Math.max(...logLik);
+  const lik=logLik.map(v=>Math.exp(v-maxLL));
+  const likSum=lik.reduce((a,b)=>a+b,0);
+  const likNorm=lik.map(v=>v/likSum*nAngles);
+  const likMax=Math.max(...likNorm)*1.15;
+
+  const xScale=a=>pad.l+(a/nAngles)*pw;
+  const yScale=v=>pad.t+ph-v/likMax*ph;
+
+  let html='';
+  html+=`<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  html+=`<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  for(let a=0;a<=360;a+=45){
+    html+=`<text x="${xScale(a)}" y="${H-pad.b+20}" text-anchor="middle" font-size="12" fill="#94a3b8">${a}°</text>`;
+    html+=`<line x1="${xScale(a)}" y1="${H-pad.b}" x2="${xScale(a)}" y2="${H-pad.b+5}" stroke="#cbd5e1"/>`;
+  }
+  html+=`<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="13" fill="#475569">刺激方向 s (°)</text>`;
+
+  // likelihood fill
+  let fillPath=`M${xScale(0)},${yScale(0)}`;
+  likNorm.forEach((v,a)=>{fillPath+='L'+xScale(a).toFixed(1)+','+yScale(v).toFixed(1)});
+  fillPath+=`L${xScale(nAngles)},${yScale(0)}Z`;
+  html+=`<path d="${fillPath}" fill="rgba(37,99,235,0.12)"/>`;
+  // likelihood curve
+  let likPath='';
+  likNorm.forEach((v,a)=>{likPath+=(a===0?'M':'L')+xScale(a).toFixed(1)+','+yScale(v).toFixed(1)});
+  html+=`<path d="${likPath}" fill="none" stroke="#2563eb" stroke-width="2.5"/>`;
+
+  // true direction line
+  html+=`<line x1="${xScale(dir)}" y1="${pad.t}" x2="${xScale(dir)}" y2="${H-pad.b}" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,4"/>`;
+  html+=`<text x="${xScale(dir)+8}" y="${pad.t+16}" font-size="12" fill="#dc2626" font-weight="600">真实 s=${dir}°</text>`;
+
+  // MLE
+  const mleAngle=likNorm.indexOf(Math.max(...likNorm));
+  html+=`<line x1="${xScale(mleAngle)}" y1="${pad.t}" x2="${xScale(mleAngle)}" y2="${H-pad.b}" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+  html+=`<text x="${xScale(mleAngle)+8}" y="${pad.t+32}" font-size="12" fill="#16a34a">MLE=${mleAngle}°</text>`;
+
+  svg.innerHTML=html;
+}
+
+['sl-dir','sl-tw','sl-fr','sl-nn'].forEach(id=>{
+  const el=document.getElementById(id);
+  const key='v-'+id.split('-')[1];
+  el.addEventListener('input',()=>{document.getElementById(key).textContent=el.value;sampleAll()});
+});
+document.getElementById('btn-sample').addEventListener('click',sampleAll);
+sampleAll();
+</script>
+</body>
+</html>

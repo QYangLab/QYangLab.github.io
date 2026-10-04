@@ -1,0 +1,109 @@
+/* ==========================================================================
+   LoT Lab — site-wide overrides (loaded last from _partial/head.ejs)
+   ========================================================================== */
+
+/* ---------- 1. Fonts ------------------------------------------------------
+   The theme asks for 'Lora' and 'futura-pt', which are never loaded (no
+   web-font files / Google Fonts is unreliable in mainland China), so those
+   bits silently fell back to Times New Roman. Use one system stack
+   everywhere, with proper Windows/Linux CJK and emoji fallbacks.          */
+:root {
+  --lot-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑",
+    "Source Han Sans SC", "Noto Sans CJK SC", "Noto Sans SC", "WenQuanYi Micro Hei",
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --lot-font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+body,
+h1, h2, h3, h4, h5, h6,
+.navbar, .navbar-custom, .navbar-brand,
+.intro-header .site-heading .subheading,
+.intro-header .page-heading .subheading,
+.intro-header .post-heading .subheading,
+.intro-header .post-heading .meta,
+.post-preview > .post-meta,
+.post-meta,
+.catalog-body, .toc-article,
+.pager li > a, .pager li > span,
+.tags a, .tip {
+  font-family: var(--lot-font-sans);
+}
+
+code, kbd, pre, samp { font-family: var(--lot-font-mono); }
+
+/* Former Lora meta lines: keep them quiet but sans-serif */
+.post-preview > .post-meta,
+.intro-header .post-heading .meta {
+  font-style: normal;
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+
+body { text-rendering: optimizeLegibility; }
+
+/* ---------- 2. Header: keep white text readable over bright photos ---- */
+header.intro-header {
+  background-color: #2b3440;            /* shown while the photo loads / if it fails */
+  box-shadow: inset 0 0 0 9999px rgba(10, 20, 35, .42);
+}
+.intro-header .site-heading h1,
+.intro-header .page-heading h1,
+.intro-header .post-heading h1,
+.intro-header .subheading,
+.intro-header .meta {
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .45);
+}
+.intro-header .site-heading .subheading,
+.intro-header .page-heading .subheading {
+  font-weight: 400;
+  opacity: .95;
+}
+
+/* Transparent top nav sits on the photo: give the links a soft shadow */
+@media (min-width: 768px) {
+  .navbar-custom:not(.is-fixed) .navbar-brand,
+  .navbar-custom:not(.is-fixed) .nav li a {
+    text-shadow: 0 1px 6px rgba(0, 0, 0, .55);
+  }
+}
+
+/* ---------- 3. Layout ----------------------------------------------------
+   Content pages now use a centred col-10 column (layout/page.ejs,
+   layout/post.ejs). Remove the theme's asymmetric right padding so the
+   column is visually centred under the page title.                       */
+@media (min-width: 768px) {
+  .post-container { padding-left: 15px; padding-right: 15px; }
+}
+.post-container img { max-width: 100%; height: auto; }
+.post-container table { width: 100%; max-width: 100%; }
+.post-container { overflow-wrap: break-word; }
+
+/* Wide tables (course schedules etc.) scroll instead of overflowing on phones */
+@media (max-width: 767px) {
+  .post-container table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* Long CJK lines read better with a bit more leading */
+.post-container p,
+.post-container li { line-height: 1.8; }
+
+/* ---------- 4. Sidebar (home page only): readable grey ---------------- */
+.body--light .sidebar-container { color: #6b7280; }
+.body--light .sidebar-container a { color: #6b7280 !important; }
+.body--light .sidebar-container a:hover { color: #0085a1 !important; }
+.sidebar-container .short-about p { line-height: 1.7; }
+
+/* ---------- 5. Footer ---------------------------------------------------- */
+.copyright { line-height: 1.8; }
+
+/* ---------- 6. Dark-mode toggle: don't sit on top of text on phones ---- */
+@media (max-width: 767px) {
+  .toggle {
+    left: .75rem; bottom: .75rem; padding: .6rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .85);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .15);
+  }
+  .body--dark .toggle { background: rgba(30, 30, 30, .85); }
+}

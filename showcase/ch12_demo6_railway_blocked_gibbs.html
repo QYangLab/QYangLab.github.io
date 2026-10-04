@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo 6：铁路 Gibbs 长期采样比较</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--ink:#0f172a;--muted:#475569;--line:#cbd5e1;--blue:#2563eb;--blue-soft:#dbeafe;--orange:#f97316;--orange-soft:#ffedd5;--green:#16a34a;--green-soft:#dcfce7;--red:#dc2626;--slate:#334155}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,rgba(37,99,235,.10),transparent 34rem),linear-gradient(135deg,#f8fafc,#fff7ed);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.55}main{max-width:1280px;margin:0 auto;padding:26px 20px 64px}h1{font-size:clamp(24px,3.2vw,36px);letter-spacing:-.04em;margin:0 0 8px}h2{font-size:19px;margin:0 0 12px}.lead{color:var(--muted);margin:0 0 16px}.card{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 16px 42px rgba(15,23,42,.07);margin-bottom:18px}.formula{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;color:#334155;font-size:13px;margin:10px 0}.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;cursor:pointer;font-weight:800;color:var(--ink)}button.primary{background:var(--blue);border-color:var(--blue);color:#fff}button.orange{background:var(--orange);border-color:var(--orange);color:#fff}button.green{background:var(--green);border-color:var(--green);color:#fff}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900}.pill.blue{background:var(--blue-soft);color:#1d4ed8}.pill.orange{background:var(--orange-soft);color:#c2410c}.pill.green{background:var(--green-soft);color:#166534}.layout{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}.panel{border:1px solid #e2e8f0;border-radius:18px;padding:14px;background:#fff}.panel-title{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;font-weight:900}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{border:1px solid #e2e8f0;border-radius:16px;background:#fff;padding:11px 12px}.stat .k{font-size:12px;color:var(--muted);font-weight:800}.stat .v{font-size:22px;font-weight:950;letter-spacing:-.03em}.stat .hint{font-size:11px;color:var(--muted)}.rail{display:grid;grid-template-columns:repeat(2,74px);grid-auto-rows:74px;gap:12px;justify-content:center;align-items:center;margin:10px auto 8px;position:relative;max-width:180px}.node{width:74px;height:74px;border:2px solid #0f172a;border-radius:20px;background:#fff;display:grid;place-items:center;text-align:center;font-weight:950;font-size:18px;position:relative;z-index:2;box-shadow:0 8px 20px rgba(15,23,42,.08)}.edge-h,.edge-v{position:absolute;background:#94a3b8;z-index:1}.edge-h{height:5px;width:84px;left:48px}.edge-h.top{top:35px}.edge-h.bottom{top:121px}.edge-v{width:5px;height:84px;top:48px}.edge-v.left{left:35px}.edge-v.right{left:121px}.state-label{text-align:center;font-weight:900}.heatmaps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.heatmap-title{font-weight:950;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}.heatmap{display:grid;grid-template-columns:74px repeat(4,1fr);gap:4px}.heatmap .head,.heatmap .rowhead{font-size:11px;font-weight:900;color:#334155;display:grid;place-items:center;text-align:center}.heatmap .cell{min-height:58px;border-radius:12px;border:2px solid transparent;display:grid;place-items:center;text-align:center;font-weight:950;font-size:14px;position:relative;padding:3px}.heatmap .cell small{display:block;font-size:10px;font-weight:750;color:#334155}.heatmap .mode{border-color:#0f172a}.heatmap .start{outline:3px solid #2563eb}.heatmap .currentPlain{box-shadow:0 0 0 4px rgba(37,99,235,.42) inset}.heatmap .currentBlock{box-shadow:0 0 0 4px rgba(249,115,22,.50) inset}.heatmap .empty{background:#f8fafc;color:#94a3b8}.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.legend .item{display:flex;align-items:center;gap:6px;font-size:12px;color:#475569}.swatch{width:18px;height:14px;border-radius:4px;border:1px solid #cbd5e1}.trace{height:180px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;overflow:hidden;position:relative}.trace svg{width:100%;height:100%;display:block}.trace-note{font-size:12px;color:var(--muted);margin-top:8px}.mini{font-size:12px;color:var(--muted)}@media(max-width:1080px){.layout,.heatmaps,.split{grid-template-columns:1fr}.heatmap{grid-template-columns:68px repeat(4,1fr)}.heatmap .cell{min-height:52px}.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1>Demo 6：铁路协调中的长期采样比较</h1>
+    <p class="lead">LaTeX 例题负责手算一次 sweep；这个 demo 让两条链真正随机跑起来，比较普通 Gibbs 与分块 Gibbs 接近同一个目标分布的速度。</p>
+    <div class="formula"><b>目标分布：</b>\(\tilde p(x)=\psi_h(x_{11},x_{12})\psi_h(x_{21},x_{22})\psi_v(x_{11},x_{21})\psi_v(x_{12},x_{22})\)。全横与全竖是两个并列 mode；行内混搭状态是低权重谷地。</div>
+    <div class="controls">
+      <button class="primary" id="run1">运行 1 sweep</button>
+      <button id="run50">运行 50 sweeps</button>
+      <button id="run500">运行 500 sweeps</button>
+      <button class="green" id="auto">自动运行</button>
+      <button id="reset">重置</button>
+      <span class="pill blue">普通 Gibbs：每 sweep 更新 4 个变量</span>
+      <span class="pill orange">分块 Gibbs：每 sweep 更新 2 个行块</span>
+    </div>
+  </section>
+
+  <section class="layout">
+    <div class="card">
+      <h2>当前链状态</h2>
+      <div class="split">
+        <div class="panel">
+          <div class="panel-title"><span>普通 Gibbs</span><span class="pill blue" id="plainSweeps">0 sweeps</span></div>
+          <div class="rail" id="plainRail"></div>
+          <div class="state-label" id="plainState"></div>
+          <p class="mini">单点更新必须通过横竖/竖横这样的低权重中间状态。</p>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><span>分块 Gibbs</span><span class="pill orange" id="blockSweeps">0 sweeps</span></div>
+          <div class="rail" id="blockRail"></div>
+          <div class="state-label" id="blockState"></div>
+          <p class="mini">整行重抽可以直接比较横横、横竖、竖横、竖竖。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>收敛与混合指标</h2>
+      <div class="stats">
+        <div class="stat"><div class="k">普通 Gibbs TV 距离</div><div class="v" id="plainTV">--</div><div class="hint">越低越接近目标分布</div></div>
+        <div class="stat"><div class="k">分块 Gibbs TV 距离</div><div class="v" id="blockTV">--</div><div class="hint">通常下降更快</div></div>
+        <div class="stat"><div class="k">普通 mode 切换次数</div><div class="v" id="plainSwitch">0</div><div class="hint">全横 ↔ 全竖</div></div>
+        <div class="stat"><div class="k">分块 mode 切换次数</div><div class="v" id="blockSwitch">0</div><div class="hint">更频繁表示混合更好</div></div>
+        <div class="stat"><div class="k">普通 mode 访问</div><div class="v" id="plainModes">0 / 0</div><div class="hint">全横 / 全竖</div></div>
+        <div class="stat"><div class="k">分块 mode 访问</div><div class="v" id="blockModes">0 / 0</div><div class="hint">全横 / 全竖</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>理论目标 heatmap 与两条链的经验 heatmap</h2>
+    <div class="heatmaps">
+      <div><div class="heatmap-title">目标分布 p(B₁,B₂)<span class="pill green">理论</span></div><div class="heatmap" id="targetMap"></div></div>
+      <div><div class="heatmap-title">普通 Gibbs 经验频率<span class="pill blue" id="plainN">n=0</span></div><div class="heatmap" id="plainMap"></div></div>
+      <div><div class="heatmap-title">分块 Gibbs 经验频率<span class="pill orange" id="blockN">n=0</span></div><div class="heatmap" id="blockMap"></div></div>
+    </div>
+    <div class="legend">
+      <div class="item"><span class="swatch" style="background:#fb923c"></span>深色格表示概率/经验频率高</div>
+      <div class="item"><span class="swatch" style="background:#fff7ed"></span>浅色格表示低概率谷地</div>
+      <div class="item"><span class="swatch" style="background:#fff;border:3px solid #0f172a"></span>全横与全竖两个并列 mode</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>TV 距离随 sweep 下降</h2>
+    <div class="trace"><svg id="trace" viewBox="0 0 720 180" preserveAspectRatio="none"></svg></div>
+    <p class="trace-note">两种算法的目标分布相同；差别不是“最后采到不同答案”，而是普通 Gibbs 穿过低概率谷地慢，分块 Gibbs 通常更快覆盖两个高峰。</p>
+  </section>
+</main>
+<script>
+const H='横', V='竖';
+const labels=['横横','横竖','竖横','竖竖'];
+const psiH=(a,b)=>a===H&&b===H?8:(a===V&&b===V?2:0.1);
+const psiV=(a,b)=>a===V&&b===V?4:1;
+const idx=(b1,b2)=>labels.indexOf(b1)*4+labels.indexOf(b2);
+const fmt=x=>Number.isFinite(x)?(x<.001&&x>0?x.toExponential(1):x.toFixed(3).replace(/0+$/,'').replace(/\.$/,'')):'--';
+function clone(s){return {...s};} function b1(s){return s.x11+s.x12;} function b2(s){return s.x21+s.x22;} function key(s){return idx(b1(s),b2(s));}
+function fromBlocks(a,b){return {x11:a[0],x12:a[1],x21:b[0],x22:b[1]};}
+function stateText(s){return `(${s.x11}${s.x12}; ${s.x21}${s.x22})`;}
+function globalWeight(s){return psiH(s.x11,s.x12)*psiH(s.x21,s.x22)*psiV(s.x11,s.x21)*psiV(s.x12,s.x22);}
+const weights=[]; labels.forEach(r=>labels.forEach(c=>weights.push(globalWeight(fromBlocks(r,c)))));
+const Z=weights.reduce((a,b)=>a+b,0); const target=weights.map(w=>w/Z);
+const modeHH=idx('横横','横横'), modeVV=idx('竖竖','竖竖');
+let plain, block, plainCounts, blockCounts, sweeps, plainLastMode, blockLastMode, plainSwitch, blockSwitch, plainTrace, blockTrace, timer;
+function sample(rows){const total=rows.reduce((a,r)=>a+r.w,0);let u=Math.random()*total, acc=0;for(const r of rows){acc+=r.w;if(u<=acc)return r.label;}return rows[rows.length-1].label;}
+function singleUpdate(s,name){const rows=[H,V].map(val=>{const t=clone(s);t[name]=val;let w=1;if(name==='x11')w=psiH(val,s.x12)*psiV(val,s.x21);if(name==='x12')w=psiH(s.x11,val)*psiV(val,s.x22);if(name==='x21')w=psiH(val,s.x22)*psiV(s.x11,val);if(name==='x22')w=psiH(s.x21,val)*psiV(s.x12,val);return {label:val,w};});s[name]=sample(rows);}
+function blockUpdate(s,which){const rows=labels.map(label=>{const t=clone(s);if(which==='B1'){t.x11=label[0];t.x12=label[1];}else{t.x21=label[0];t.x22=label[1];}const w=which==='B1'?psiH(t.x11,t.x12)*psiV(t.x11,t.x21)*psiV(t.x12,t.x22):psiH(t.x21,t.x22)*psiV(t.x11,t.x21)*psiV(t.x12,t.x22);return {label,w};});const chosen=sample(rows);if(which==='B1'){s.x11=chosen[0];s.x12=chosen[1];}else{s.x21=chosen[0];s.x22=chosen[1];}}
+function modeOf(s){const k=key(s);return k===modeHH?'HH':k===modeVV?'VV':null;}
+function record(){plainCounts[key(plain)]++;blockCounts[key(block)]++;const pm=modeOf(plain), bm=modeOf(block);if(pm){if(plainLastMode&&plainLastMode!==pm)plainSwitch++;plainLastMode=pm;}if(bm){if(blockLastMode&&blockLastMode!==bm)blockSwitch++;blockLastMode=bm;}sweeps++;plainTrace.push(tv(plainCounts));blockTrace.push(tv(blockCounts));if(plainTrace.length>260){plainTrace.shift();blockTrace.shift();}}
+function sweepOnce(){['x11','x12','x21','x22'].forEach(v=>singleUpdate(plain,v));blockUpdate(block,'B1');blockUpdate(block,'B2');record();}
+function run(n){for(let i=0;i<n;i++)sweepOnce();render();}
+function reset(){plain={x11:H,x12:H,x21:V,x22:V};block={x11:H,x12:H,x21:V,x22:V};plainCounts=Array(16).fill(0);blockCounts=Array(16).fill(0);sweeps=0;plainLastMode=null;blockLastMode=null;plainSwitch=0;blockSwitch=0;plainTrace=[];blockTrace=[];if(timer){clearInterval(timer);timer=null;document.getElementById('auto').textContent='自动运行';}render();}
+function tv(counts){const n=counts.reduce((a,b)=>a+b,0);if(!n)return NaN;let s=0;for(let i=0;i<16;i++)s+=Math.abs(counts[i]/n-target[i]);return .5*s;}
+function modeCounts(counts){return [counts[modeHH],counts[modeVV]];}
+function colorOrange(v,max){const a=max?Math.min(.88,.06+.82*v/max):.02;return `rgba(249,115,22,${a})`;}
+function colorBlue(v,max){const a=max?Math.min(.88,.06+.82*v/max):.02;return `rgba(37,99,235,${a})`;}
+function heatmap(el,data,kind){const max=Math.max(...data,1e-12);let html='<div></div>'+labels.map(l=>`<div class="head">B₂=${l}</div>`).join('');labels.forEach((r,i)=>{html+=`<div class="rowhead">B₁=${r}</div>`;labels.forEach((c,j)=>{const k=i*4+j,v=data[k];const mode=k===modeHH||k===modeVV?'mode':'';const start=r==='横横'&&c==='竖竖'?'start':'';const cur=kind==='plain'&&k===key(plain)?'currentPlain':kind==='block'&&k===key(block)?'currentBlock':'';let bg=kind==='target'?colorOrange(v,max):kind==='plain'?colorBlue(v,max):colorOrange(v,max);const label=kind==='target'?fmt(v):String(Math.round(v));const sub=kind==='target'?`w=${fmt(weights[k])}`:`${sweeps?fmt(v/Math.max(1,sweeps)):0}`;html+=`<div class="cell ${mode} ${start} ${cur} ${v===0?'empty':''}" style="background:${bg}"><div>${label}<small>${sub}</small></div></div>`;});});el.innerHTML=html;}
+function railHtml(s){const cell=(key,label)=>`<div class="node" title="${key}"><small style="position:absolute;top:5px;left:8px;font-size:10px;color:#64748b">${key}</small>${label}</div>`;return `<div class="edge-h top"></div><div class="edge-h bottom"></div><div class="edge-v left"></div><div class="edge-v right"></div>${cell('x11',s.x11)}${cell('x12',s.x12)}${cell('x21',s.x21)}${cell('x22',s.x22)}`;}
+function drawTrace(){const svg=document.getElementById('trace');const n=plainTrace.length;const W=720,Hh=180,pad=14;let grid='';for(let y=0;y<=4;y++){const yy=pad+(Hh-2*pad)*y/4;grid+=`<line x1="${pad}" y1="${yy}" x2="${W-pad}" y2="${yy}" stroke="#e2e8f0"/>`;}function path(vals){if(!vals.length)return '';return vals.map((v,i)=>{const x=pad+(W-2*pad)*(n===1?0:i/(n-1));const y=Hh-pad-(Hh-2*pad)*Math.min(1,v);return `${i?'L':'M'}${x},${y}`;}).join(' ');}svg.innerHTML=`${grid}<path d="${path(plainTrace)}" fill="none" stroke="#2563eb" stroke-width="3"/><path d="${path(blockTrace)}" fill="none" stroke="#f97316" stroke-width="3"/><text x="18" y="24" font-size="12" fill="#2563eb" font-weight="800">普通 Gibbs</text><text x="18" y="42" font-size="12" fill="#f97316" font-weight="800">分块 Gibbs</text><text x="650" y="168" font-size="11" fill="#64748b">最近 ${n} 次记录</text>`;}
+function render(){document.getElementById('plainRail').innerHTML=railHtml(plain);document.getElementById('blockRail').innerHTML=railHtml(block);document.getElementById('plainState').textContent=`${stateText(plain)}，权重 ${fmt(globalWeight(plain))}`;document.getElementById('blockState').textContent=`${stateText(block)}，权重 ${fmt(globalWeight(block))}`;document.getElementById('plainSweeps').textContent=`${sweeps} sweeps`;document.getElementById('blockSweeps').textContent=`${sweeps} sweeps`;document.getElementById('plainTV').textContent=fmt(tv(plainCounts));document.getElementById('blockTV').textContent=fmt(tv(blockCounts));document.getElementById('plainSwitch').textContent=plainSwitch;document.getElementById('blockSwitch').textContent=blockSwitch;const pm=modeCounts(plainCounts), bm=modeCounts(blockCounts);document.getElementById('plainModes').textContent=`${pm[0]} / ${pm[1]}`;document.getElementById('blockModes').textContent=`${bm[0]} / ${bm[1]}`;document.getElementById('plainN').textContent=`n=${sweeps}`;document.getElementById('blockN').textContent=`n=${sweeps}`;heatmap(document.getElementById('targetMap'),target,'target');heatmap(document.getElementById('plainMap'),plainCounts,'plain');heatmap(document.getElementById('blockMap'),blockCounts,'block');drawTrace();}
+document.getElementById('run1').addEventListener('click',()=>run(1));document.getElementById('run50').addEventListener('click',()=>run(50));document.getElementById('run500').addEventListener('click',()=>run(500));document.getElementById('reset').addEventListener('click',reset);document.getElementById('auto').addEventListener('click',()=>{const btn=document.getElementById('auto');if(timer){clearInterval(timer);timer=null;btn.textContent='自动运行';return;}btn.textContent='暂停';timer=setInterval(()=>run(25),120);});reset();
+</script>
+</body>
+</html>

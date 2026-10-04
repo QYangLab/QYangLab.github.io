@@ -1,0 +1,203 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ch3 Demo 3: Boltzmann 联想记忆补全</title><style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--soft:#dbeafe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.6}
+.page{max-width:1200px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+.kicker{font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:8px}
+h1{font-size:26px;line-height:1.25;margin:0 0 10px}
+.subtitle{color:var(--muted);max-width:900px}
+.formula{margin-top:14px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:12px 14px;color:#0f172a;font-size:15px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(15,23,42,.04)}
+h2{font-size:17px;margin:0 0 10px}
+.controls{display:grid;gap:12px}
+.control span{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.control input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn:hover{opacity:.85}
+.stage{min-height:300px}
+svg.viz{width:100%;border:1px solid #e2e8f0;border-radius:18px;background:#f8fafc}
+.intent{background:#f8fafc;border-left:4px solid var(--accent);margin-top:14px}
+.refs{font-size:13px;color:var(--muted);padding-left:18px}
+.obs{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px;font-size:14px;margin-top:8px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+</style></head><body><div class="page">
+<section class="hero"><div class="kicker">Chapter 3 · Demo 3 · 马尔可夫网络</div>
+<h1>Boltzmann 联想记忆补全</h1>
+<div class="subtitle">给出部分记忆线索，能量模型找到与线索最相容的低能模式来补全缺失信息。</div>
+<div class="formula">核心公式：\(p(v,h)=\frac{1}{Z}\exp(v^\top W h+a^\top v+b^\top h)\)</div></section>
+<div class="layout"><aside class="card"><h2>交互参数</h2><div class="controls">
+<div class="control"><span>权重强度 <b id="vW"></b></span><input type="range" id="sW" min="0.5" max="4" step="0.1" value="2"></div>
+<p style="font-size:13px;color:var(--muted)">点击可见节点切换线索 on/off：</p>
+<div id="cueToggles"></div>
+</div></aside><main>
+<section class="card"><h2>可见层 → 隐藏层 → 补全</h2><div id="viz" class="stage"></div></section>
+<section class="card"><h2>观察提示</h2><div id="obs" class="obs"></div></section>
+<section class="card intent"><h2>文献与案例意图</h2><p>参考 Hopfield (1982)、Ackley/Hinton/Sejnowski (1985) Boltzmann machine、Smolensky (1986) Harmonium。案例说明能量模型如何实现联想记忆：给出部分线索，网络稳定到与线索最相容的记忆模式。</p>
+<ul class="refs"><li>BRML Ch5 Graphical Models</li><li>PML2 Ch24 Energy-based models</li></ul></section>
+</main></div></div>
+<script>
+const liteMathCss = `
+<style id="lite-math-style">
+.math-lite{font-family:"Times New Roman","STIX Two Text","Cambria Math",serif;color:#0f172a;font-size:1.04em;white-space:nowrap}
+.math-lite.display{display:block;white-space:normal;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+.math-lite sub{font-size:.72em;vertical-align:-.25em}.math-lite sup{font-size:.72em}.math-lite .frac{display:inline-grid;grid-template-rows:auto auto;text-align:center;vertical-align:middle;margin:0 .18em}.math-lite .frac .num{border-bottom:1px solid currentColor;padding:0 .22em .08em}.math-lite .frac .den{padding:.08em .22em 0}.math-lite .sqrt{border-top:1px solid currentColor;padding-left:.1em}.math-lite .op{font-family:"Times New Roman",serif}.math-lite .kw{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:.9em}
+</style>`;
+
+function latexToHtml(src) {
+  let s = src.trim();
+  const esc = x => x.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  function convertFrac(t) {
+    return t.replace(/\\(?:dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, (_, a, b) => `<span class="frac"><span class="num">${latexToHtml(a)}</span><span class="den">${latexToHtml(b)}</span></span>`);
+  }
+  s = esc(s);
+  s = convertFrac(s);
+  const map = [
+    [/\\qquad/g,'  '],[/\\quad/g,' '],[/\\;/g,' '],[/\\,/g,' '],[/\\!/g,''],[/\\\|/g,'‖'],[/\\bigl/g,''],[/\\bigr/g,''],[/\\Bigl/g,''],[/\\Bigr/g,''],
+    [/\\leftarrow/g,'←'],[/\\rightarrow/g,'→'],[/\\Rightarrow/g,'⇒'],[/\\to/g,'→'],
+    [/\\leq/g,'≤'],[/\\geq/g,'≥'],[/\\neq/g,'≠'],[/\\times/g,'×'],[/\\cdot/g,'·'],[/\\odot/g,'⊙'],
+    [/\\mid/g,'|'],[/\\neg/g,'¬'],[/\\setminus/g,'∖'],[/\\in/g,'∈'],[/\\notin/g,'∉'],[/\\propto/g,'∝'],[/\\approx/g,'≈'],[/\\sim/g,'∼'],[/\\left/g,''],[/\\right/g,''],[/\\\{/g,'{'],[/\\\}/g,'}'],[/\\pm/g,'±'],[/\\ldots/g,'…'],[/\\cdots/g,'⋯'],
+    [/\\alpha/g,'α'],[/\\beta/g,'β'],[/\\gamma/g,'γ'],[/\\Gamma/g,'Γ'],[/\\theta/g,'θ'],[/\\Theta/g,'Θ'],[/\\mu/g,'μ'],[/\\sigma/g,'σ'],[/\\Sigma/g,'Σ'],[/\\pi/g,'π'],[/\\rho/g,'ρ'],[/\\lambda/g,'λ'],[/\\Lambda/g,'Λ'],[/\\Delta/g,'Δ'],[/\\epsilon/g,'ε'],[/\\varepsilon/g,'ε'],
+    [/\\mathcal\{N\}/g,'𝒩'],[/\\mathcal\s*\{?L\}?/g,'𝓛'],[/\\mathcal\s*\{?N\}?/g,'𝒩'],[/\\mathbb\s*\{?E\}?/g,'𝔼'],[/\\mathbb\s*\{?H\}?/g,'ℍ'],[/\\mathrm\{Var\}/g,'Var'],[/\\mathrm\{Cov\}/g,'Cov'],[/\\mathrm\{KL\}/g,'KL'],[/\\mathrm\{Beta\}/g,'Beta'],[/\\mathbf\{1\}/g,'1']
+  ];
+  map.forEach(([r,v]) => { s = s.replace(r,v); });
+  s = s.replace(/\\text\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\mathcal\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathbb\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathrm\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\operatorname\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\exp/g,'exp').replace(/\\log/g,'log').replace(/\\min/g,'min').replace(/\\max/g,'max').replace(/\\tanh/g,'tanh').replace(/\\argmax/g,'argmax').replace(/\\argmin/g,'argmin').replace(/\\partial/g,'∂').replace(/\\sum/g,'∑').replace(/\\prod/g,'∏').replace(/\\int/g,'∫');
+  s = s.replace(/\\dot\s*\{([^{}]*)\}/g,'$1̇').replace(/\\dot\s+([A-Za-z])/g,'$1̇');
+  s = s.replace(/\\sqrt\{([^{}]*)\}/g,'√<span class="sqrt">$1</span>');
+  s = s.replace(/\^\{([^{}]*)\}/g,'<sup>$1</sup>').replace(/_\{([^{}]*)\}/g,'<sub>$1</sub>');
+  s = s.replace(/\^([A-Za-z0-9*+\-])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9*+\-])/g,'<sub>$1</sub>');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));
+  s = s.replace(/\s+/g,' ');
+  return s;
+}
+
+function renderLiteMath(root) {
+  if (!root || root.__liteMathRendering) return;
+  root.__liteMathRendering = true;
+  try {
+    const doc = root.nodeType === 9 ? root : root.ownerDocument;
+    if (doc && doc.head && !doc.getElementById('lite-math-style')) doc.head.insertAdjacentHTML('beforeend', liteMathCss);
+    const walker = doc.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('script,style,textarea,pre,code,.math-lite')) return NodeFilter.FILTER_REJECT;
+        return /\\\(|\\\[|\$/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const text = node.nodeValue;
+      const parts = [];
+      let i = 0;
+      const re = /\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$([\s\S]*?)\$\$|\$([^$\n]{1,240})\$/g;
+      let m;
+      while ((m = re.exec(text))) {
+        if (m.index > i) parts.push(doc.createTextNode(text.slice(i, m.index)));
+        const raw = m[1] ?? m[2] ?? m[3] ?? m[4] ?? '';
+        const span = doc.createElement('span');
+        span.className = 'math-lite' + ((m[1] || m[3]) ? ' display' : '');
+        span.innerHTML = latexToHtml(raw);
+        parts.push(span);
+        i = m.index + m[0].length;
+      }
+      if (!parts.length) return;
+      if (i < text.length) parts.push(doc.createTextNode(text.slice(i)));
+      node.replaceWith(...parts);
+    });
+  } finally {
+    root.__liteMathRendering = false;
+  }
+}
+const V_LABELS=['红色','圆形','甜味','水果','小型'];
+const H_LABELS=['苹果','番茄'];
+const NV=V_LABELS.length, NH=H_LABELS.length;
+// Weight matrix: each hidden pattern associates with certain visible features
+const W_BASE=[[1,1,1,1,1],[1,1,0,0,0]];// apple: all; tomato: red,round
+const A_BASE=[0,0,0,0,0];
+const B_BASE=[0,0];
+let visible=[1,1,-1,-1,-1];// 1=on, -1=off, -1 means unknown/off
+
+function sigmoid(x){return 1/(1+Math.exp(-x));}
+
+function compute(){
+  const w=parseFloat(document.getElementById('sW').value);
+  // hidden activations given visible
+  const hProb=H_LABELS.map((_,j)=>{
+    let s=B_BASE[j]*w;
+    for(let i=0;i<NV;i++)s+=W_BASE[j][i]*w*(visible[i]>0?1:0);
+    return sigmoid(s);
+  });
+  // reconstruct visible given hidden
+  const vRecon=V_LABELS.map((_,i)=>{
+    let s=A_BASE[i]*w;
+    for(let j=0;j<NH;j++)s+=W_BASE[j][i]*w*hProb[j];
+    return sigmoid(s);
+  });
+  return {hProb,vRecon};
+}
+
+function render(){
+  document.getElementById('vW').textContent=document.getElementById('sW').value;
+  const {hProb,vRecon}=compute();
+  const W=560,HH=320;
+  let svg=`<svg class="viz" viewBox="0 0 ${W} ${HH}">`;
+  // visible layer
+  V_LABELS.forEach((l,i)=>{
+    const x=40+i*100,y=50;
+    const on=visible[i]>0;
+    svg+=`<circle cx="${x}" cy="${y}" r="24" fill="${on?'#2563eb':'#e2e8f0'}" stroke="#0f172a" stroke-width="2"/>`;
+    svg+=`<text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" fill="${on?'#fff':'#334155'}">${l}</text>`;
+  });
+  svg+=`<text x="10" y="18" font-size="13" fill="#475569">可见层 (线索)</text>`;
+  // hidden layer
+  H_LABELS.forEach((l,j)=>{
+    const x=160+j*200,y=160;
+    const p=hProb[j];
+    svg+=`<circle cx="${x}" cy="${y}" r="28" fill="rgba(37,99,235,${p.toFixed(2)})" stroke="#0f172a" stroke-width="2"/>`;
+    svg+=`<text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" fill="${p>.5?'#fff':'#334155'}">${l}</text>`;
+    svg+=`<text x="${x}" y="${y+44}" text-anchor="middle" font-size="11" fill="#475569">p=${p.toFixed(2)}</text>`;
+  });
+  svg+=`<text x="10" y="140" font-size="13" fill="#475569">隐藏层 (记忆模式)</text>`;
+  // weights
+  for(let j=0;j<NH;j++)for(let i=0;i<NV;i++){
+    if(W_BASE[j][i]>0){
+      svg+=`<line x1="${40+i*100}" y1="74" x2="${160+j*200}" y2="132" stroke="#94a3b8" stroke-width="1.5" opacity="0.4"/>`;
+    }
+  }
+  // reconstruction
+  svg+=`<text x="10" y="240" font-size="13" fill="#475569">补全概率</text>`;
+  V_LABELS.forEach((l,i)=>{
+    const x=40+i*100,y=270;
+    const p=vRecon[i];
+    const bw=60,bh=18;
+    svg+=`<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="#e2e8f0"/>`;
+    svg+=`<rect x="${x-bw/2}" y="${y}" width="${bw*p}" height="${bh}" rx="4" fill="#16a34a"/>`;
+    svg+=`<text x="${x}" y="${y+bh+14}" text-anchor="middle" font-size="10" fill="#475569">${l} ${(p*100).toFixed(0)}%</text>`;
+  });
+  svg+='</svg>';
+  document.getElementById('viz').innerHTML=svg;
+  const best=hProb[0]>hProb[1]?'苹果':'番茄';
+  document.getElementById('obs').innerHTML=`当前线索激活了"${best}"模式更强。权重越大，线索到记忆模式的映射越确定。打开更多线索（如"水果""甜味"），苹果假设会更强；只打开"红色""圆形"，两个假设竞争。`;
+  renderLiteMath(document);
+}
+
+// Build toggles
+const tDiv=document.getElementById('cueToggles');
+V_LABELS.forEach((l,i)=>{
+  const btn=document.createElement('button');
+  btn.className='btn';btn.textContent=l;btn.style.margin='3px';
+  btn.addEventListener('click',()=>{visible[i]*=-1;render();});
+  tDiv.appendChild(btn);
+});
+document.getElementById('sW').addEventListener('input',render);
+render();
+</script></body></html>

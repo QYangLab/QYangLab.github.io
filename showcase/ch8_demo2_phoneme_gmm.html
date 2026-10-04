@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 8-2：语音音素 GMM 类别学习</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:13px;color:var(--muted)}
+.ctrl-group input[type=range]{width:140px}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{text-align:center;padding:8px 14px;background:var(--accent-soft);border-radius:14px}
+.stat .val{font-size:1.1em;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:11px;color:var(--muted)}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 8-2：语音音素 GMM 类别学习</h1>
+    <p>被试听到连续声学特征（如 VOT 和 F1），需要学习它们属于哪个音素类别。EM 在 E-step 计算 responsibility（每个点属于各 Gaussian 的概率），在 M-step 更新均值和协方差。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#2563eb"></span>类别 1 (/b/)</span>
+      <span class="badge"><span class="dot" style="background:#dc2626"></span>类别 2 (/p/)</span>
+      <span class="badge"><span class="dot" style="background:#16a34a"></span>类别 3 (/d/)</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[r_{nk} = \frac{\pi_k \mathcal{N}(x_n \mid \mu_k, \Sigma_k)}{\sum_j \pi_j \mathcal{N}(x_n \mid \mu_j, \Sigma_j)}, \qquad \mu_k^{new} = \frac{\sum_n r_{nk} x_n}{\sum_n r_{nk}}\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>控制</h2>
+    <div class="controls">
+      <button class="primary" id="btn-estep">E-step</button>
+      <button class="primary" id="btn-mstep">M-step</button>
+      <button class="secondary" id="btn-auto">自动 10 步</button>
+      <button class="secondary" id="btn-regen">重新生成数据</button>
+      <button class="secondary" id="btn-reset">重置 EM</button>
+      <div class="ctrl-group">
+        <label>每类样本数: <strong id="v-ns">40</strong></label>
+        <input type="range" id="sl-ns" min="15" max="80" value="40" step="5">
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="val" id="st-iter">0</div><div class="lbl">EM 迭代</div></div>
+      <div class="stat"><div class="val" id="st-ll">—</div><div class="lbl">Log-Likelihood</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2D 声学特征散点 + Gaussian 椭圆</h2>
+    <p style="font-size:13px">拖动大圆点可移动初始均值（重置 EM 后可见效果）</p>
+    <svg id="svg-scatter" width="100%" viewBox="0 0 700 500" style="display:block;max-width:700px;margin:0 auto"></svg>
+  </div>
+
+  <div class="card">
+    <h2>Log-Likelihood 收敛曲线</h2>
+    <svg id="svg-ll" width="100%" viewBox="0 0 860 180" style="display:block"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>点击 E-step 观察点的颜色如何从均匀混合变成清晰分类（每个点的颜色是 responsibility 加权混合）。M-step 后椭圆会移向 responsibility 加权中心。Log-likelihood 每步不下降。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    EM 用软分类替代硬分类，让模型能在类别标签未知时学习类别中心。参考：Dempster, Laird & Rubin (1977); McLachlan & Peel (2000); Feldman et al. (2009).
+  </div>
+</main>
+
+<script>
+const K=3;
+const clusterColors=['#2563eb','#dc2626','#16a34a'];
+const trueMu=[[2,5],[6,2],[7,7]];
+const trueSigma=[[[1.2,0.3],[0.3,0.8]],[[0.9,-0.2],[-0.2,1.0]],[[1.0,0.4],[0.4,1.1]]];
+
+let data=[]; // [{x,y}]
+let resp=[]; // [N][K]
+let mu=[], sigma=[], pi=[];
+let emIter=0, llHistory=[];
+
+function gaussRand2d(mu,sig){
+  const u1=Math.random(),u2=Math.random();
+  const z0=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+  const z1=Math.sqrt(-2*Math.log(u1))*Math.sin(2*Math.PI*u2);
+  // Cholesky of 2x2
+  const a=Math.sqrt(sig[0][0]);
+  const b=sig[1][0]/a;
+  const c=Math.sqrt(sig[1][1]-b*b);
+  return{x:mu[0]+a*z0, y:mu[1]+b*z0+c*z1};
+}
+
+function generateData(){
+  const ns=+document.getElementById('sl-ns').value;
+  data=[];
+  for(let k=0;k<K;k++){
+    for(let i=0;i<ns;i++){
+      data.push(gaussRand2d(trueMu[k],trueSigma[k]));
+    }
+  }
+  resetEM();
+}
+
+function resetEM(){
+  emIter=0;llHistory=[];
+  mu=[[1,3],[5,5],[8,3]]; // initial guess
+  sigma=[[[1,0],[0,1]],[[1,0],[0,1]],[[1,0],[0,1]]];
+  pi=[1/K,1/K,1/K];
+  resp=data.map(()=>Array(K).fill(1/K));
+  draw();
+}
+
+function gauss2dPdf(x,y,mu,sig){
+  const dx=x-mu[0], dy=y-mu[1];
+  const det=sig[0][0]*sig[1][1]-sig[0][1]*sig[1][0];
+  if(det<=1e-8)return 1e-20;
+  const inv00=sig[1][1]/det, inv11=sig[0][0]/det, inv01=-sig[0][1]/det;
+  const q=inv00*dx*dx+2*inv01*dx*dy+inv11*dy*dy;
+  return Math.exp(-0.5*q)/(2*Math.PI*Math.sqrt(det));
+}
+
+function eStep(){
+  for(let n=0;n<data.length;n++){
+    const raw=[];
+    for(let k=0;k<K;k++){
+      raw.push(pi[k]*gauss2dPdf(data[n].x,data[n].y,mu[k],sigma[k]));
+    }
+    const Z=raw.reduce((a,b)=>a+b,0)||1e-20;
+    resp[n]=raw.map(v=>v/Z);
+  }
+  emIter++;
+  llHistory.push(computeLL());
+}
+
+function mStep(){
+  const N=data.length;
+  for(let k=0;k<K;k++){
+    let Nk=0, sx=0, sy=0;
+    for(let n=0;n<N;n++){Nk+=resp[n][k];sx+=resp[n][k]*data[n].x;sy+=resp[n][k]*data[n].y}
+    if(Nk<1e-6)continue;
+    mu[k]=[sx/Nk,sy/Nk];
+    pi[k]=Nk/N;
+    let s00=0,s01=0,s11=0;
+    for(let n=0;n<N;n++){
+      const dx=data[n].x-mu[k][0], dy=data[n].y-mu[k][1];
+      s00+=resp[n][k]*dx*dx;s01+=resp[n][k]*dx*dy;s11+=resp[n][k]*dy*dy;
+    }
+    sigma[k]=[[s00/Nk+0.01,s01/Nk],[s01/Nk,s11/Nk+0.01]];
+  }
+}
+
+function computeLL(){
+  let ll=0;
+  for(let n=0;n<data.length;n++){
+    let p=0;
+    for(let k=0;k<K;k++) p+=pi[k]*gauss2dPdf(data[n].x,data[n].y,mu[k],sigma[k]);
+    ll+=Math.log(Math.max(p,1e-20));
+  }
+  return ll;
+}
+
+function draw(){
+  document.getElementById('st-iter').textContent=emIter;
+  document.getElementById('st-ll').textContent=data.length?computeLL().toFixed(2):'—';
+  drawScatter();drawLL();
+}
+
+function drawScatter(){
+  const svg=document.getElementById('svg-scatter');
+  const W=700,H=500,pad={l:50,r:20,t:20,b:50};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  // data range
+  let xMin=0,xMax=10,yMin=0,yMax=10;
+  if(data.length){
+    xMin=Math.min(...data.map(d=>d.x))-1;xMax=Math.max(...data.map(d=>d.x))+1;
+    yMin=Math.min(...data.map(d=>d.y))-1;yMax=Math.max(...data.map(d=>d.y))+1;
+  }
+  const xS=v=>pad.l+(v-xMin)/(xMax-xMin)*pw;
+  const yS=v=>pad.t+ph-(v-yMin)/(yMax-yMin)*ph;
+
+  let html='';
+  html+=`<rect x="${pad.l}" y="${pad.t}" width="${pw}" height="${ph}" fill="#fafaf9" rx="8"/>`;
+  html+=`<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#cbd5e1"/>`;
+  html+=`<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#cbd5e1"/>`;
+  html+=`<text x="${W/2}" y="${H-8}" text-anchor="middle" font-size="13" fill="#475569">VOT (声学特征 1)</text>`;
+  html+=`<text x="14" y="${H/2}" text-anchor="middle" font-size="13" fill="#475569" transform="rotate(-90,14,${H/2})">F1 (声学特征 2)</text>`;
+
+  // Gaussian ellipses
+  for(let k=0;k<K;k++){
+    // Eigendecomposition of 2x2 for ellipse
+    const a=sigma[k][0][0], b=sigma[k][0][1], d=sigma[k][1][1];
+    const trace=a+d, det=a*d-b*b;
+    const l1=(trace+Math.sqrt(Math.max(0,trace*trace-4*det)))/2;
+    const l2=(trace-Math.sqrt(Math.max(0,trace*trace-4*det)))/2;
+    const angle=b===0&&a>=d?0:Math.atan2(l1-a,b)*180/Math.PI;
+    const rx=Math.sqrt(Math.max(0.01,l1))*2, ry=Math.sqrt(Math.max(0.01,l2))*2;
+    const cx=xS(mu[k][0]), cy=yS(mu[k][1]);
+    const scaleX=pw/(xMax-xMin), scaleY=ph/(yMax-yMin);
+    html+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx*scaleX}" ry="${ry*scaleY}" fill="${clusterColors[k]}" fill-opacity=".1" stroke="${clusterColors[k]}" stroke-width="2" stroke-dasharray="4,3" transform="rotate(${-angle},${cx},${cy})"/>`;
+  }
+
+  // Data points with blended colors
+  data.forEach((d,n)=>{
+    const r=resp[n];
+    // Blend colors
+    let rr=0,gg=0,bb=0;
+    const cols=[[37,99,235],[220,38,38],[22,163,74]];
+    for(let k=0;k<K;k++){rr+=r[k]*cols[k][0];gg+=r[k]*cols[k][1];bb+=r[k]*cols[k][2]}
+    const col=`rgb(${Math.round(rr)},${Math.round(gg)},${Math.round(bb)})`;
+    html+=`<circle cx="${xS(d.x)}" cy="${yS(d.y)}" r="4" fill="${col}" opacity=".75"/>`;
+  });
+
+  // Mean markers (draggable)
+  mu.forEach((m,k)=>{
+    html+=`<circle cx="${xS(m[0])}" cy="${yS(m[1])}" r="10" fill="${clusterColors[k]}" stroke="white" stroke-width="3" style="cursor:grab" data-k="${k}"/>`;
+    html+=`<text x="${xS(m[0])+14}" y="${yS(m[1])+4}" font-size="12" fill="${clusterColors[k]}" font-weight="700">μ${k+1}</text>`;
+  });
+
+  svg.innerHTML=html;
+}
+
+function drawLL(){
+  const svg=document.getElementById('svg-ll');
+  if(llHistory.length===0){svg.innerHTML='';return}
+  const W=860,H=180,pad={l:60,r:30,t:15,b:40};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const n=llHistory.length;
+  const yMin=Math.min(...llHistory)-5;
+  const yMax=Math.max(...llHistory)+5;
+  const xS=i=>pad.l+(i/(Math.max(n-1,1)))*pw;
+  const yS=v=>pad.t+ph-(v-yMin)/(yMax-yMin)*ph;
+
+  let html='';
+  html+=`<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#cbd5e1"/>`;
+  html+=`<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#cbd5e1"/>`;
+  let path='';
+  llHistory.forEach((v,i)=>{path+=(i===0?'M':'L')+xS(i).toFixed(1)+','+yS(v).toFixed(1)});
+  html+=`<path d="${path}" fill="none" stroke="#2563eb" stroke-width="2.5"/>`;
+  llHistory.forEach((v,i)=>{html+=`<circle cx="${xS(i)}" cy="${yS(v)}" r="3" fill="#2563eb"/>`});
+  html+=`<text x="${W/2}" y="${H-4}" text-anchor="middle" font-size="13" fill="#475569">EM 迭代</text>`;
+  html+=`<text x="${pad.l-6}" y="${pad.t+ph/2}" text-anchor="end" font-size="11" fill="#94a3b8" transform="rotate(-90,${pad.l-6},${pad.t+ph/2})">Log-Likelihood</text>`;
+  svg.innerHTML=html;
+}
+
+document.getElementById('btn-estep').addEventListener('click',()=>{eStep();draw()});
+document.getElementById('btn-mstep').addEventListener('click',()=>{mStep();draw()});
+document.getElementById('btn-auto').addEventListener('click',()=>{for(let i=0;i<10;i++){eStep();mStep();llHistory.push(computeLL())}draw()});
+document.getElementById('btn-regen').addEventListener('click',generateData);
+document.getElementById('btn-reset').addEventListener('click',resetEM);
+document.getElementById('sl-ns').addEventListener('input',e=>{document.getElementById('v-ns').textContent=e.target.value});
+
+generateData();
+</script>
+</body>
+</html>

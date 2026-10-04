@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo 6：树近似 Ising 格点推断</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #5d6d7e;
+      --line: #d6dbdf;
+      --panel: #f8fbff;
+      --accent: #1f77b4;
+      --tree: #e67e22;
+      --bad: #c0392b;
+      --good: #1e8449;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: #ffffff;
+      line-height: 1.55;
+    }
+    header {
+      padding: 28px 34px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, #f7fbff, #ffffff);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      margin: 28px 0 10px;
+      font-size: 20px;
+    }
+    h3 {
+      margin: 18px 0 8px;
+      font-size: 16px;
+    }
+    main {
+      padding: 22px 34px 36px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .note {
+      color: var(--muted);
+      max-width: 980px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      padding: 16px;
+    }
+    .control {
+      margin: 0 0 15px;
+    }
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    select, button {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font: inherit;
+      background: white;
+    }
+    button {
+      cursor: pointer;
+      background: #1f77b4;
+      color: white;
+      border-color: #1f77b4;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    button.secondary {
+      background: white;
+      color: var(--accent);
+      border-color: #9ecae1;
+    }
+    textarea {
+      width: 100%;
+      min-height: 76px;
+      box-sizing: border-box;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      resize: vertical;
+    }
+    .formula {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f4f6f7;
+      border: 1px solid #e5e8e8;
+      border-radius: 10px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    .panels {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .viz-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .metric {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      background: white;
+      border: 1px solid #eef2f4;
+      border-radius: 12px;
+    }
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid #34495e;
+      vertical-align: -2px;
+      margin-right: 4px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 7px 9px;
+      text-align: right;
+      border-bottom: 1px solid #edf0f2;
+      font-size: 14px;
+    }
+    th {
+      background: #f4f8fb;
+      color: #2c3e50;
+      font-weight: 700;
+    }
+    td:first-child, th:first-child {
+      text-align: center;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .error-high {
+      color: var(--bad);
+      font-weight: 700;
+    }
+    .error-low {
+      color: var(--good);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .problem-note {
+      margin-top: 14px;
+      max-width: 1060px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 13px 16px;
+      color: var(--ink);
+    }
+    .problem-note ul {
+      margin: 8px 0 0 20px;
+      padding: 0;
+    }
+    .problem-note li {
+      margin: 4px 0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f4f6f7;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    @media (max-width: 1040px) {
+      .layout, .grid-2, .panels {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Demo 6：树近似 Ising 格点推断</h1>
+  <p class="note">
+    本 demo 用一个 <code>3×3</code> Ising 格点说明树近似（tree approximation）的核心想法：原始网格有环，精确推断需要枚举全部状态；
+    若只保留一棵 spanning tree，就可以在树上用 sum-product 精确计算边缘。这里刻意只讨论“直接删除边得到树”的朴素树近似，不引入其他近似算法。
+  </p>
+
+  <div class="problem-note">
+    <strong>问题情境：</strong>这是一个 <code>3×3</code> 格点上的 Ising / 地图调色式二值标记问题。每个格点代表一个待推断的区域、像素或地图单元，状态只能是 <code>-1</code> 或 <code>+1</code>。
+    <ul>
+      <li><code>h_i</code> 表示第 <code>i</code> 个格点自身的局部观测证据：正值支持 <code>+1</code>，负值支持 <code>-1</code>，绝对值越大证据越强。</li>
+      <li>边表示相邻格点之间的相互作用或平滑约束，用来表达“相邻区域可能彼此相关”。</li>
+      <li><code>J &gt; 0</code> 表示邻居倾向相同状态，<code>J &lt; 0</code> 表示邻居倾向相反状态，<code>J = 0</code> 表示邻居互不影响。</li>
+      <li>默认预设只给中心格点一个正证据（<code>h_4&gt;0</code>），其他格点证据为 <code>0</code>，方便观察“局部颜色”如何通过相邻边向外传播。</li>
+    </ul>
+  </div>
+</header>
+
+<main>
+  <section class="layout">
+    <aside class="card">
+      <h2 style="margin-top:0">参数</h2>
+      <div class="control">
+        <label><span>耦合强度 J</span><span id="jValue"></span></label>
+        <input id="coupling" type="range" min="-0.8" max="1.2" step="0.05" value="0.35" />
+      </div>
+      <div class="control">
+        <label><span>局部证据缩放</span><span id="scaleValue"></span></label>
+        <input id="scale" type="range" min="0" max="2.0" step="0.05" value="1.00" />
+      </div>
+<div class="control">
+        <label for="treeKind"><span>树近似方式</span></label>
+        <select id="treeKind">
+          <option value="snake">蛇形树：一条连续路径</option>
+          <option value="rows">行优先树：保留三行 + 左列连接</option>
+          <option value="cols">列优先树：保留三列 + 顶行连接</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="evidencePreset"><span>证据预设</span></label>
+        <select id="evidencePreset">
+          <option value="centerPlus">中心红色线索：只有中心支持 +1</option>
+          <option value="centerMinus">中心蓝色线索：只有中心支持 -1</option>
+          <option value="cornerConflict">四角冲突：对角线证据相反</option>
+          <option value="verticalStripe">竖条线索：中列支持 +1</option>
+          <option value="custom">自定义文本框</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="hValues"><span>9 个格点的基础证据 h_i</span></label>
+        <textarea id="hValues">0.00 0.00 0.00
+0.00 1.40 0.00
+0.00 0.00 0.00</textarea>
+      </div>
+      <button id="runButton">重新计算</button>
+      <button id="resetButton" class="secondary">恢复默认中心证据</button>
+      <p class="note" style="font-size:13px">
+        颜色表示 <code>p(x_i=+1)</code>：偏蓝接近 0，偏红接近 1，白色接近 0.5。
+      </p>
+    </aside>
+
+    <section>
+      <div class="card">
+        <h2 style="margin-top:0">模型与两种推断方式</h2>
+        <div class="formula">p(x) ∝ exp( Σ_i h_i x_i + J Σ_(i,j) x_i x_j ),    x_i ∈ {-1,+1}</div>
+        <div class="grid-2">
+          <div>
+            <h3>精确推断</h3>
+            <p>枚举全部 <code>2^9=512</code> 个状态，精确计算归一化常数和每个格点的边缘概率。它是本 demo 的 ground truth。</p>
+          </div>
+          <div>
+            <h3>树近似</h3>
+            <p>从 3×3 网格的 12 条边中选出 8 条构成 spanning tree，在这棵树上运行精确 sum-product。因为树无环，BP 在有限步内精确；但被删除的 off-tree 边不再影响推断。</p>
+            <p><strong>这里不重新调参数：</strong>保留下来的节点证据 <code>h_i</code> 和树边耦合 <code>J</code> 原样使用；没有保留的边等价于把该边耦合设为 <code>0</code>。因此本 demo 展示的是最朴素、最透明的“直接删除边”树近似。</p>
+          </div>
+        </div>
+        <h3>树近似到底做了什么？</h3>
+        <p>
+          在本 demo 中，树近似不学习新参数，也不补偿被删掉的边。操作只有两步：先选择一棵包含全部 9 个格点的树；再把不在树上的边从模型中删除。
+          这样得到的树模型仍使用原来的局部证据 <code>h_i</code> 和保留边上的同一个 <code>J</code>。优点是推断清楚、快速、可解释；代价是被删除的邻居约束不再传递信息，所以边缘概率可能偏离 exact inference。
+        </p>
+        <p class="note">如果采用更高级的结构化变分或树加权方法，确实可能重新加权或优化参数；但那已经不是这里的朴素树近似。本页只回答“直接删除边会怎样”。</p>
+</div>
+    </section>
+  </section>
+
+  <section class="panels" style="margin-top:22px">
+    <div class="card">
+      <div class="viz-title"><span>精确推断</span><span class="metric" id="exactMetric"></span></div>
+      <div id="exactPanel"></div>
+    </div>
+    <div class="card">
+      <div class="viz-title"><span>树近似</span><span class="metric" id="treeMetric"></span></div>
+      <div id="treePanel"></div>
+    </div>
+</section>
+
+  <section class="card" style="margin-top:22px">
+    <h2 style="margin-top:0">数值比较：p(x_i=+1)</h2>
+    <div id="tablePanel"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:#2166ac"></span>更偏向 -1</span>
+      <span><span class="swatch" style="background:#ffffff"></span>不确定 / 0.5</span>
+      <span><span class="swatch" style="background:#b2182b"></span>更偏向 +1</span>
+      <span style="margin-left:auto">树图橙色边 = 被保留的 spanning tree；灰色虚线 = 被树近似删除的边。</span>
+    </div>
+  </section>
+</main>
+
+<script>
+const SPINS = [-1, 1];
+const SIDE = 3;
+const N = 9;
+const EVIDENCE_PRESETS = {
+  centerPlus: [0.00, 0.00, 0.00, 0.00, 1.40, 0.00, 0.00, 0.00, 0.00],
+  centerMinus: [0.00, 0.00, 0.00, 0.00, -1.40, 0.00, 0.00, 0.00, 0.00],
+  cornerConflict: [1.20, 0.00, -1.20, 0.00, 0.00, 0.00, -1.20, 0.00, 1.20],
+  verticalStripe: [0.00, 0.80, 0.00, 0.00, 1.20, 0.00, 0.00, 0.80, 0.00]
+};
+const DEFAULT_H = EVIDENCE_PRESETS.centerPlus;
+
+function gridEdges() {
+  const edges = [];
+  for (let r = 0; r < SIDE; r++) {
+    for (let c = 0; c < SIDE; c++) {
+      const i = r * SIDE + c;
+      if (c + 1 < SIDE) edges.push([i, i + 1]);
+      if (r + 1 < SIDE) edges.push([i, i + SIDE]);
+    }
+  }
+  return edges;
+}
+
+function treeEdges(kind) {
+  if (kind === "snake") return [[0,1],[1,2],[2,5],[5,4],[4,3],[3,6],[6,7],[7,8]];
+  if (kind === "rows") return [[0,1],[1,2],[3,4],[4,5],[6,7],[7,8],[0,3],[3,6]];
+  if (kind === "cols") return [[0,3],[3,6],[1,4],[4,7],[2,5],[5,8],[0,1],[1,2]];
+  throw new Error("unknown tree kind");
+}
+
+function key(i, j) {
+  return i < j ? `${i}-${j}` : `${j}-${i}`;
+}
+
+function logsumexp(values) {
+  const m = Math.max(...values);
+  let s = 0;
+  for (const v of values) s += Math.exp(v - m);
+  return m + Math.log(s);
+}
+
+function normalizeLogVector(v) {
+  const z = logsumexp(v);
+  return v.map(x => x - z);
+}
+
+function normalizeLogMatrix(m) {
+  const flat = m.flat();
+  const z = logsumexp(flat);
+  return m.map(row => row.map(x => x - z));
+}
+
+function neighborsFromEdges(edges) {
+  const nb = Array.from({length: N}, () => []);
+  for (const [i, j] of edges) {
+    nb[i].push(j);
+    nb[j].push(i);
+  }
+  return nb;
+}
+
+function parseEvidence() {
+  const raw = document.getElementById("hValues").value.trim().split(/[\s,]+/).filter(Boolean).map(Number);
+  if (raw.length !== N || raw.some(x => !Number.isFinite(x))) {
+    alert("请输入 9 个有限数字作为 h_i。");
+    throw new Error("invalid evidence");
+  }
+  const scale = Number(document.getElementById("scale").value);
+  return raw.map(x => scale * x);
+}
+
+function buildModel() {
+  const J = Number(document.getElementById("coupling").value);
+  const h = parseEvidence();
+  const edges = gridEdges();
+  const Jmap = new Map(edges.map(e => [key(e[0], e[1]), J]));
+  return {h, J, edges, Jmap};
+}
+
+function logWeight(model, state, edgeList = model.edges) {
+  let v = 0;
+  for (let i = 0; i < N; i++) v += model.h[i] * state[i];
+  for (const [i, j] of edgeList) v += model.Jmap.get(key(i, j)) * state[i] * state[j];
+  return v;
+}
+
+function exactInference(model) {
+  const states = [];
+  const logs = [];
+  for (let mask = 0; mask < (1 << N); mask++) {
+    const state = Array.from({length: N}, (_, i) => ((mask >> i) & 1) ? 1 : -1);
+    states.push(state);
+    logs.push(logWeight(model, state));
+  }
+  const logZ = logsumexp(logs);
+  const weights = logs.map(x => Math.exp(x - logZ));
+  const pPlus = Array(N).fill(0);
+  for (let s = 0; s < states.length; s++) {
+    for (let i = 0; i < N; i++) if (states[s][i] === 1) pPlus[i] += weights[s];
+  }
+  return {logZ, pPlus};
+}
+
+function treeSumProduct(model, tree) {
+  const neighbors = neighborsFromEdges(tree);
+  const parent = Array(N).fill(null);
+  parent[0] = -1;
+  const order = [0];
+  for (let idx = 0; idx < order.length; idx++) {
+    const node = order[idx];
+    for (const nb of neighbors[node]) {
+      if (parent[nb] === null) {
+        parent[nb] = node;
+        order.push(nb);
+      }
+    }
+  }
+  if (order.length !== N) throw new Error("tree is not connected");
+
+  const messages = new Map();
+  const msgKey = (a, b) => `${a}>${b}`;
+
+  function computeMessage(source, target) {
+    const valsForTarget = [];
+    for (const xTarget of SPINS) {
+      const terms = [];
+      for (let xi = 0; xi < 2; xi++) {
+        const xSource = SPINS[xi];
+        let term = model.h[source] * xSource + model.Jmap.get(key(source, target)) * xSource * xTarget;
+        for (const nb of neighbors[source]) {
+          if (nb === target) continue;
+          term += messages.get(msgKey(nb, source))[xi];
+        }
+        terms.push(term);
+      }
+      valsForTarget.push(logsumexp(terms));
+    }
+    return normalizeLogVector(valsForTarget);
+  }
+
+  for (let k = order.length - 1; k >= 1; k--) {
+    const child = order[k];
+    messages.set(msgKey(child, parent[child]), computeMessage(child, parent[child]));
+  }
+  for (const source of order) {
+    for (const target of neighbors[source]) {
+      if (parent[source] === target) continue;
+      messages.set(msgKey(source, target), computeMessage(source, target));
+    }
+  }
+
+  const pPlus = [];
+  for (let i = 0; i < N; i++) {
+    const logBelief = [];
+    for (let xi = 0; xi < 2; xi++) {
+      const x = SPINS[xi];
+      let v = model.h[i] * x;
+      for (const nb of neighbors[i]) v += messages.get(msgKey(nb, i))[xi];
+      logBelief.push(v);
+    }
+    pPlus.push(Math.exp(normalizeLogVector(logBelief)[1]));
+  }
+  return {pPlus};
+}
+
+function errors(est, truth) {
+  const abs = est.map((x, i) => Math.abs(x - truth[i]));
+  const mae = abs.reduce((a, b) => a + b, 0) / abs.length;
+  const rmse = Math.sqrt(abs.reduce((a, b) => a + b * b, 0) / abs.length);
+  const max = Math.max(...abs);
+  return {abs, mae, rmse, max};
+}
+
+function fmt(x, digits = 3) {
+  return Number(x).toFixed(digits);
+}
+
+function colorForP(p) {
+  const t = Math.max(0, Math.min(1, p));
+  if (t < 0.5) {
+    const a = t / 0.5;
+    return mixColor([33, 102, 172], [255, 255, 255], a);
+  }
+  const a = (t - 0.5) / 0.5;
+  return mixColor([255, 255, 255], [178, 24, 43], a);
+}
+
+function mixColor(a, b, t) {
+  const c = a.map((x, i) => Math.round(x + (b[i] - x) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function drawGraph(targetId, values, allEdges, tree = null) {
+  const treeSet = new Set((tree || []).map(e => key(e[0], e[1])));
+  const target = document.getElementById(targetId);
+  const w = 280, h = 240;
+  const pos = Array.from({length: N}, (_, i) => {
+    const r = Math.floor(i / SIDE), c = i % SIDE;
+    return [55 + c * 85, 40 + r * 78];
+  });
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" role="img">`;
+  for (const [i, j] of allEdges) {
+    const [x1, y1] = pos[i], [x2, y2] = pos[j];
+    const inTree = treeSet.has(key(i, j));
+    const stroke = tree ? (inTree ? "#e67e22" : "#cfd8dc") : "#aeb6bf";
+    const width = tree ? (inTree ? 5 : 2) : 3;
+    const dash = tree && !inTree ? `stroke-dasharray="5 5"` : "";
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" ${dash}/>`;
+  }
+  for (let i = 0; i < N; i++) {
+    const [x, y] = pos[i];
+    const fill = colorForP(values[i]);
+    svg += `<circle cx="${x}" cy="${y}" r="24" fill="${fill}" stroke="#1b2631" stroke-width="2"/>`;
+    svg += `<text x="${x}" y="${y - 3}" text-anchor="middle" font-size="12" font-weight="700" fill="#111">${i}</text>`;
+    svg += `<text x="${x}" y="${y + 13}" text-anchor="middle" font-size="11" fill="#111">${fmt(values[i], 2)}</text>`;
+  }
+  svg += `</svg>`;
+  target.innerHTML = svg;
+}
+
+function renderTable(exact, tree) {
+  const treeErr = errors(tree, exact);
+  let html = `<table><thead><tr>
+    <th>格点</th><th>Exact</th><th>Tree</th><th>|树-精确|</th>
+  </tr></thead><tbody>`;
+  for (let i = 0; i < N; i++) {
+    const treeClass = treeErr.abs[i] > 0.08 ? "error-high" : "error-low";
+    html += `<tr>
+      <td>${i}</td>
+      <td>${fmt(exact[i], 4)}</td>
+      <td>${fmt(tree[i], 4)}</td>
+      <td class="${treeClass}">${fmt(treeErr.abs[i], 4)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  document.getElementById("tablePanel").innerHTML = html;
+  document.getElementById("exactMetric").textContent = "ground truth";
+  document.getElementById("treeMetric").textContent = `MAE ${fmt(treeErr.mae, 4)} / max ${fmt(treeErr.max, 4)}`;
+}
+
+function run() {
+  document.getElementById("jValue").textContent = fmt(document.getElementById("coupling").value, 2);
+  document.getElementById("scaleValue").textContent = fmt(document.getElementById("scale").value, 2);
+
+  const model = buildModel();
+  const tree = treeEdges(document.getElementById("treeKind").value);
+  const exact = exactInference(model);
+  const treeApprox = treeSumProduct(model, tree);
+
+  drawGraph("exactPanel", exact.pPlus, model.edges);
+  drawGraph("treePanel", treeApprox.pPlus, model.edges, tree);
+  renderTable(exact.pPlus, treeApprox.pPlus);
+}
+
+function setEvidence(values) {
+  document.getElementById("hValues").value =
+    `${values[0].toFixed(2)} ${values[1].toFixed(2)} ${values[2].toFixed(2)}
+` +
+    `${values[3].toFixed(2)} ${values[4].toFixed(2)} ${values[5].toFixed(2)}
+` +
+    `${values[6].toFixed(2)} ${values[7].toFixed(2)} ${values[8].toFixed(2)}`;
+}
+
+function resetEvidence() {
+  document.getElementById("evidencePreset").value = "centerPlus";
+  setEvidence(DEFAULT_H);
+  run();
+}
+
+function applyEvidencePreset() {
+  const key = document.getElementById("evidencePreset").value;
+  if (key === "custom") return;
+  setEvidence(EVIDENCE_PRESETS[key]);
+  run();
+}
+
+for (const id of ["coupling", "scale", "treeKind"]) {
+  document.getElementById(id).addEventListener("input", run);
+}
+document.getElementById("evidencePreset").addEventListener("change", applyEvidencePreset);
+document.getElementById("hValues").addEventListener("input", () => {
+  document.getElementById("evidencePreset").value = "custom";
+});
+document.getElementById("runButton").addEventListener("click", run);
+document.getElementById("resetButton").addEventListener("click", resetEvidence);
+resetEvidence();
+</script>
+</body>
+</html>

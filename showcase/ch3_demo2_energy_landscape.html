@@ -1,0 +1,180 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ch3 Demo 2: 能量景观与自然图像先验</title><style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--soft:#dbeafe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.6}
+.page{max-width:1200px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+.kicker{font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:8px}
+h1{font-size:26px;line-height:1.25;margin:0 0 10px}
+.subtitle{color:var(--muted);max-width:900px}
+.formula{margin-top:14px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:12px 14px;color:#0f172a;font-size:15px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(15,23,42,.04)}
+h2{font-size:17px;margin:0 0 10px}
+.controls{display:grid;gap:12px}
+.control span{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.control input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn:hover{opacity:.85}
+.stage{min-height:300px}
+svg.viz{width:100%;border:1px solid #e2e8f0;border-radius:18px;background:#f8fafc}
+.intent{background:#f8fafc;border-left:4px solid var(--accent);margin-top:14px}
+.refs{font-size:13px;color:var(--muted);padding-left:18px}
+.obs{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px;font-size:14px;margin-top:8px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+</style></head><body><div class="page">
+<section class="hero"><div class="kicker">Chapter 3 · Demo 2 · 马尔可夫网络</div>
+<h1>能量景观与自然图像先验</h1>
+<div class="subtitle">自然图像有边缘、纹理和局部连续性。无向图模型用局部势函数表示哪些局部结构更相容。</div>
+<div class="formula">核心公式：\(p(x)\propto\prod_c\psi_c(x_c)=\exp[-E(x)]\)</div></section>
+<div class="layout"><aside class="card"><h2>交互参数</h2><div class="controls">
+<div class="control"><span>边缘稀疏性 <b id="vSp"></b></span><input type="range" id="sSp" min="0" max="3" step="0.1" value="1.5"></div>
+<div class="control"><span>平滑度 <b id="vSm"></b></span><input type="range" id="sSm" min="0" max="3" step="0.1" value="1.0"></div>
+<button class="btn" id="btnGen">随机生成 patches</button>
+</div></aside><main>
+<section class="card"><h2>候选 image patches 与能量</h2><div id="viz" class="stage"></div></section>
+<section class="card"><h2>观察提示</h2><div id="obs" class="obs"></div></section>
+<section class="card intent"><h2>文献与案例意图</h2><p>参考 Lee & Mumford (2003) hierarchical Bayesian 视觉推断、Simoncelli (2001) natural image statistics。案例说明无向图势函数如何编码"自然图像中哪些局部结构更可能出现"。</p>
+<ul class="refs"><li>BRML Ch5 Graphical Models</li><li>PML2 Ch24 Energy-based models</li></ul></section>
+</main></div></div>
+<script>
+const liteMathCss = `
+<style id="lite-math-style">
+.math-lite{font-family:"Times New Roman","STIX Two Text","Cambria Math",serif;color:#0f172a;font-size:1.04em;white-space:nowrap}
+.math-lite.display{display:block;white-space:normal;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+.math-lite sub{font-size:.72em;vertical-align:-.25em}.math-lite sup{font-size:.72em}.math-lite .frac{display:inline-grid;grid-template-rows:auto auto;text-align:center;vertical-align:middle;margin:0 .18em}.math-lite .frac .num{border-bottom:1px solid currentColor;padding:0 .22em .08em}.math-lite .frac .den{padding:.08em .22em 0}.math-lite .sqrt{border-top:1px solid currentColor;padding-left:.1em}.math-lite .op{font-family:"Times New Roman",serif}.math-lite .kw{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:.9em}
+</style>`;
+
+function latexToHtml(src) {
+  let s = src.trim();
+  const esc = x => x.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  function convertFrac(t) {
+    return t.replace(/\\(?:dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, (_, a, b) => `<span class="frac"><span class="num">${latexToHtml(a)}</span><span class="den">${latexToHtml(b)}</span></span>`);
+  }
+  s = esc(s);
+  s = convertFrac(s);
+  const map = [
+    [/\\qquad/g,'  '],[/\\quad/g,' '],[/\\;/g,' '],[/\\,/g,' '],[/\\!/g,''],[/\\\|/g,'‖'],[/\\bigl/g,''],[/\\bigr/g,''],[/\\Bigl/g,''],[/\\Bigr/g,''],
+    [/\\leftarrow/g,'←'],[/\\rightarrow/g,'→'],[/\\Rightarrow/g,'⇒'],[/\\to/g,'→'],
+    [/\\leq/g,'≤'],[/\\geq/g,'≥'],[/\\neq/g,'≠'],[/\\times/g,'×'],[/\\cdot/g,'·'],[/\\odot/g,'⊙'],
+    [/\\mid/g,'|'],[/\\neg/g,'¬'],[/\\setminus/g,'∖'],[/\\in/g,'∈'],[/\\notin/g,'∉'],[/\\propto/g,'∝'],[/\\approx/g,'≈'],[/\\sim/g,'∼'],[/\\left/g,''],[/\\right/g,''],[/\\\{/g,'{'],[/\\\}/g,'}'],[/\\pm/g,'±'],[/\\ldots/g,'…'],[/\\cdots/g,'⋯'],
+    [/\\alpha/g,'α'],[/\\beta/g,'β'],[/\\gamma/g,'γ'],[/\\Gamma/g,'Γ'],[/\\theta/g,'θ'],[/\\Theta/g,'Θ'],[/\\mu/g,'μ'],[/\\sigma/g,'σ'],[/\\Sigma/g,'Σ'],[/\\pi/g,'π'],[/\\rho/g,'ρ'],[/\\lambda/g,'λ'],[/\\Lambda/g,'Λ'],[/\\Delta/g,'Δ'],[/\\epsilon/g,'ε'],[/\\varepsilon/g,'ε'],
+    [/\\mathcal\{N\}/g,'𝒩'],[/\\mathcal\s*\{?L\}?/g,'𝓛'],[/\\mathcal\s*\{?N\}?/g,'𝒩'],[/\\mathbb\s*\{?E\}?/g,'𝔼'],[/\\mathbb\s*\{?H\}?/g,'ℍ'],[/\\mathrm\{Var\}/g,'Var'],[/\\mathrm\{Cov\}/g,'Cov'],[/\\mathrm\{KL\}/g,'KL'],[/\\mathrm\{Beta\}/g,'Beta'],[/\\mathbf\{1\}/g,'1']
+  ];
+  map.forEach(([r,v]) => { s = s.replace(r,v); });
+  s = s.replace(/\\text\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\mathcal\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathbb\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathrm\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\operatorname\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\exp/g,'exp').replace(/\\log/g,'log').replace(/\\min/g,'min').replace(/\\max/g,'max').replace(/\\tanh/g,'tanh').replace(/\\argmax/g,'argmax').replace(/\\argmin/g,'argmin').replace(/\\partial/g,'∂').replace(/\\sum/g,'∑').replace(/\\prod/g,'∏').replace(/\\int/g,'∫');
+  s = s.replace(/\\dot\s*\{([^{}]*)\}/g,'$1̇').replace(/\\dot\s+([A-Za-z])/g,'$1̇');
+  s = s.replace(/\\sqrt\{([^{}]*)\}/g,'√<span class="sqrt">$1</span>');
+  s = s.replace(/\^\{([^{}]*)\}/g,'<sup>$1</sup>').replace(/_\{([^{}]*)\}/g,'<sub>$1</sub>');
+  s = s.replace(/\^([A-Za-z0-9*+\-])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9*+\-])/g,'<sub>$1</sub>');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));
+  s = s.replace(/\s+/g,' ');
+  return s;
+}
+
+function renderLiteMath(root) {
+  if (!root || root.__liteMathRendering) return;
+  root.__liteMathRendering = true;
+  try {
+    const doc = root.nodeType === 9 ? root : root.ownerDocument;
+    if (doc && doc.head && !doc.getElementById('lite-math-style')) doc.head.insertAdjacentHTML('beforeend', liteMathCss);
+    const walker = doc.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('script,style,textarea,pre,code,.math-lite')) return NodeFilter.FILTER_REJECT;
+        return /\\\(|\\\[|\$/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const text = node.nodeValue;
+      const parts = [];
+      let i = 0;
+      const re = /\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$([\s\S]*?)\$\$|\$([^$\n]{1,240})\$/g;
+      let m;
+      while ((m = re.exec(text))) {
+        if (m.index > i) parts.push(doc.createTextNode(text.slice(i, m.index)));
+        const raw = m[1] ?? m[2] ?? m[3] ?? m[4] ?? '';
+        const span = doc.createElement('span');
+        span.className = 'math-lite' + ((m[1] || m[3]) ? ' display' : '');
+        span.innerHTML = latexToHtml(raw);
+        parts.push(span);
+        i = m.index + m[0].length;
+      }
+      if (!parts.length) return;
+      if (i < text.length) parts.push(doc.createTextNode(text.slice(i)));
+      node.replaceWith(...parts);
+    });
+  } finally {
+    root.__liteMathRendering = false;
+  }
+}
+const PS=6;// patch size
+let patches=[];
+function genPatches(){
+  patches=[];
+  // 1. random noise
+  patches.push({label:'随机噪声',data:Array.from({length:PS*PS},()=>Math.random()>.5?1:0)});
+  // 2. smooth
+  patches.push({label:'平滑面',data:Array.from({length:PS*PS},()=>1)});
+  // 3. vertical edge
+  const vedge=[];for(let y=0;y<PS;y++)for(let x=0;x<PS;x++)vedge.push(x<PS/2?0:1);
+  patches.push({label:'竖直边缘',data:vedge});
+  // 4. horizontal edge
+  const hedge=[];for(let y=0;y<PS;y++)for(let x=0;x<PS;x++)hedge.push(y<PS/2?0:1);
+  patches.push({label:'水平边缘',data:hedge});
+  // 5. checkerboard
+  const cb=[];for(let y=0;y<PS;y++)for(let x=0;x<PS;x++)cb.push((x+y)%2);
+  patches.push({label:'棋盘格',data:cb});
+  render();
+}
+function energy(data){
+  const sp=parseFloat(document.getElementById('sSp').value);
+  const sm=parseFloat(document.getElementById('sSm').value);
+  let eSmooth=0,nEdge=0;
+  for(let y=0;y<PS;y++)for(let x=0;x<PS;x++){
+    if(x<PS-1&&data[y*PS+x]!==data[y*PS+x+1]){eSmooth++;nEdge++;}
+    if(y<PS-1&&data[y*PS+x]!==data[(y+1)*PS+x]){eSmooth++;nEdge++;}
+  }
+  return sm*eSmooth - sp*Math.min(nEdge,4);// reward sparse edges, penalize excessive discontinuity
+}
+function render(){
+  document.getElementById('vSp').textContent=document.getElementById('sSp').value;
+  document.getElementById('vSm').textContent=document.getElementById('sSm').value;
+  const cs=36,gap=4,pw=PS*(cs+gap)+20,ph=PS*(cs+gap)+50;
+  const W=patches.length*pw+20;
+  let svg=`<svg class="viz" viewBox="0 0 ${W} ${ph+10}">`;
+  const energies=patches.map(p=>energy(p.data));
+  const minE=Math.min(...energies),maxE=Math.max(...energies);
+  patches.forEach((p,pi)=>{
+    const ox=pi*pw+10;
+    svg+=`<text x="${ox+pw/2-10}" y="18" text-anchor="middle" font-size="12" fill="#475569">${p.label}</text>`;
+    p.data.forEach((v,i)=>{
+      const y2=Math.floor(i/PS),x2=i%PS;
+      svg+=`<rect x="${ox+x2*(cs+gap)}" y="${24+y2*(cs+gap)}" width="${cs}" height="${cs}" rx="5" fill="${v?'#1d4ed8':'#e2e8f0'}"/>`;
+    });
+    const e=energies[pi];
+    const barH=40*(1-(e-minE)/(maxE-minE||1));
+    const prob=Math.exp(-e);
+    svg+=`<rect x="${ox+10}" y="${ph-45+40-barH}" width="${pw-40}" height="${barH}" rx="4" fill="${pi===energies.indexOf(minE)?'#16a34a':'#94a3b8'}" opacity="0.7"/>`;
+    svg+=`<text x="${ox+pw/2-10}" y="${ph-2}" text-anchor="middle" font-size="11" fill="#334155">E=${e.toFixed(1)}</text>`;
+  });
+  svg+='</svg>';
+  document.getElementById('viz').innerHTML=svg;
+  const best=patches[energies.indexOf(Math.min(...energies))].label;
+  document.getElementById('obs').innerHTML=`当前能量最低的 patch 是"${best}"。提高平滑度会惩罚边缘多的 patch；提高边缘稀疏性会奖励少量清晰边缘。自然图像兼具平滑区域和稀疏边缘。`;
+  renderLiteMath(document);
+}
+document.getElementById('sSp').addEventListener('input',render);
+document.getElementById('sSm').addEventListener('input',render);
+document.getElementById('btnGen').addEventListener('click',genPatches);
+genPatches();
+</script></body></html>

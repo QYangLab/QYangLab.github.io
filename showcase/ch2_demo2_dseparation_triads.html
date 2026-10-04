@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 2：Collider 与解释竞争 — 警报模型</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#ffffff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe;--burg:#ef4444;--eq:#f59e0b;--alarm:#8b5cf6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:white}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.toggle-section{margin-bottom:18px}
+.toggle-section h3{font-size:14px;font-weight:600;margin-bottom:8px}
+.toggle-row{display:flex;gap:8px;flex-wrap:wrap}
+.toggle-row button{border:1px solid var(--line);background:white;border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px;transition:.15s}
+.toggle-row button.active{color:white}
+.result-bar{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+.result-item{flex:1;min-width:120px;text-align:center;padding:12px;border-radius:14px;border:1px solid var(--line)}
+.result-item .big{font-size:26px;font-weight:800}
+.result-item .label{font-size:12px;color:var(--muted);margin-top:4px}
+.obs-hint{background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:14px;font-size:14px;color:#0c4a6e;margin-top:16px}
+.ref-section{background:#fefce8;border:1px solid #fde68a;border-radius:14px;padding:14px;font-size:13px;color:#92400e;margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+<div class="hero">
+  <h1>Demo 2：Collider 与解释竞争 — 警报模型</h1>
+  <p>Chapter 2 · 贝叶斯图</p>
+  <p>核心公式：\( B \perp E \)（先验独立），但 \( B \not\perp E \mid A \)（观察 Alarm 后产生依赖）</p>
+  <div class="badges">
+    <span class="badge"><span class="dot" style="background:var(--burg)"></span>B = 入侵</span>
+    <span class="badge"><span class="dot" style="background:var(--eq)"></span>E = 地震</span>
+    <span class="badge"><span class="dot" style="background:var(--alarm)"></span>A = 警报</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="card">
+    <h2>DAG: Collider 结构</h2>
+    <svg id="dag-svg" width="100%" height="200" viewBox="0 0 400 200"></svg>
+
+    <div class="toggle-section">
+      <h3>观察状态切换</h3>
+      <div class="toggle-row" style="margin-bottom:8px">
+        <span style="font-size:13px;width:90px;font-weight:600">Alarm：</span>
+        <button id="btn-a-none" class="active" style="background:#94a3b8;color:white;border-color:#94a3b8" onclick="setAlarm('none')">未观察</button>
+        <button id="btn-a-on" onclick="setAlarm('on')">Alarm = 响</button>
+        <button id="btn-a-off" onclick="setAlarm('off')">Alarm = 不响</button>
+      </div>
+      <div class="toggle-row">
+        <span style="font-size:13px;width:90px;font-weight:600">Earthquake：</span>
+        <button id="btn-e-none" class="active" style="background:#94a3b8;color:white;border-color:#94a3b8" onclick="setEarthquake('none')">未观察</button>
+        <button id="btn-e-on" onclick="setEarthquake('on')">E = 发生</button>
+        <button id="btn-e-off" onclick="setEarthquake('off')">E = 未发生</button>
+      </div>
+    </div>
+
+    <div class="result-bar">
+      <div class="result-item" style="border-color:var(--burg)">
+        <div class="big" id="p-burg" style="color:var(--burg)">1.0%</div>
+        <div class="label">p(Burglary=1)</div>
+      </div>
+      <div class="result-item" style="border-color:var(--eq)">
+        <div class="big" id="p-eq" style="color:var(--eq)">2.0%</div>
+        <div class="label">p(Earthquake=1)</div>
+      </div>
+    </div>
+
+    <div id="explain-text" style="margin-top:12px;font-size:13px;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid var(--line)">
+      Collider 结构：B 和 E 先验独立。观察 Alarm 后，两者进入解释竞争。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>后验联合分布 p(B, E | evidence)</h2>
+    <svg id="joint-svg" width="100%" height="280" viewBox="0 0 420 280"></svg>
+
+    <h2 style="margin-top:16px">解释竞争流图</h2>
+    <svg id="flow-svg" width="100%" height="180" viewBox="0 0 420 180"></svg>
+  </div>
+</div>
+
+<div class="obs-hint">
+  <strong>观察提示：</strong>先保持所有未观察（B⊥E），然后打开"Alarm=响"，观察 p(B) 和 p(E) 都上升。接着再打开"E=发生"，观察 p(B) 如何下降 —— 地震"解释掉"了警报，入侵的概率反而降低。这就是 explaining away / 解释竞争。
+</div>
+
+<div class="ref-section">
+  <strong>文献与案例意图：</strong>本 demo 对应教材 §2.1 碰撞点（collider）的定义与 d-separation。经典 Alarm Network (Pearl, 1988) 展示了 collider 结构的核心性质：默认阻断路径，但观察共同结果后两个原因变得条件依赖。Sloman (2005) 和 Tenenbaum et al. (2011) 讨论了 explaining away 在认知推断中的重要性。教学点：collider 默认阻断，观察共同结果后产生解释竞争。
+</div>
+</main>
+
+<script>
+// Alarm network parameters
+const pB = 0.01;  // prior burglary
+const pE = 0.02;  // prior earthquake
+// P(A=1|B,E)
+const pA_BE = {
+  '00': 0.001, // no burglary, no earthquake
+  '01': 0.29,  // no burglary, earthquake
+  '10': 0.94,  // burglary, no earthquake
+  '11': 0.95   // both
+};
+
+let alarmState = 'none'; // 'none', 'on', 'off'
+let eqState = 'none';    // 'none', 'on', 'off'
+
+function computePosterior(){
+  // Enumerate all 4 states of (B,E)
+  const states = [[0,0],[0,1],[1,0],[1,1]];
+  const joint = states.map(([b,e])=>{
+    let p = (b?pB:1-pB) * (e?pE:1-pE);
+    const pAlarm = pA_BE[`${b}${e}`];
+
+    if(alarmState === 'on') p *= pAlarm;
+    else if(alarmState === 'off') p *= (1-pAlarm);
+    // else: no alarm evidence
+
+    if(eqState === 'on' && e===0) p = 0;
+    if(eqState === 'on' && e===1) p *= 1; // already included
+    if(eqState === 'off' && e===1) p = 0;
+    if(eqState === 'off' && e===0) p *= 1;
+
+    return p;
+  });
+
+  const s = joint.reduce((a,b)=>a+b, 0);
+  return s>0 ? joint.map(v=>v/s) : [0.25,0.25,0.25,0.25];
+}
+
+function update(){
+  const post = computePosterior();
+  // post = [p(B=0,E=0), p(B=0,E=1), p(B=1,E=0), p(B=1,E=1)]
+  const margB = post[2]+post[3];
+  const margE = post[1]+post[3];
+
+  document.getElementById('p-burg').textContent = (margB*100).toFixed(1)+'%';
+  document.getElementById('p-eq').textContent = (margE*100).toFixed(1)+'%';
+
+  // Explain text
+  const el = document.getElementById('explain-text');
+  if(alarmState==='none' && eqState==='none'){
+    el.textContent = 'Collider 结构：B 和 E 先验独立。B⊥E 成立。';
+  } else if(alarmState==='on' && eqState==='none'){
+    el.textContent = '观察到 Alarm=响：B 和 E 都上升，进入解释竞争状态。B⊥E|A 不再成立。';
+  } else if(alarmState==='on' && eqState==='on'){
+    el.textContent = '地震已发生 → Alarm 被地震"解释"了 → Burglary 概率下降。这就是 explaining away。';
+  } else if(alarmState==='on' && eqState==='off'){
+    el.textContent = '地震没发生，但 Alarm 响了 → 只能由 Burglary 解释 → p(B) 大幅上升。';
+  } else {
+    el.textContent = `当前条件：Alarm=${alarmState}, Earthquake=${eqState}`;
+  }
+
+  drawDAG();
+  drawJoint(post);
+  drawFlow(post, margB, margE);
+}
+
+function setAlarm(state){
+  alarmState = state;
+  ['none','on','off'].forEach(s=>{
+    const btn = document.getElementById(`btn-a-${s}`);
+    if(s===state) {
+      btn.classList.add('active');
+      btn.style.cssText = s==='none'?'background:#94a3b8;color:white;border-color:#94a3b8':
+        s==='on'?'background:#8b5cf6;color:white;border-color:#8b5cf6':'background:#64748b;color:white;border-color:#64748b';
+    } else {
+      btn.classList.remove('active');
+      btn.style.cssText = '';
+    }
+  });
+  update();
+}
+
+function setEarthquake(state){
+  eqState = state;
+  ['none','on','off'].forEach(s=>{
+    const btn = document.getElementById(`btn-e-${s}`);
+    if(s===state) {
+      btn.classList.add('active');
+      btn.style.cssText = s==='none'?'background:#94a3b8;color:white;border-color:#94a3b8':
+        s==='on'?'background:#f59e0b;color:white;border-color:#f59e0b':'background:#64748b;color:white;border-color:#64748b';
+    } else {
+      btn.classList.remove('active');
+      btn.style.cssText = '';
+    }
+  });
+  update();
+}
+
+function drawDAG(){
+  const svg = document.getElementById('dag-svg');
+  const bx=80,by=50,ex=320,ey=50,ax=200,ay=150,nr=30;
+  const aObs = alarmState!=='none';
+  const eObs = eqState!=='none';
+  let html = `<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#94a3b8"/></marker></defs>`;
+
+  // Edges
+  html += `<line x1="${bx+nr}" y1="${by+15}" x2="${ax-nr}" y2="${ay-15}" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>`;
+  html += `<line x1="${ex-nr}" y1="${ey+15}" x2="${ax+nr}" y2="${ay-15}" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>`;
+
+  // B node
+  html += `<circle cx="${bx}" cy="${by}" r="${nr}" fill="white" stroke="var(--burg)" stroke-width="2.5"/>`;
+  html += `<text x="${bx}" y="${by+5}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--burg)">B</text>`;
+  html += `<text x="${bx}" y="${by+nr+16}" text-anchor="middle" font-size="11" fill="var(--muted)">入侵</text>`;
+
+  // E node
+  html += `<circle cx="${ex}" cy="${ey}" r="${nr}" fill="${eObs?'var(--eq)':'white'}" stroke="var(--eq)" stroke-width="2.5"/>`;
+  html += `<text x="${ex}" y="${ey+5}" text-anchor="middle" font-size="14" font-weight="700" fill="${eObs?'white':'var(--eq)'}">E</text>`;
+  html += `<text x="${ex}" y="${ey+nr+16}" text-anchor="middle" font-size="11" fill="var(--muted)">${eObs?(eqState==='on'?'地震!':'无地震'):'地震'}</text>`;
+
+  // A node
+  html += `<circle cx="${ax}" cy="${ay}" r="${nr}" fill="${aObs?'var(--alarm)':'white'}" stroke="var(--alarm)" stroke-width="2.5"/>`;
+  html += `<text x="${ax}" y="${ay+5}" text-anchor="middle" font-size="14" font-weight="700" fill="${aObs?'white':'var(--alarm)'}">A</text>`;
+  html += `<text x="${ax}" y="${ay+nr+16}" text-anchor="middle" font-size="11" fill="var(--muted)">${aObs?(alarmState==='on'?'响!':'不响'):'警报'}</text>`;
+
+  // d-sep indicator
+  const blocked = !aObs;
+  html += `<text x="200" y="18" text-anchor="middle" font-size="12" font-weight="600" fill="${blocked?'#16a34a':'#ef4444'}">${blocked?'B⊥E (路径被 collider 阻断)':'B⊬E|A (路径被打通)'}</text>`;
+
+  svg.innerHTML = html;
+}
+
+function probColor(p, maxP){
+  const t = maxP>0?p/maxP:0;
+  const r = Math.round(37+(219-37)*(1-t));
+  const g = Math.round(99+(234-99)*(1-t));
+  const b = Math.round(235+(250-235)*(1-t));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawJoint(post){
+  const svg = document.getElementById('joint-svg');
+  const ox=120,oy=60,cw=120,ch=80;
+  const maxP = Math.max(...post);
+  let html = '';
+
+  html += `<text x="${ox+cw/2}" y="20" text-anchor="middle" font-size="13" font-weight="600">E=0</text>`;
+  html += `<text x="${ox+cw+cw/2}" y="20" text-anchor="middle" font-size="13" font-weight="600">E=1</text>`;
+  html += `<text x="${ox-8}" y="${oy+ch/2+4}" text-anchor="end" font-size="13" font-weight="600">B=0</text>`;
+  html += `<text x="${ox-8}" y="${oy+ch+ch/2+4}" text-anchor="end" font-size="13" font-weight="600">B=1</text>`;
+
+  // Grid: post = [B0E0, B0E1, B1E0, B1E1]
+  const grid = [[post[0],post[1]],[post[2],post[3]]];
+  for(let r=0;r<2;r++){
+    for(let c=0;c<2;c++){
+      const v = grid[r][c];
+      const x=ox+c*cw, y=oy+r*ch;
+      html += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${probColor(v,maxP)}" stroke="white" stroke-width="2" rx="6"/>`;
+      const dark = v>maxP*0.5;
+      html += `<text x="${x+cw/2}" y="${y+ch/2+5}" text-anchor="middle" font-size="18" font-weight="800" fill="${dark?'white':'var(--text)'}">${(v*100).toFixed(1)}%</text>`;
+    }
+  }
+
+  svg.innerHTML = html;
+}
+
+function drawFlow(post, margB, margE){
+  const svg = document.getElementById('flow-svg');
+  let html = '';
+  const w = 420, h = 180;
+
+  // Two bars showing B and E marginal probabilities
+  const bw = 160, bh = 40;
+
+  // B bar
+  const bFill = Math.max(margB*bw*5, 2); // scale for visibility
+  html += `<text x="20" y="30" font-size="13" font-weight="600" fill="var(--burg)">p(B=1)</text>`;
+  html += `<rect x="100" y="18" width="${bw}" height="${bh}" rx="8" fill="#fee2e2" stroke="#fca5a5"/>`;
+  html += `<rect x="100" y="18" width="${Math.min(margB*bw*5,bw)}" height="${bh}" rx="8" fill="var(--burg)" opacity="0.7"/>`;
+  html += `<text x="${100+bw+10}" y="42" font-size="14" font-weight="700" fill="var(--burg)">${(margB*100).toFixed(1)}%</text>`;
+
+  // E bar
+  html += `<text x="20" y="90" font-size="13" font-weight="600" fill="var(--eq)">p(E=1)</text>`;
+  html += `<rect x="100" y="78" width="${bw}" height="${bh}" rx="8" fill="#fef3c7" stroke="#fde68a"/>`;
+  html += `<rect x="100" y="78" width="${Math.min(margE*bw*5,bw)}" height="${bh}" rx="8" fill="var(--eq)" opacity="0.7"/>`;
+  html += `<text x="${100+bw+10}" y="102" font-size="14" font-weight="700" fill="var(--eq)">${(margE*100).toFixed(1)}%</text>`;
+
+  // Explaining away arrow
+  if(alarmState==='on'){
+    html += `<text x="210" y="150" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="600">← 解释竞争：一方上升 → 另一方相对下降 →</text>`;
+    html += `<line x1="120" y1="130" x2="300" y2="130" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+  }
+
+  svg.innerHTML = html;
+}
+
+update();
+</script>
+</body>
+</html>

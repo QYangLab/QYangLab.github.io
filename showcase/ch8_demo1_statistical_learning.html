@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 8-1：Schapiro 统计学习与隐藏 Community 结构</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{text-align:center;padding:8px 14px;background:var(--accent-soft);border-radius:14px}
+.stat .val{font-size:1.1em;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:11px;color:var(--muted)}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 8-1：Schapiro 统计学习 — 隐藏 Community 结构</h1>
+    <p>被试观察连续出现的图形序列。图形之间的转移概率不是随机的，而隐含 community 结构。EM 算法通过 E-step（分配 responsibility）和 M-step（更新转移矩阵）发现这些隐藏群组。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#8b5cf6"></span>隐变量 \(z_t\)：community</span>
+      <span class="badge"><span class="dot" style="background:#f97316"></span>观测 \(x_t\)：shape</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[r_{tk} = p(z_t = k \mid x_t, \theta) \propto \pi_k \cdot p(x_t \mid z_t = k, \theta)\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>控制</h2>
+    <div class="controls">
+      <button class="primary" id="btn-gen">生成序列</button>
+      <button class="primary" id="btn-estep">E-step</button>
+      <button class="primary" id="btn-mstep">M-step</button>
+      <button class="secondary" id="btn-auto">自动 10 步</button>
+      <button class="secondary" id="btn-reset">重置 EM</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="val" id="st-iter">0</div><div class="lbl">EM 迭代</div></div>
+      <div class="stat"><div class="val" id="st-ll">—</div><div class="lbl">Log-Likelihood</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>序列时间线</h2>
+    <svg id="svg-seq" width="100%" viewBox="0 0 860 100" style="display:block"></svg>
+  </div>
+
+  <div class="card">
+    <h2>Responsibility 热力图 (time × community)</h2>
+    <svg id="svg-resp" width="100%" viewBox="0 0 860 200" style="display:block"></svg>
+  </div>
+
+  <div class="card" style="display:flex;gap:20px;flex-wrap:wrap">
+    <div style="flex:1;min-width:300px">
+      <h2>转移图</h2>
+      <svg id="svg-graph" width="100%" viewBox="0 0 400 350" style="display:block"></svg>
+    </div>
+    <div style="flex:1;min-width:300px">
+      <h2>Community 转移矩阵 (学习后)</h2>
+      <svg id="svg-trans" width="100%" viewBox="0 0 400 350" style="display:block"></svg>
+    </div>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>初始时 responsibility 均匀分布（每行颜色相同）。随着 EM 迭代，属于同一 community 的图形获得一致的高 responsibility 值，热力图出现清晰的"条带"结构。这就是隐变量学习如何发现不可见的结构单元。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    隐变量学习可以解释人类如何从连续经验中发现不可见的结构单元。参考：Schapiro et al. (2013, 2017); Dempster, Laird & Rubin (1977).
+  </div>
+</main>
+
+<script>
+const K=3; // communities
+const nShapes=9; // 3 per community
+const seqLen=60;
+const commColors=['#2563eb','#16a34a','#f97316'];
+const shapeNames='ABCDEFGHI'.split('');
+
+// True community assignments: 0-2=comm0, 3-5=comm1, 6-8=comm2
+const trueCommunity=[0,0,0,1,1,1,2,2,2];
+
+// Generate transition matrix with community structure
+function genTransMat(){
+  const T=Array.from({length:nShapes},()=>Array(nShapes).fill(0));
+  for(let i=0;i<nShapes;i++){
+    for(let j=0;j<nShapes;j++){
+      T[i][j]=trueCommunity[i]===trueCommunity[j]?0.25:0.02;
+    }
+    // normalize
+    const s=T[i].reduce((a,b)=>a+b,0);
+    T[i]=T[i].map(v=>v/s);
+  }
+  return T;
+}
+
+let transTrue=genTransMat();
+let sequence=[];
+let resp=[]; // [seqLen][K]
+let emMu=[]; // [K][nShapes] emission
+let emPi=[]; // [K] mixing
+let emIter=0;
+
+function generateSequence(){
+  sequence=[Math.floor(Math.random()*nShapes)];
+  for(let t=1;t<seqLen;t++){
+    const prev=sequence[t-1];
+    let r=Math.random(), cum=0;
+    for(let j=0;j<nShapes;j++){
+      cum+=transTrue[prev][j];
+      if(r<cum){sequence.push(j);break}
+    }
+    if(sequence.length<=t)sequence.push(0);
+  }
+  resetEM();
+  draw();
+}
+
+function resetEM(){
+  emIter=0;
+  // Random init
+  emPi=Array(K).fill(1/K);
+  emMu=Array.from({length:K},()=>{
+    const row=Array.from({length:nShapes},()=>Math.random()+0.1);
+    const s=row.reduce((a,b)=>a+b,0);
+    return row.map(v=>v/s);
+  });
+  resp=Array.from({length:seqLen},()=>Array(K).fill(1/K));
+  draw();
+}
+
+function eStep(){
+  for(let t=0;t<seqLen;t++){
+    const x=sequence[t];
+    const raw=emPi.map((pi,k)=>pi*emMu[k][x]);
+    const Z=raw.reduce((a,b)=>a+b,0)||1e-12;
+    resp[t]=raw.map(v=>v/Z);
+  }
+  emIter++;
+}
+
+function mStep(){
+  // Update pi and emission
+  const Nk=Array(K).fill(0);
+  const counts=Array.from({length:K},()=>Array(nShapes).fill(0));
+  for(let t=0;t<seqLen;t++){
+    for(let k=0;k<K;k++){
+      Nk[k]+=resp[t][k];
+      counts[k][sequence[t]]+=resp[t][k];
+    }
+  }
+  for(let k=0;k<K;k++){
+    emPi[k]=Nk[k]/seqLen;
+    const s=counts[k].reduce((a,b)=>a+b,0)||1e-12;
+    emMu[k]=counts[k].map(v=>v/s);
+  }
+}
+
+function computeLL(){
+  let ll=0;
+  for(let t=0;t<seqLen;t++){
+    const x=sequence[t];
+    let px=0;
+    for(let k=0;k<K;k++) px+=emPi[k]*emMu[k][x];
+    ll+=Math.log(Math.max(px,1e-20));
+  }
+  return ll;
+}
+
+function draw(){
+  document.getElementById('st-iter').textContent=emIter;
+  document.getElementById('st-ll').textContent=sequence.length?computeLL().toFixed(2):'—';
+  drawSeq();drawResp();drawGraph();drawTrans();
+}
+
+function drawSeq(){
+  const svg=document.getElementById('svg-seq');
+  const pad={l:40,r:20,t:10,b:30};
+  const pw=860-pad.l-pad.r;
+  const cellW=pw/seqLen;
+  let html='';
+  sequence.forEach((x,t)=>{
+    const col=commColors[trueCommunity[x]];
+    html+=`<rect x="${pad.l+t*cellW}" y="${pad.t}" width="${cellW-1}" height="40" fill="${col}" opacity=".7" rx="3"/>`;
+    if(cellW>12) html+=`<text x="${pad.l+t*cellW+cellW/2}" y="${pad.t+24}" text-anchor="middle" font-size="${Math.min(11,cellW-2)}" fill="white" font-weight="600">${shapeNames[x]}</text>`;
+  });
+  html+=`<text x="${pad.l}" y="${pad.t+65}" font-size="12" fill="#94a3b8">← 时间 →</text>`;
+  // legend
+  commColors.forEach((c,i)=>{
+    html+=`<rect x="${pad.l+200+i*100}" y="${pad.t+55}" width="12" height="12" fill="${c}" rx="3"/>`;
+    html+=`<text x="${pad.l+216+i*100}" y="${pad.t+65}" font-size="11" fill="#475569">Community ${i+1}</text>`;
+  });
+  svg.innerHTML=html;
+}
+
+function drawResp(){
+  const svg=document.getElementById('svg-resp');
+  const pad={l:40,r:20,t:30,b:30};
+  const pw=860-pad.l-pad.r, ph=140;
+  const cellW=pw/seqLen, cellH=ph/K;
+  let html='';
+  html+=`<text x="${pad.l-4}" y="${pad.t-10}" font-size="12" fill="#475569" text-anchor="end">Community</text>`;
+  for(let k=0;k<K;k++){
+    html+=`<text x="${pad.l-4}" y="${pad.t+k*cellH+cellH/2+4}" text-anchor="end" font-size="12" fill="${commColors[k]}" font-weight="600">${k+1}</text>`;
+    for(let t=0;t<seqLen;t++){
+      const v=resp[t]?resp[t][k]:1/K;
+      const alpha=Math.max(0.05,Math.min(1,v));
+      html+=`<rect x="${pad.l+t*cellW}" y="${pad.t+k*cellH}" width="${cellW-0.5}" height="${cellH-1}" fill="${commColors[k]}" opacity="${alpha}" rx="1"/>`;
+    }
+  }
+  svg.innerHTML=html;
+}
+
+function drawGraph(){
+  const svg=document.getElementById('svg-graph');
+  const cx=200,cy=175,R=120;
+  let html='';
+  // nodes
+  for(let i=0;i<nShapes;i++){
+    const angle=(i/nShapes)*2*Math.PI-Math.PI/2;
+    const x=cx+R*Math.cos(angle), y=cy+R*Math.sin(angle);
+    const col=commColors[trueCommunity[i]];
+    html+=`<circle cx="${x}" cy="${y}" r="18" fill="${col}" opacity=".8"/>`;
+    html+=`<text x="${x}" y="${y+5}" text-anchor="middle" font-size="13" fill="white" font-weight="700">${shapeNames[i]}</text>`;
+  }
+  // edges (only within-community strong ones)
+  for(let i=0;i<nShapes;i++){
+    for(let j=i+1;j<nShapes;j++){
+      if(trueCommunity[i]===trueCommunity[j]){
+        const ai=(i/nShapes)*2*Math.PI-Math.PI/2;
+        const aj=(j/nShapes)*2*Math.PI-Math.PI/2;
+        const x1=cx+R*Math.cos(ai), y1=cy+R*Math.sin(ai);
+        const x2=cx+R*Math.cos(aj), y2=cy+R*Math.sin(aj);
+        html+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${commColors[trueCommunity[i]]}" stroke-width="2" opacity=".25"/>`;
+      }
+    }
+  }
+  html+=`<text x="200" y="330" text-anchor="middle" font-size="12" fill="#94a3b8">真实转移图（强连接 = 同 community）</text>`;
+  svg.innerHTML=html;
+}
+
+function drawTrans(){
+  const svg=document.getElementById('svg-trans');
+  // K×K learned transition matrix from responsibilities
+  const transMat=Array.from({length:K},()=>Array(K).fill(0));
+  if(emIter>0){
+    for(let t=1;t<seqLen;t++){
+      for(let k1=0;k1<K;k1++){
+        for(let k2=0;k2<K;k2++){
+          transMat[k1][k2]+=resp[t-1][k1]*resp[t][k2];
+        }
+      }
+    }
+    for(let k=0;k<K;k++){
+      const s=transMat[k].reduce((a,b)=>a+b,0)||1;
+      transMat[k]=transMat[k].map(v=>v/s);
+    }
+  }
+
+  const pad={l:80,t:60};
+  const cellS=70;
+  let html='';
+  html+=`<text x="${pad.l+K*cellS/2}" y="25" text-anchor="middle" font-size="13" fill="#475569" font-weight="600">学习到的 Community 转移矩阵</text>`;
+  // column headers
+  for(let k=0;k<K;k++){
+    html+=`<text x="${pad.l+k*cellS+cellS/2}" y="${pad.t-10}" text-anchor="middle" font-size="13" fill="${commColors[k]}" font-weight="600">C${k+1}</text>`;
+  }
+  for(let i=0;i<K;i++){
+    html+=`<text x="${pad.l-10}" y="${pad.t+i*cellS+cellS/2+5}" text-anchor="end" font-size="13" fill="${commColors[i]}" font-weight="600">C${i+1}</text>`;
+    for(let j=0;j<K;j++){
+      const v=transMat[i][j];
+      const alpha=Math.max(0.05,v);
+      html+=`<rect x="${pad.l+j*cellS}" y="${pad.t+i*cellS}" width="${cellS-2}" height="${cellS-2}" fill="${commColors[j]}" opacity="${alpha}" rx="8"/>`;
+      html+=`<text x="${pad.l+j*cellS+cellS/2}" y="${pad.t+i*cellS+cellS/2+5}" text-anchor="middle" font-size="14" fill="${v>0.4?'white':'#0f172a'}" font-weight="600">${v.toFixed(2)}</text>`;
+    }
+  }
+  svg.innerHTML=html;
+}
+
+document.getElementById('btn-gen').addEventListener('click',generateSequence);
+document.getElementById('btn-estep').addEventListener('click',()=>{eStep();draw()});
+document.getElementById('btn-mstep').addEventListener('click',()=>{mStep();draw()});
+document.getElementById('btn-auto').addEventListener('click',()=>{for(let i=0;i<10;i++){eStep();mStep()}draw()});
+document.getElementById('btn-reset').addEventListener('click',()=>{resetEM();draw()});
+generateSequence();
+</script>
+</body>
+</html>

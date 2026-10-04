@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 3：二维高斯 Gibbs</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --line: #cbd5e1;
+  --orange: #d97706;
+  --blue: #2563eb;
+  --orange-light: #ffedd5;
+  --blue-light: #dbeafe;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.55; }
+main { max-width: 1400px; margin: 0 auto; padding: 32px 24px 72px; }
+h1, h2, h3 { margin: 0 0 12px; }
+p { margin: 0 0 14px; color: var(--muted); }
+.hero, .card, .psych-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); }
+.hero { padding: 28px; margin-bottom: 20px; }
+.hero h1 { font-size: 22px; }
+.hero p { font-size: 15px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr); gap: 20px; align-items: start; margin-bottom: 20px; }
+.card { padding: 22px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 18px; }
+button { border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; background: white; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+button:hover { background: #f1f5f9; border-color: #94a3b8; }
+button.active { background: var(--blue); color: white; border-color: var(--blue); }
+.slider-group { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.slider-group label { white-space: nowrap; color: var(--muted); font-size: 13px; }
+.slider-group input[type=range] { width: 160px; }
+.slider-group .val { font-weight: 700; min-width: 44px; text-align: center; }
+.plot-wrap { border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: white; cursor: crosshair; }
+svg { display: block; width: 100%; height: auto; }
+.info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+.info-box { background: #f8fafc; border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+.info-box .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.info-box .value { font-size: 15px; font-weight: 600; }
+.info-box .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.cond-panel { margin-top: 14px; }
+.cond-panel h3 { font-size: 15px; margin-bottom: 10px; }
+.cond-plots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cond-plot-wrap { background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+.cond-plot-wrap h4 { font-size: 13px; margin: 0 0 6px; color: var(--muted); }
+.cond-plot-wrap .formula { font-size: 12px; color: var(--muted); margin-top: 6px; font-family: 'Courier New', monospace; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.stat-box { background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.stat-box .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.stat-box .row { font-size: 13px; margin: 2px 0; }
+.stat-box .row span { font-weight: 600; }
+.acf-panel { margin-top: 14px; background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.acf-panel .acf-summary { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.acf-panel .acf-summary span span { font-weight: 700; color: var(--text); }
+.psych-card { padding: 22px; margin-top: 20px; }
+.psych-card h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.psych-card p { font-size: 14px; line-height: 1.7; }
+.tip-card { padding: 22px; margin-top: 20px; }
+.tip-card h2 { font-size: 16px; }
+.tip-card ul { margin: 8px 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+.ref-card { padding: 18px 22px; margin-top: 20px; font-size: 14px; color: var(--muted); }
+.ref-card strong { color: var(--text); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 12px; height: 4px; border-radius: 2px; }
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: 1fr; }
+  .info-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .info-grid { grid-template-columns: 1fr; }
+  .cond-plots { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+.deriv-card { padding: 22px; margin-bottom: 20px; }
+.deriv-steps { display: flex; flex-direction: column; gap: 14px; }
+.deriv-step { display: flex; gap: 12px; align-items: flex-start; }
+.deriv-num { width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.deriv-body { flex: 1; min-width: 0; }
+.deriv-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.deriv-text { font-size: 13.5px; color: var(--muted); line-height: 1.75; }
+.eq-center { text-align: center; margin: 6px 0; font-family: 'Times New Roman', 'STIX Two Text', 'Cambria Math', serif; font-size: 15px; color: var(--text); line-height: 1.8; }
+.matrix-tbl { display: inline-table; border-collapse: collapse; vertical-align: middle; margin: 0 3px; border-left: 2px solid #475569; border-right: 2px solid #475569; border-radius: 2px; }
+.matrix-tbl td { padding: 2px 10px; text-align: center; font-size: 14px; font-family: 'Times New Roman', serif; }
+.deriv-eq-val { font-weight: 700; color: var(--blue); }
+.result-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; margin: 4px 0; font-size: 13.5px; font-family: 'Times New Roman', serif; }
+.result-row.orange { background: var(--orange-light); color: #92400e; }
+.result-row.blue { background: var(--blue-light); color: #1e40af; }
+.result-dot { width: 10px; height: 4px; border-radius: 2px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<main>
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Demo 3：二维高斯 Gibbs</h1>
+    <p>Gibbs 采样每次只更新一个变量：先水平移动（更新 x<sub>1</sub>|x<sub>2</sub>），再垂直移动（更新 x<sub>2</sub>|x<sub>1</sub>），形成特征性的锯齿形轨迹。调高相关系数 &rho; 可以观察到链的混合变慢。</p>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>水平步（更新 x<sub>1</sub>|x<sub>2</sub>）</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>垂直步（更新 x<sub>2</sub>|x<sub>1</sub>）</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#94a3b8; width:8px; height:8px; border-radius:50%"></div>历史样本</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444; width:10px; height:10px; border-radius:50%"></div>当前位置</div>
+    </div>
+  </section>
+
+  <!-- Controls -->
+  <section class="card" style="margin-bottom:20px;">
+    <h2>控制面板</h2>
+    <div class="controls">
+      <button id="btn-step">下一步</button>
+      <button id="btn-run-100">跑 100 步</button>
+      <button id="btn-run-1000">跑 1000 步</button>
+      <button id="btn-auto">自动运行</button>
+      <button id="btn-export">导出 CSV</button>
+      <button id="btn-reset">重置</button>
+    </div>
+    <div class="controls">
+      <div class="slider-group">
+        <label>相关系数 &rho;:</label>
+        <input type="range" id="rho-slider" min="-0.95" max="0.95" step="0.05" value="0.50">
+        <span class="val" id="rho-val">0.50</span>
+      </div>
+      <div class="slider-group">
+        <label>自动运行速度:</label>
+        <input type="range" id="speed-slider" min="50" max="1500" step="50" value="500">
+        <span class="val" id="speed-val">500ms</span>
+      </div>
+    </div>
+    <p style="font-size:13px; margin:0;">提示：点击主画布可以设置起始点位置。</p>
+  </section>
+
+
+  <!-- Main Layout -->
+  <section class="layout">
+    <!-- Left: Main Canvas -->
+    <div>
+      <div class="card">
+        <h2>Gibbs 采样轨迹</h2>
+        <div class="plot-wrap" id="main-plot-wrap">
+          <svg viewBox="0 0 600 500" id="main-svg">
+            <defs>
+              <clipPath id="plot-clip"><rect x="50" y="20" width="530" height="440"/></clipPath>
+            </defs>
+            <rect x="0" y="0" width="600" height="500" rx="18" fill="#ffffff"/>
+            <!-- Axes -->
+            <g id="axes-group"></g>
+            <!-- Contours -->
+            <g id="contour-group" clip-path="url(#plot-clip)"></g>
+            <!-- Crosshair at origin -->
+            <g id="crosshair-group"></g>
+            <!-- Path segments -->
+            <g id="path-group" clip-path="url(#plot-clip)"></g>
+            <!-- Sample dots -->
+            <g id="dots-group" clip-path="url(#plot-clip)"></g>
+            <!-- Current position -->
+            <g id="current-group" clip-path="url(#plot-clip)"></g>
+            <!-- Axis labels -->
+            <text x="315" y="490" text-anchor="middle" font-size="14" fill="#0f172a" font-weight="600">x<tspan baseline-shift="sub" font-size="10">1</tspan></text>
+            <text x="14" y="244" text-anchor="middle" font-size="14" fill="#0f172a" font-weight="600" transform="rotate(-90,14,244)">x<tspan baseline-shift="sub" font-size="10">2</tspan></text>
+          </svg>
+        </div>
+        <!-- Info cards -->
+        <div class="info-grid">
+          <div class="info-box">
+            <div class="label">当前状态</div>
+            <div class="value" id="info-state">(0.00, 0.00)</div>
+            <div class="sub" id="info-iter">迭代: 0</div>
+          </div>
+          <div class="info-box">
+            <div class="label">下一步更新</div>
+            <div class="value" id="info-next">x<sub>1</sub>|x<sub>2</sub></div>
+            <div class="sub" id="info-next-detail">水平移动</div>
+          </div>
+          <div class="info-box">
+            <div class="label">条件分布</div>
+            <div class="value" id="info-cond" style="font-size:13px;">N(0.00, 0.75)</div>
+            <div class="sub" id="info-cond-formula">&mu; = &rho;&middot;x<sub>2</sub>, &sigma;&sup2; = 1&minus;&rho;&sup2;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Side panel -->
+    <div>
+      <!-- Conditional distributions -->
+      <div class="card">
+        <h2>条件分布可视化</h2>
+        <p style="font-size:13px;">当前条件分布的概率密度曲线，箭头标注采样值。</p>
+        <div class="cond-plots">
+          <div class="cond-plot-wrap">
+            <h4 style="color:var(--orange);">p(x<sub>1</sub>|x<sub>2</sub> = <span id="cond1-x2">0.00</span>)</h4>
+            <svg viewBox="0 0 260 140" id="cond1-svg">
+              <rect x="0" y="0" width="260" height="140" rx="10" fill="#fffbeb"/>
+            </svg>
+            <div class="formula" id="cond1-formula">N(&mu;=0.00, &sigma;&sup2;=0.75)</div>
+          </div>
+          <div class="cond-plot-wrap">
+            <h4 style="color:var(--blue);">p(x<sub>2</sub>|x<sub>1</sub> = <span id="cond2-x1">0.00</span>)</h4>
+            <svg viewBox="0 0 260 140" id="cond2-svg">
+              <rect x="0" y="0" width="260" height="140" rx="10" fill="#eff6ff"/>
+            </svg>
+            <div class="formula" id="cond2-formula">N(&mu;=0.00, &sigma;&sup2;=0.75)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="card" style="margin-top:20px;">
+        <h2>统计量</h2>
+        <p style="font-size:13px;">样本统计量 vs 真实分布参数</p>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="label">样本均值</div>
+            <div class="row">x&#772;<sub>1</sub> = <span id="stat-mean1">—</span></div>
+            <div class="row">x&#772;<sub>2</sub> = <span id="stat-mean2">—</span></div>
+            <div class="sub">真实值: (0, 0)</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">样本方差</div>
+            <div class="row">s<sub>11</sub> = <span id="stat-var1">—</span></div>
+            <div class="row">s<sub>22</sub> = <span id="stat-var2">—</span></div>
+            <div class="sub">真实值: (1, 1)</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">样本协方差</div>
+            <div class="row">s<sub>12</sub> = <span id="stat-cov">—</span></div>
+            <div class="sub" id="stat-cov-true">真实值: 0.50</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">样本相关系数</div>
+            <div class="row">r = <span id="stat-corr">—</span></div>
+            <div class="sub" id="stat-corr-true">真实值: 0.50</div>
+          </div>
+        </div>
+        <div class="acf-panel">
+          <div class="label" style="font-size:12px;color:var(--muted);margin-bottom:4px;">自相关函数 ACF（lag 0–30）</div>
+          <div class="acf-summary">
+            <span>lag-1 x<sub>1</sub>: <span id="acf-lag1-x1">—</span></span>
+            <span>lag-1 x<sub>2</sub>: <span id="acf-lag1-x2">—</span></span>
+          </div>
+          <svg viewBox="0 0 560 170" id="acf-svg" aria-label="Gibbs 链 x1 与 x2 的自相关函数图"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Math Derivation -->
+  <section class="card deriv-card">
+    <h2>联合分布与条件分布推导</h2>
+    <div class="deriv-steps">
+      <div class="deriv-step">
+        <div class="deriv-num">1</div>
+        <div class="deriv-body">
+          <div class="deriv-title">联合分布</div>
+          <div class="deriv-text">
+            (x<sub>1</sub>, x<sub>2</sub>)<sup>T</sup> 服从均值为零、方差为 1 的二维高斯分布，二者之间的相关系数为 &rho;：
+          </div>
+          <div class="eq-center">
+            <b>x</b> ~ <i>N</i>(<b>0</b>, &Sigma;)&emsp;
+            &Sigma; =
+            <table class="matrix-tbl"><tr><td>1</td><td>&rho;</td></tr><tr><td>&rho;</td><td>1</td></tr></table>
+            =
+            <table class="matrix-tbl"><tr><td>1</td><td id="deriv-rho-a">0.50</td></tr><tr><td id="deriv-rho-b">0.50</td><td>1</td></tr></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="deriv-step">
+        <div class="deriv-num">2</div>
+        <div class="deriv-body">
+          <div class="deriv-title">多维高斯的条件分布公式</div>
+          <div class="deriv-text">
+            多维高斯的一个关键性质：已知部分变量 x<sub>b</sub> 的值后，其余变量 x<sub>a</sub> 的条件分布仍是高斯分布。其参数为：
+          </div>
+          <div class="eq-center">
+            <i>p</i>(x<sub>a</sub> | x<sub>b</sub>) = <i>N</i>(&mu;<sub>a|b</sub>,&ensp;&sigma;<sup>2</sup><sub>a|b</sub>)
+          </div>
+          <div class="eq-center" style="font-size:14px;">
+            &mu;<sub>a|b</sub> = &mu;<sub>a</sub> + &Sigma;<sub>ab</sub> &Sigma;<sub>bb</sub><sup>&minus;1</sup> (x<sub>b</sub> &minus; &mu;<sub>b</sub>)
+            &emsp;&emsp;
+            &sigma;<sup>2</sup><sub>a|b</sub> = &Sigma;<sub>aa</sub> &minus; &Sigma;<sub>ab</sub> &Sigma;<sub>bb</sub><sup>&minus;1</sup> &Sigma;<sub>ba</sub>
+          </div>
+        </div>
+      </div>
+
+      <div class="deriv-step">
+        <div class="deriv-num">3</div>
+        <div class="deriv-body">
+          <div class="deriv-title">代入本例参数</div>
+          <div class="deriv-text">
+            本例中 &mu;<sub>a</sub> = &mu;<sub>b</sub> = 0，&Sigma;<sub>aa</sub> = &Sigma;<sub>bb</sub> = 1，&Sigma;<sub>ab</sub> = &rho;，代入上式：
+          </div>
+          <div class="eq-center">
+            &mu;<sub>a|b</sub> = 0 + &rho; &middot; 1<sup>&minus;1</sup> &middot; (x<sub>b</sub> &minus; 0) = <b>&rho; &middot; x<sub>b</sub></b>
+          </div>
+          <div class="eq-center">
+            &sigma;<sup>2</sup><sub>a|b</sub> = 1 &minus; &rho; &middot; 1<sup>&minus;1</sup> &middot; &rho; = <b>1 &minus; &rho;<sup>2</sup></b>
+            = 1 &minus; <span class="deriv-eq-val" id="deriv-rho-sq">0.25</span>
+            = <span class="deriv-eq-val" id="deriv-var">0.750</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="deriv-step">
+        <div class="deriv-num">4</div>
+        <div class="deriv-body">
+          <div class="deriv-title">Gibbs 采样交替使用的两个条件分布</div>
+          <div class="result-row orange">
+            <span class="result-dot" style="background:var(--orange)"></span>
+            <span>水平更新：<i>p</i>(x<sub>1</sub> | x<sub>2</sub>) = <i>N</i>(&rho; &middot; x<sub>2</sub>,&ensp;1 &minus; &rho;<sup>2</sup>)</span>
+          </div>
+          <div class="result-row blue">
+            <span class="result-dot" style="background:var(--blue)"></span>
+            <span>垂直更新：<i>p</i>(x<sub>2</sub> | x<sub>1</sub>) = <i>N</i>(&rho; &middot; x<sub>1</sub>,&ensp;1 &minus; &rho;<sup>2</sup>)</span>
+          </div>
+          <div class="deriv-text" style="margin-top:8px; font-size:12.5px;">
+            直觉：条件均值 = &rho; &middot; 另一个变量的当前值（向另一个变量"靠拢"的程度取决于 &rho;）；条件方差 = 1 &minus; &rho;<sup>2</sup>（&rho; 越大，已知信息越多，不确定性越小）。
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="card tip-card">
+    <h2>观察提示</h2>
+    <ul>
+      <li>&rho; 越接近 &plusmn;1，链沿对角方向混合越慢，ACF 衰减也会更慢。</li>
+      <li>把每一步分解成水平段和垂直段：这正是交替抽取 p(x<sub>1</sub>|x<sub>2</sub>) 与 p(x<sub>2</sub>|x<sub>1</sub>)。</li>
+      <li>跑 1000 步后比较样本协方差与真实 &rho;，观察有限样本误差如何随链长度缩小。</li>
+    </ul>
+  </section>
+
+  <!-- Psychology Card -->
+  <section class="psych-card">
+    <h2>&#129504; 认知科学映射</h2>
+    <p>Gibbs 采样对应"脑区间协调推断"——不同脑区轮流根据其他脑区的当前状态更新自己的信念。当变量高度相关时（如焦虑与睡眠），单维更新很难让整体信念快速改变，这解释了为什么有些心理状态会"卡住"。结构化 Gibbs（同时更新一组相关变量）对应知觉中的整体切换——例如从看到"狗"突然切换到看到"猫"。</p>
+  </section>
+
+  <section class="card ref-card">
+    <h2>文献与案例意图</h2>
+    <p><strong>对应章节：</strong>§吉布斯采样 + 例题 2；<strong>对应文献：</strong>Gershman2021Computational（可延伸：Buesing2011Neural）。</p>
+    <p><strong>完整引用：</strong></p>
+    <ol>
+      <li>Gershman, Samuel J. 2021. <cite>What Makes Us Smart: The Computational Logic of Human Cognition</cite>. Princeton, NJ: Princeton University Press.</li>
+      <li>Buesing, Lars, Johannes Bill, Bernhard Nessler, and Wolfgang Maass. 2011. <cite>Neural dynamics as sampling: A model for stochastic computation in recurrent networks of spiking neurons</cite>. <em>PLoS Computational Biology</em> 7(11): e1002211. https://doi.org/10.1371/journal.pcbi.1002211.</li>
+    </ol>
+    <p><strong>案例想表达的想法：</strong> 二维高斯 Gibbs 采样把“联合推断”拆成两个条件更新：先固定 x<sub>2</sub> 更新 x<sub>1</sub>，再固定 x<sub>1</sub> 更新 x<sub>2</sub>。当相关系数 ρ 很高时，链会沿狭长椭圆缓慢移动，这正好说明为什么强耦合心理变量或神经群体状态很难靠单维局部更新快速混合。Buesing 等人的神经采样模型进一步提示，这种条件更新可以被理解为随机神经动力学的计算原语。</p>
+  </section>
+</main>
+
+<script>
+/* ========== Configuration & State ========== */
+const SVG_W = 600, SVG_H = 500;
+const PLOT_L = 50, PLOT_T = 20, PLOT_R = 580, PLOT_B = 460;
+const PLOT_W = PLOT_R - PLOT_L, PLOT_H = PLOT_B - PLOT_T;
+const X_MIN = -4, X_MAX = 4;
+
+const COND_W = 260, COND_H = 140;
+const COND_PAD_L = 30, COND_PAD_R = 10, COND_PAD_T = 10, COND_PAD_B = 25;
+
+let rho = 0.5;
+let x1 = 1.5, x2 = -1.0;        // current position
+let samples = [];                  // [{x1, x2}]
+let segments = [];                 // [{x1a, x2a, x1b, x2b, type:'h'|'v'}]
+let nextUpdateX1 = true;           // true = next step updates x1, false = updates x2
+let iteration = 0;
+let autoTimer = null;
+
+/* ========== Math utilities ========== */
+function boxMuller() {
+  let u1, u2;
+  do { u1 = Math.random(); } while (u1 === 0);
+  u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+function gaussianSample(mean, variance) {
+  return mean + Math.sqrt(variance) * boxMuller();
+}
+
+function gaussianPDF(x, mean, variance) {
+  const diff = x - mean;
+  return Math.exp(-0.5 * diff * diff / variance) / Math.sqrt(2 * Math.PI * variance);
+}
+
+/* ========== Coordinate transforms ========== */
+function dataToSVG(dx, dy) {
+  const sx = PLOT_L + (dx - X_MIN) / (X_MAX - X_MIN) * PLOT_W;
+  const sy = PLOT_B - (dy - X_MIN) / (X_MAX - X_MIN) * PLOT_H;
+  return [sx, sy];
+}
+
+function svgToData(sx, sy) {
+  const dx = X_MIN + (sx - PLOT_L) / PLOT_W * (X_MAX - X_MIN);
+  const dy = X_MIN + (PLOT_B - sy) / PLOT_H * (X_MAX - X_MIN);
+  return [dx, dy];
+}
+
+/* ========== SVG helpers ========== */
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+function clearGroup(id) {
+  const g = document.getElementById(id);
+  while (g.firstChild) g.removeChild(g.firstChild);
+  return g;
+}
+
+/* ========== Draw axes ========== */
+function drawAxes() {
+  const g = clearGroup('axes-group');
+  // Background
+  g.appendChild(svgEl('rect', {x: PLOT_L, y: PLOT_T, width: PLOT_W, height: PLOT_H, fill: '#fafbfc', rx: 4}));
+  // Grid lines and tick labels
+  for (let v = -3; v <= 3; v++) {
+    const [sx, sy] = dataToSVG(v, v);
+    // Vertical grid
+    g.appendChild(svgEl('line', {x1: sx, y1: PLOT_T, x2: sx, y2: PLOT_B, stroke: '#e2e8f0', 'stroke-width': 1}));
+    // Horizontal grid
+    g.appendChild(svgEl('line', {x1: PLOT_L, y1: sy, x2: PLOT_R, y2: sy, stroke: '#e2e8f0', 'stroke-width': 1}));
+    // X tick
+    const xt = svgEl('text', {x: sx, y: PLOT_B + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#94a3b8'});
+    xt.textContent = v;
+    g.appendChild(xt);
+    // Y tick
+    const yt = svgEl('text', {x: PLOT_L - 8, y: sy + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#94a3b8'});
+    yt.textContent = v;
+    g.appendChild(yt);
+  }
+  // Axis lines at 0
+  const [ox, oy] = dataToSVG(0, 0);
+  g.appendChild(svgEl('line', {x1: PLOT_L, y1: oy, x2: PLOT_R, y2: oy, stroke: '#94a3b8', 'stroke-width': 1, 'stroke-dasharray': '6 4'}));
+  g.appendChild(svgEl('line', {x1: ox, y1: PLOT_T, x2: ox, y2: PLOT_B, stroke: '#94a3b8', 'stroke-width': 1, 'stroke-dasharray': '6 4'}));
+  // Border
+  g.appendChild(svgEl('rect', {x: PLOT_L, y: PLOT_T, width: PLOT_W, height: PLOT_H, fill: 'none', stroke: '#cbd5e1', rx: 4}));
+}
+
+/* ========== Draw crosshair at origin ========== */
+function drawCrosshair() {
+  const g = clearGroup('crosshair-group');
+  const [ox, oy] = dataToSVG(0, 0);
+  const s = 8;
+  g.appendChild(svgEl('line', {x1: ox - s, y1: oy, x2: ox + s, y2: oy, stroke: '#ef4444', 'stroke-width': 1.5, opacity: 0.6}));
+  g.appendChild(svgEl('line', {x1: ox, y1: oy - s, x2: ox, y2: oy + s, stroke: '#ef4444', 'stroke-width': 1.5, opacity: 0.6}));
+}
+
+/* ========== Draw ellipse contours ========== */
+function drawContours() {
+  const g = clearGroup('contour-group');
+  // Covariance matrix: [[1, rho], [rho, 1]]
+  // Eigenvalues: 1+rho, 1-rho
+  // Eigenvectors: [1,1]/sqrt(2), [1,-1]/sqrt(2) => rotation angle = pi/4
+  const lam1 = 1 + rho;
+  const lam2 = 1 - rho;
+  if (lam1 <= 0 || lam2 <= 0) return;
+  const angle = Math.PI / 4; // 45 degrees
+
+  const sigmas = [1, 2, 3];
+  const colors = ['rgba(99,102,241,0.18)', 'rgba(99,102,241,0.10)', 'rgba(99,102,241,0.05)'];
+  const strokeColors = ['rgba(99,102,241,0.5)', 'rgba(99,102,241,0.3)', 'rgba(99,102,241,0.18)'];
+
+  sigmas.forEach((k, idx) => {
+    const a = k * Math.sqrt(lam1); // semi-axis along eigenvector [1,1]
+    const b = k * Math.sqrt(lam2); // semi-axis along eigenvector [1,-1]
+    // Generate ellipse points
+    const pts = [];
+    const N = 120;
+    for (let i = 0; i <= N; i++) {
+      const t = (2 * Math.PI * i) / N;
+      const ex = a * Math.cos(t);
+      const ey = b * Math.sin(t);
+      // Rotate by 45 degrees
+      const dx = ex * Math.cos(angle) - ey * Math.sin(angle);
+      const dy = ex * Math.sin(angle) + ey * Math.cos(angle);
+      const [sx, sy] = dataToSVG(dx, dy);
+      pts.push(`${sx.toFixed(1)},${sy.toFixed(1)}`);
+    }
+    // Filled ellipse
+    g.appendChild(svgEl('polygon', {
+      points: pts.join(' '),
+      fill: colors[idx],
+      stroke: strokeColors[idx],
+      'stroke-width': 1.2
+    }));
+    // Label
+    const labelPos = dataToSVG(a * Math.cos(angle) + 0.15, a * Math.sin(angle) - 0.15);
+    const label = svgEl('text', {x: labelPos[0], y: labelPos[1], 'font-size': 10, fill: '#6366f1', opacity: 0.7});
+    label.textContent = k + 'σ';
+    g.appendChild(label);
+  });
+}
+
+/* ========== Draw sampling path ========== */
+function drawPath() {
+  const g = clearGroup('path-group');
+  segments.forEach((seg, i) => {
+    const [x1a, y1a] = dataToSVG(seg.x1a, seg.x2a);
+    const [x1b, y1b] = dataToSVG(seg.x1b, seg.x2b);
+    const color = seg.type === 'h' ? '#d97706' : '#2563eb';
+    const opacity = 0.25 + 0.75 * ((i + 1) / segments.length);
+    g.appendChild(svgEl('line', {
+      x1: x1a, y1: y1a, x2: x1b, y2: y1b,
+      stroke: color, 'stroke-width': 1.8, opacity: opacity.toFixed(2),
+      'stroke-linecap': 'round'
+    }));
+  });
+}
+
+/* ========== Draw sample dots ========== */
+function drawDots() {
+  const g = clearGroup('dots-group');
+  const n = samples.length;
+  samples.forEach((s, i) => {
+    const [sx, sy] = dataToSVG(s.x1, s.x2);
+    const t = n > 1 ? i / (n - 1) : 0;
+    const r = 2.5 + t * 1.5;
+    const alpha = 0.15 + t * 0.6;
+    g.appendChild(svgEl('circle', {
+      cx: sx, cy: sy, r: r,
+      fill: '#64748b', opacity: alpha.toFixed(2),
+      stroke: 'none'
+    }));
+  });
+}
+
+/* ========== Draw current position ========== */
+function drawCurrent() {
+  const g = clearGroup('current-group');
+  const [sx, sy] = dataToSVG(x1, x2);
+  // Outer glow
+  g.appendChild(svgEl('circle', {cx: sx, cy: sy, r: 10, fill: '#ef4444', opacity: 0.15}));
+  // Main dot
+  g.appendChild(svgEl('circle', {cx: sx, cy: sy, r: 6, fill: '#ef4444', stroke: '#ffffff', 'stroke-width': 2}));
+}
+
+/* ========== Draw conditional distribution plots ========== */
+function drawConditional1() {
+  // p(x1 | x2 = current_x2) = N(rho * x2, 1 - rho^2)
+  const svg = document.getElementById('cond1-svg');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  svg.appendChild(svgEl('rect', {x: 0, y: 0, width: COND_W, height: COND_H, rx: 10, fill: '#fffbeb'}));
+
+  const mu = rho * x2;
+  const variance = 1 - rho * rho;
+  if (variance <= 0) return;
+
+  const plotL = COND_PAD_L, plotR = COND_W - COND_PAD_R;
+  const plotT = COND_PAD_T, plotB = COND_H - COND_PAD_B;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+
+  // Fixed x range matching main plot for visual consistency
+  const xMin = X_MIN, xMax = X_MAX;
+
+  function toSx(v) { return plotL + (v - xMin) / (xMax - xMin) * plotW; }
+  function toSy(p, maxP) { return plotB - (p / maxP) * plotH * 0.9; }
+
+  const maxP = gaussianPDF(mu, mu, variance);
+
+  // Axis
+  svg.appendChild(svgEl('line', {x1: plotL, y1: plotB, x2: plotR, y2: plotB, stroke: '#cbd5e1', 'stroke-width': 1}));
+
+  // Reference line at x = 0 (unconditional mean)
+  const zeroSx = toSx(0);
+  svg.appendChild(svgEl('line', {x1: zeroSx, y1: plotT + 4, x2: zeroSx, y2: plotB, stroke: '#94a3b8', 'stroke-width': 0.8, 'stroke-dasharray': '3 3', opacity: 0.4}));
+
+  // Tick labels (fixed positions)
+  for (let v = -4; v <= 4; v += 2) {
+    const sx = toSx(v);
+    svg.appendChild(svgEl('line', {x1: sx, y1: plotB, x2: sx, y2: plotB + 4, stroke: '#cbd5e1'}));
+    const t = svgEl('text', {x: sx, y: plotB + 15, 'text-anchor': 'middle', 'font-size': 9, fill: '#94a3b8'});
+    t.textContent = v;
+    svg.appendChild(t);
+  }
+
+  // PDF curve
+  const pts = [];
+  const N = 100;
+  for (let i = 0; i <= N; i++) {
+    const xv = xMin + (xMax - xMin) * i / N;
+    const p = gaussianPDF(xv, mu, variance);
+    pts.push(`${toSx(xv).toFixed(1)},${toSy(p, maxP).toFixed(1)}`);
+  }
+  // Fill
+  const fillPts = `${toSx(xMin).toFixed(1)},${plotB} ` + pts.join(' ') + ` ${toSx(xMax).toFixed(1)},${plotB}`;
+  svg.appendChild(svgEl('polygon', {points: fillPts, fill: 'rgba(217,119,6,0.12)', stroke: 'none'}));
+  // Line
+  svg.appendChild(svgEl('polyline', {points: pts.join(' '), fill: 'none', stroke: '#d97706', 'stroke-width': 2}));
+
+  // Mean line
+  const muSx = toSx(mu);
+  svg.appendChild(svgEl('line', {x1: muSx, y1: plotT, x2: muSx, y2: plotB, stroke: '#d97706', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.5}));
+
+  // Current x1 marker
+  const x1Sx = toSx(x1);
+  if (x1Sx >= plotL && x1Sx <= plotR) {
+    const p = gaussianPDF(x1, mu, variance);
+    const py = toSy(p, maxP);
+    svg.appendChild(svgEl('circle', {cx: x1Sx, cy: py, r: 4, fill: '#d97706', stroke: '#fff', 'stroke-width': 1.5}));
+    // Drop line
+    svg.appendChild(svgEl('line', {x1: x1Sx, y1: py, x2: x1Sx, y2: plotB, stroke: '#d97706', 'stroke-width': 1, 'stroke-dasharray': '2 2', opacity: 0.4}));
+  }
+
+  // Update text
+  document.getElementById('cond1-x2').textContent = x2.toFixed(2);
+  document.getElementById('cond1-formula').innerHTML = `N(&mu;=${mu.toFixed(2)}, &sigma;&sup2;=${variance.toFixed(3)})`;
+}
+
+function drawConditional2() {
+  // p(x2 | x1 = current_x1) = N(rho * x1, 1 - rho^2)
+  const svg = document.getElementById('cond2-svg');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  svg.appendChild(svgEl('rect', {x: 0, y: 0, width: COND_W, height: COND_H, rx: 10, fill: '#eff6ff'}));
+
+  const mu = rho * x1;
+  const variance = 1 - rho * rho;
+  if (variance <= 0) return;
+
+  const plotL = COND_PAD_L, plotR = COND_W - COND_PAD_R;
+  const plotT = COND_PAD_T, plotB = COND_H - COND_PAD_B;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+
+  // Fixed x range matching main plot
+  const xMin = X_MIN, xMax = X_MAX;
+
+  function toSx(v) { return plotL + (v - xMin) / (xMax - xMin) * plotW; }
+  function toSy(p, maxP) { return plotB - (p / maxP) * plotH * 0.9; }
+
+  const maxP = gaussianPDF(mu, mu, variance);
+
+  svg.appendChild(svgEl('line', {x1: plotL, y1: plotB, x2: plotR, y2: plotB, stroke: '#cbd5e1', 'stroke-width': 1}));
+
+  // Reference line at x = 0
+  const zeroSx = toSx(0);
+  svg.appendChild(svgEl('line', {x1: zeroSx, y1: plotT + 4, x2: zeroSx, y2: plotB, stroke: '#94a3b8', 'stroke-width': 0.8, 'stroke-dasharray': '3 3', opacity: 0.4}));
+
+  // Tick labels (fixed positions)
+  for (let v = -4; v <= 4; v += 2) {
+    const sx = toSx(v);
+    svg.appendChild(svgEl('line', {x1: sx, y1: plotB, x2: sx, y2: plotB + 4, stroke: '#cbd5e1'}));
+    const t = svgEl('text', {x: sx, y: plotB + 15, 'text-anchor': 'middle', 'font-size': 9, fill: '#94a3b8'});
+    t.textContent = v;
+    svg.appendChild(t);
+  }
+
+  const pts = [];
+  const N = 100;
+  for (let i = 0; i <= N; i++) {
+    const xv = xMin + (xMax - xMin) * i / N;
+    const p = gaussianPDF(xv, mu, variance);
+    pts.push(`${toSx(xv).toFixed(1)},${toSy(p, maxP).toFixed(1)}`);
+  }
+  const fillPts = `${toSx(xMin).toFixed(1)},${plotB} ` + pts.join(' ') + ` ${toSx(xMax).toFixed(1)},${plotB}`;
+  svg.appendChild(svgEl('polygon', {points: fillPts, fill: 'rgba(37,99,235,0.10)', stroke: 'none'}));
+  svg.appendChild(svgEl('polyline', {points: pts.join(' '), fill: 'none', stroke: '#2563eb', 'stroke-width': 2}));
+
+  const muSx = toSx(mu);
+  svg.appendChild(svgEl('line', {x1: muSx, y1: plotT, x2: muSx, y2: plotB, stroke: '#2563eb', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.5}));
+
+  const x2Sx = toSx(x2);
+  if (x2Sx >= plotL && x2Sx <= plotR) {
+    const p = gaussianPDF(x2, mu, variance);
+    const py = toSy(p, maxP);
+    svg.appendChild(svgEl('circle', {cx: x2Sx, cy: py, r: 4, fill: '#2563eb', stroke: '#fff', 'stroke-width': 1.5}));
+    svg.appendChild(svgEl('line', {x1: x2Sx, y1: py, x2: x2Sx, y2: plotB, stroke: '#2563eb', 'stroke-width': 1, 'stroke-dasharray': '2 2', opacity: 0.4}));
+  }
+
+  document.getElementById('cond2-x1').textContent = x1.toFixed(2);
+  document.getElementById('cond2-formula').innerHTML = `N(&mu;=${mu.toFixed(2)}, &sigma;&sup2;=${variance.toFixed(3)})`;
+}
+
+/* ========== Update info cards ========== */
+function updateInfo() {
+  document.getElementById('info-state').textContent = `(${x1.toFixed(2)}, ${x2.toFixed(2)})`;
+  document.getElementById('info-iter').textContent = `迭代: ${iteration}`;
+
+  const variance = 1 - rho * rho;
+  if (nextUpdateX1) {
+    const mu = rho * x2;
+    document.getElementById('info-next').innerHTML = 'x<sub>1</sub>|x<sub>2</sub>';
+    document.getElementById('info-next-detail').textContent = '水平移动';
+    document.getElementById('info-cond').innerHTML = `N(${mu.toFixed(2)}, ${variance.toFixed(3)})`;
+  } else {
+    const mu = rho * x1;
+    document.getElementById('info-next').innerHTML = 'x<sub>2</sub>|x<sub>1</sub>';
+    document.getElementById('info-next-detail').textContent = '垂直移动';
+    document.getElementById('info-cond').innerHTML = `N(${mu.toFixed(2)}, ${variance.toFixed(3)})`;
+  }
+}
+
+/* ========== Update statistics ========== */
+function updateStats() {
+  if (samples.length < 2) {
+    document.getElementById('stat-mean1').textContent = '—';
+    document.getElementById('stat-mean2').textContent = '—';
+    document.getElementById('stat-var1').textContent = '—';
+    document.getElementById('stat-var2').textContent = '—';
+    document.getElementById('stat-cov').textContent = '—';
+    document.getElementById('stat-corr').textContent = '—';
+    updateAcf();
+    return;
+  }
+  const n = samples.length;
+  let s1 = 0, s2 = 0;
+  samples.forEach(s => { s1 += s.x1; s2 += s.x2; });
+  const m1 = s1 / n, m2 = s2 / n;
+
+  let v11 = 0, v22 = 0, v12 = 0;
+  samples.forEach(s => {
+    v11 += (s.x1 - m1) * (s.x1 - m1);
+    v22 += (s.x2 - m2) * (s.x2 - m2);
+    v12 += (s.x1 - m1) * (s.x2 - m2);
+  });
+  v11 /= (n - 1); v22 /= (n - 1); v12 /= (n - 1);
+  const corr = (v11 > 0 && v22 > 0) ? v12 / Math.sqrt(v11 * v22) : 0;
+
+  document.getElementById('stat-mean1').textContent = m1.toFixed(3);
+  document.getElementById('stat-mean2').textContent = m2.toFixed(3);
+  document.getElementById('stat-var1').textContent = v11.toFixed(3);
+  document.getElementById('stat-var2').textContent = v22.toFixed(3);
+  document.getElementById('stat-cov').textContent = v12.toFixed(3);
+  document.getElementById('stat-corr').textContent = corr.toFixed(3);
+  updateAcf();
+}
+
+/* ========== Autocorrelation diagnostics ========== */
+function computeAcf(series, maxLag) {
+  const n = series.length;
+  const acf = [];
+  if (n === 0) {
+    for (let lag = 0; lag <= maxLag; lag++) acf.push(NaN);
+    return acf;
+  }
+  const mean = series.reduce((a, b) => a + b, 0) / n;
+  let denom = 0;
+  for (let i = 0; i < n; i++) denom += (series[i] - mean) * (series[i] - mean);
+  for (let lag = 0; lag <= maxLag; lag++) {
+    if (lag === 0) {
+      acf.push(1);
+    } else if (lag >= n || denom === 0) {
+      acf.push(NaN);
+    } else {
+      let numer = 0;
+      for (let i = lag; i < n; i++) numer += (series[i] - mean) * (series[i - lag] - mean);
+      acf.push(numer / denom);
+    }
+  }
+  return acf;
+}
+
+function drawAcf(acf1, acf2) {
+  const svg = document.getElementById('acf-svg');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const W = 560, H = 170;
+  const pad = {l: 34, r: 14, t: 14, b: 28};
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+  const maxLag = 30;
+  const xPix = lag => pad.l + (lag / maxLag) * plotW;
+  const yPix = val => pad.t + (1 - (val + 1) / 2) * plotH;
+
+  svg.appendChild(svgEl('rect', {x: 0, y: 0, width: W, height: H, rx: 12, fill: '#ffffff'}));
+  [-1, -0.5, 0, 0.5, 1].forEach(v => {
+    const y = yPix(v);
+    svg.appendChild(svgEl('line', {x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: v === 0 ? '#94a3b8' : '#e2e8f0', 'stroke-width': v === 0 ? 1.2 : 1, 'stroke-dasharray': v === 0 ? '5 4' : 'none'}));
+    const t = svgEl('text', {x: pad.l - 8, y: y + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#64748b'});
+    t.textContent = v.toFixed(1);
+    svg.appendChild(t);
+  });
+  [0, 5, 10, 15, 20, 25, 30].forEach(lag => {
+    const x = xPix(lag);
+    svg.appendChild(svgEl('line', {x1: x, y1: pad.t, x2: x, y2: H - pad.b, stroke: '#f1f5f9', 'stroke-width': 1}));
+    const t = svgEl('text', {x, y: H - 10, 'text-anchor': 'middle', 'font-size': 10, fill: '#64748b'});
+    t.textContent = lag;
+    svg.appendChild(t);
+  });
+
+  function drawLine(vals, color, dash) {
+    const pts = [];
+    vals.forEach((v, lag) => {
+      if (Number.isFinite(v)) pts.push(`${xPix(lag).toFixed(1)},${yPix(Math.max(-1, Math.min(1, v))).toFixed(1)}`);
+    });
+    if (pts.length > 1) {
+      svg.appendChild(svgEl('polyline', {points: pts.join(' '), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-dasharray': dash || 'none'}));
+    }
+    vals.forEach((v, lag) => {
+      if (Number.isFinite(v)) svg.appendChild(svgEl('circle', {cx: xPix(lag), cy: yPix(Math.max(-1, Math.min(1, v))), r: lag === 0 ? 2.8 : 2, fill: color, opacity: 0.85}));
+    });
+  }
+  drawLine(acf1, '#d97706', 'none');
+  drawLine(acf2, '#2563eb', '4 3');
+
+  svg.appendChild(svgEl('line', {x1: pad.l, y1: pad.t, x2: pad.l, y2: H - pad.b, stroke: '#cbd5e1'}));
+  svg.appendChild(svgEl('line', {x1: pad.l, y1: H - pad.b, x2: W - pad.r, y2: H - pad.b, stroke: '#cbd5e1'}));
+  const xLabel = svgEl('text', {x: (pad.l + W - pad.r) / 2, y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: '#64748b'});
+  xLabel.textContent = 'lag';
+  svg.appendChild(xLabel);
+  svg.appendChild(svgEl('line', {x1: W - 128, x2: W - 112, y1: 18, y2: 18, stroke: '#d97706', 'stroke-width': 2}));
+  const l1 = svgEl('text', {x: W - 108, y: 22, 'font-size': 10, fill: '#64748b'});
+  l1.textContent = 'x₁';
+  svg.appendChild(l1);
+  svg.appendChild(svgEl('line', {x1: W - 74, x2: W - 58, y1: 18, y2: 18, stroke: '#2563eb', 'stroke-width': 2, 'stroke-dasharray': '4 3'}));
+  const l2 = svgEl('text', {x: W - 54, y: 22, 'font-size': 10, fill: '#64748b'});
+  l2.textContent = 'x₂';
+  svg.appendChild(l2);
+}
+
+function updateAcf() {
+  const maxLag = 30;
+  const x1Series = samples.map(s => s.x1);
+  const x2Series = samples.map(s => s.x2);
+  const acf1 = computeAcf(x1Series, maxLag);
+  const acf2 = computeAcf(x2Series, maxLag);
+  document.getElementById('acf-lag1-x1').textContent = Number.isFinite(acf1[1]) ? acf1[1].toFixed(3) : '—';
+  document.getElementById('acf-lag1-x2').textContent = Number.isFinite(acf2[1]) ? acf2[1].toFixed(3) : '—';
+  drawAcf(acf1, acf2);
+}
+
+/* ========== Update derivation card ========== */
+function updateDerivation() {
+  const el = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  el('deriv-rho-a', rho.toFixed(2));
+  el('deriv-rho-b', rho.toFixed(2));
+  el('deriv-rho-sq', (rho * rho).toFixed(2));
+  el('deriv-var', (1 - rho * rho).toFixed(3));
+}
+
+/* ========== Full redraw ========== */
+function redraw() {
+  drawAxes();
+  drawContours();
+  drawCrosshair();
+  drawPath();
+  drawDots();
+  drawCurrent();
+  drawConditional1();
+  drawConditional2();
+  updateInfo();
+  updateStats();
+  updateTrueStats();
+  updateDerivation();
+}
+
+/* ========== Update true stats display ========== */
+function updateTrueStats() {
+  document.getElementById('stat-cov-true').textContent = `真实值: ${rho.toFixed(2)}`;
+  document.getElementById('stat-corr-true').textContent = `真实值: ${rho.toFixed(2)}`;
+}
+
+/* ========== Gibbs step ========== */
+function advanceGibbsOneStep() {
+  const variance = 1 - rho * rho;
+  if (variance <= 0) return false;
+
+  const oldX1 = x1, oldX2 = x2;
+
+  if (nextUpdateX1) {
+    // Update x1 given x2
+    const mu = rho * x2;
+    x1 = gaussianSample(mu, variance);
+    segments.push({x1a: oldX1, x2a: oldX2, x1b: x1, x2b: x2, type: 'h'});
+  } else {
+    // Update x2 given x1
+    const mu = rho * x1;
+    x2 = gaussianSample(mu, variance);
+    segments.push({x1a: oldX1, x2a: oldX2, x1b: x1, x2b: x2, type: 'v'});
+    // Count a full iteration after both x1 and x2 have been updated
+    iteration++;
+  }
+
+  samples.push({x1, x2});
+  nextUpdateX1 = !nextUpdateX1;
+  return true;
+}
+
+function gibbsStep() {
+  if (!advanceGibbsOneStep()) return;
+  redraw();
+}
+
+function runGibbsSteps(count) {
+  stopAuto();
+  for (let i = 0; i < count; i++) advanceGibbsOneStep();
+  redraw();
+}
+
+function exportCsv() {
+  const rows = [['step', 'sweep', 'updated_coordinate', 'x1', 'x2', 'rho']];
+  if (samples.length === 0) {
+    rows.push([0, 0, 'initial/current', x1.toFixed(8), x2.toFixed(8), rho.toFixed(8)]);
+  } else {
+    samples.forEach((s, idx) => {
+      const step = idx + 1;
+      const sweep = Math.floor(step / 2);
+      const updated = idx % 2 === 0 ? 'x1' : 'x2';
+      rows.push([step, sweep, updated, s.x1.toFixed(8), s.x2.toFixed(8), rho.toFixed(8)]);
+    });
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gibbs_2d_gaussian_rho_${rho.toFixed(2)}_${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ========== Reset ========== */
+function reset() {
+  stopAuto();
+  x1 = 1.5; x2 = -1.0;
+  samples = [];
+  segments = [];
+  nextUpdateX1 = true;
+  iteration = 0;
+  redraw();
+}
+
+/* ========== Auto run ========== */
+function startAuto() {
+  if (autoTimer) return;
+  const speed = parseInt(document.getElementById('speed-slider').value);
+  autoTimer = setInterval(gibbsStep, speed);
+  document.getElementById('btn-auto').textContent = '暂停';
+  document.getElementById('btn-auto').classList.add('active');
+}
+
+function stopAuto() {
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = null;
+  }
+  document.getElementById('btn-auto').textContent = '自动运行';
+  document.getElementById('btn-auto').classList.remove('active');
+}
+
+function toggleAuto() {
+  if (autoTimer) stopAuto(); else startAuto();
+}
+
+/* ========== Event handlers ========== */
+document.getElementById('btn-step').addEventListener('click', gibbsStep);
+document.getElementById('btn-run-100').addEventListener('click', () => runGibbsSteps(100));
+document.getElementById('btn-run-1000').addEventListener('click', () => runGibbsSteps(1000));
+document.getElementById('btn-auto').addEventListener('click', toggleAuto);
+document.getElementById('btn-export').addEventListener('click', exportCsv);
+document.getElementById('btn-reset').addEventListener('click', reset);
+
+document.getElementById('rho-slider').addEventListener('input', function() {
+  rho = parseFloat(this.value);
+  document.getElementById('rho-val').textContent = rho.toFixed(2);
+  // Reset on rho change
+  stopAuto();
+  samples = [];
+  segments = [];
+  nextUpdateX1 = true;
+  iteration = 0;
+  redraw();
+});
+
+document.getElementById('speed-slider').addEventListener('input', function() {
+  const speed = parseInt(this.value);
+  document.getElementById('speed-val').textContent = speed + 'ms';
+  if (autoTimer) {
+    stopAuto();
+    startAuto();
+  }
+});
+
+// Click on canvas to set starting point
+document.getElementById('main-plot-wrap').addEventListener('click', function(e) {
+  const svg = document.getElementById('main-svg');
+  const rect = svg.getBoundingClientRect();
+  const scaleX = SVG_W / rect.width;
+  const scaleY = SVG_H / rect.height;
+  const sx = (e.clientX - rect.left) * scaleX;
+  const sy = (e.clientY - rect.top) * scaleY;
+  const [dx, dy] = svgToData(sx, sy);
+  if (dx >= X_MIN && dx <= X_MAX && dy >= X_MIN && dy <= X_MAX) {
+    stopAuto();
+    x1 = dx; x2 = dy;
+    samples = [];
+    segments = [];
+    nextUpdateX1 = true;
+    iteration = 0;
+    redraw();
+  }
+});
+
+/* ========== Initialize ========== */
+drawAxes();
+drawContours();
+drawCrosshair();
+drawCurrent();
+drawConditional1();
+drawConditional2();
+updateInfo();
+updateStats();
+updateTrueStats();
+updateDerivation();
+</script>
+</body>
+</html>

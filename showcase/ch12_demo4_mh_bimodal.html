@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 4：MH 双峰穿越</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --line: #cbd5e1;
+  --accent: #3b82f6;
+  --accent-light: #dbeafe;
+  --green: #22c55e;
+  --green-bg: #dcfce7;
+  --red: #ef4444;
+  --red-bg: #fee2e2;
+  --gold: #f59e0b;
+  --purple: #8b5cf6;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 24px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 32px 24px;
+}
+.hero h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.hero p {
+  font-size: 0.95rem;
+  color: var(--muted);
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.75;
+}
+
+/* Section titles */
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* SVG containers */
+.svg-wrap {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fafbfd;
+  border: 1px solid var(--line);
+}
+.svg-wrap svg { display: block; width: 100%; height: auto; }
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.controls button {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.controls button:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary {
+  background: #f1f5f9;
+  color: var(--text);
+  border: 1px solid var(--line) !important;
+}
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-danger {
+  background: #fef2f2;
+  color: var(--red);
+  border: 1px solid #fecaca !important;
+}
+.btn-danger:hover { background: #fee2e2; }
+.btn-toggle-on {
+  background: var(--green);
+  color: #fff;
+}
+.btn-toggle-on:hover { background: #16a34a; }
+
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.slider-group input[type=range] {
+  width: 120px;
+  accent-color: var(--accent);
+}
+.slider-group .slider-val {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Step detail */
+.step-detail {
+  font-size: 0.85rem;
+  line-height: 1.8;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: var(--muted);
+}
+.step-detail .label { color: var(--muted); }
+.step-detail .val { color: var(--text); font-weight: 600; }
+.step-detail .accept { color: var(--green); font-weight: 700; }
+.step-detail .reject { color: var(--red); font-weight: 700; }
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+.stat-item {
+  text-align: center;
+  padding: 12px 8px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+.stat-item .stat-val {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.stat-item .stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Psychology card */
+.psych-card {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-left: 4px solid var(--purple);
+}
+.psych-card .section-title { color: var(--purple); }
+.psych-card p {
+  font-size: 0.88rem;
+  color: #4c1d95;
+  line-height: 1.8;
+}
+.tip-list {
+  margin-left: 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.85;
+}
+.ref-card {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.ref-card strong { color: var(--text); }
+
+/* Formula display */
+.formula-bar {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  line-height: 1.7;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+.formula-bar b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="card hero">
+  <h1>Demo 4：MH 双峰穿越</h1>
+  <p>MH 算法用"提议-接受/拒绝"机制探索目标分布。调节提议步长 σ：太小则困在一个峰，太大则接受率很低，只有适中的 σ 才能在两个峰之间有效跳跃。</p>
+</div>
+
+<!-- Formula bar -->
+<div class="formula-bar">
+  <b>目标：</b> p&#x0303;(x) = exp(−(x−3)²/2) + 0.5·exp(−(x+1)²/(2·0.5²)) &nbsp;|&nbsp;
+  <b>提议：</b> q(x'|x) = N(x, σ²) &nbsp;|&nbsp;
+  <b>接受率：</b> α = min(1, p&#x0303;(x')/p&#x0303;(x)) &nbsp;|&nbsp;
+  <span style="color:#d97706">- - -</span> <b style="color:#d97706">提议分布 q(x'|x)</b>
+</div>
+
+<!-- Target distribution plot -->
+<div class="card">
+  <div class="section-title">目标分布 p(x) 与当前/提议位置</div>
+  <div class="svg-wrap">
+    <svg id="svgTarget" viewBox="0 0 700 210"></svg>
+  </div>
+</div>
+
+<!-- Trace plot -->
+<div class="card">
+  <div class="section-title">轨迹图（链位置 vs 迭代步数）</div>
+  <div class="svg-wrap">
+    <svg id="svgTrace" viewBox="0 0 700 210"></svg>
+  </div>
+</div>
+
+<!-- Histogram -->
+<div class="card">
+  <div class="section-title">样本直方图 vs 真实密度</div>
+  <div class="svg-wrap">
+    <svg id="svgHist" viewBox="0 0 700 190"></svg>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="card">
+  <div class="section-title">控制面板</div>
+  <div class="controls">
+    <button class="btn-primary" id="btnStep" onclick="doStep()">下一步</button>
+    <button class="btn-secondary" id="btnRun100" onclick="run100()">运行 100 步</button>
+    <button class="btn-secondary" id="btnRun1000" onclick="run1000()">运行 1000 步</button>
+    <button class="btn-secondary" id="btnAuto" onclick="toggleAuto()">自动运行</button>
+    <button class="btn-secondary" id="btnExport" onclick="exportCsv()">导出 CSV</button>
+    <button class="btn-danger" id="btnReset" onclick="resetChain()">重置</button>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;">
+    <div class="slider-group">
+      <span>提议步长 σ：</span>
+      <input type="range" id="sliderSigma" min="0.1" max="5.0" step="0.1" value="1.0"
+        oninput="sigma=parseFloat(this.value);document.getElementById('valSigma').textContent=sigma.toFixed(1)">
+      <span class="slider-val" id="valSigma">1.0</span>
+    </div>
+    <div class="slider-group">
+      <span>速度：</span>
+      <input type="range" id="sliderSpeed" min="20" max="500" step="10" value="120"
+        oninput="autoDelay=510-parseInt(this.value);document.getElementById('valSpeed').textContent=(this.value>400?'极快':this.value>250?'快':'慢')">
+      <span class="slider-val" id="valSpeed">慢</span>
+    </div>
+  </div>
+</div>
+
+<!-- Observation tips -->
+<div class="card">
+  <div class="section-title">观察提示</div>
+  <ul class="tip-list">
+    <li>σ = 0.5 左右时，链常在单个峰内细碎移动，跨峰事件很少。</li>
+    <li>σ = 3 左右时，跨峰提议更常出现，但低密度区域的候选也更容易被拒绝。</li>
+    <li>接受率太高通常表示步长太小、探索慢；接受率太低则表示提议过大、拒绝多。</li>
+  </ul>
+</div>
+
+<!-- Step detail -->
+<div class="card" id="stepCard">
+  <div class="section-title">步骤详情</div>
+  <div class="step-detail" id="stepDetail">
+    <span class="label">点击"下一步"开始 MH 采样…</span>
+  </div>
+</div>
+
+<!-- Statistics -->
+<div class="card">
+  <div class="section-title">统计量</div>
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-item"><div class="stat-val" id="statTotal">0</div><div class="stat-label">总步数</div></div>
+    <div class="stat-item"><div class="stat-val" id="statAccept">0</div><div class="stat-label">接受</div></div>
+    <div class="stat-item"><div class="stat-val" id="statReject">0</div><div class="stat-label">拒绝</div></div>
+    <div class="stat-item"><div class="stat-val" id="statRate">—</div><div class="stat-label">接受率</div></div>
+    <div class="stat-item"><div class="stat-val" id="statJumps">0</div><div class="stat-label">跨峰跳跃</div></div>
+    <div class="stat-item"><div class="stat-val" id="statMean">—</div><div class="stat-label">样本均值</div></div>
+    <div class="stat-item"><div class="stat-val" id="statVar">—</div><div class="stat-label">样本方差</div></div>
+  </div>
+</div>
+
+<!-- Psychology card -->
+<div class="card psych-card">
+  <div class="section-title">认知科学映射</div>
+  <p>双峰分布对应知觉中的多稳态现象——例如 Necker 立方体可以被感知为两种不同方向的三维结构。MH 链在两个模式之间的跳跃，类比大脑对两种竞争性感知解释的周期性切换。接受概率 α 决定切换频率，而切换频率反映了两个解释的相对后验支持度。σ 太小对应"注意力窄化"（只关注当前解释），σ 太大对应"注意力涣散"（随机跳跃但难以稳定）。</p>
+</div>
+
+<div class="card ref-card">
+  <h2>文献与案例意图</h2>
+  <p><strong>对应章节：</strong>§MH + 例题 3；<strong>对应文献：</strong>Metropolis1953；Gershman2012Multistability。</p>
+  <p><strong>完整引用：</strong></p>
+  <ol>
+    <li>Metropolis, Nicholas, Arianna W. Rosenbluth, Marshall N. Rosenbluth, Augusta H. Teller, and Edward Teller. 1953. <cite>Equation of state calculations by fast computing machines</cite>. <em>Journal of Chemical Physics</em> 21(6): 1087–1092. https://doi.org/10.1063/1.1699114.</li>
+    <li>Gershman, Samuel J., Edward Vul, and Joshua B. Tenenbaum. 2012. <cite>Multistability and perceptual inference</cite>. <em>Neural Computation</em> 24(1): 1–24. https://doi.org/10.1162/NECO_a_00226.</li>
+  </ol>
+  <p><strong>案例想表达的想法：</strong> 这个双峰 MH demo 把物理学中的接受规则和知觉多稳性放在同一张图里：算法上，接受概率保证链长期访问目标分布；心理学上，链在两个峰之间的停留与跳跃可以类比竞争性知觉解释的驻留和切换。学生应看到，σ 不是单纯技术参数，它决定局部探索、拒绝率和跨峰转换之间的平衡。</p>
+</div>
+
+<script>
+// ===== Configuration =====
+const X_MIN = -4, X_MAX = 7;
+const PLOT_W = 700, TARGET_H = 210, TRACE_H = 210, HIST_H = 190;
+const PAD = {l:55, r:20, t:20, b:35};
+const NUM_BINS = 60;
+const MAX_TRACE_DISPLAY = 500; // max points to show in trace
+
+let sigma = 1.0;
+let autoDelay = 390; // ms between auto steps (510 - slider value)
+let autoTimer = null;
+let isAuto = false;
+
+// ===== MH State =====
+let chain = [0]; // start at x=0
+let accepted = 0, rejected = 0, crossJumps = 0;
+let lastProposal = null; // {xCur, xProp, pCur, pProp, alpha, u, wasAccepted}
+let proposalHistory = []; // per-step records for CSV export
+
+// ===== Target Distribution =====
+function pTilde(x) {
+  const g1 = Math.exp(-0.5 * (x - 3) * (x - 3));
+  const g2 = 0.5 * Math.exp(-0.5 * ((x + 1) / 0.5) * ((x + 1) / 0.5));
+  return g1 + g2;
+}
+
+// Numerical integration for normalization constant
+function computeNormConst() {
+  let sum = 0;
+  const dx = 0.001;
+  for (let x = X_MIN; x <= X_MAX; x += dx) {
+    sum += pTilde(x) * dx;
+  }
+  return sum;
+}
+const NORM_CONST = computeNormConst();
+function pNormalized(x) { return pTilde(x) / NORM_CONST; }
+
+// Theoretical mean & variance via numerical integration
+function computeTheoreticalStats() {
+  const dx = 0.001;
+  let mean = 0, mom2 = 0;
+  for (let x = X_MIN; x <= X_MAX; x += dx) {
+    const p = pNormalized(x) * dx;
+    mean += x * p;
+    mom2 += x * x * p;
+  }
+  return { mean, variance: mom2 - mean * mean };
+}
+const THEORETICAL = computeTheoreticalStats();
+
+// ===== Box-Muller =====
+function randn() {
+  let u1, u2;
+  do { u1 = Math.random(); } while (u1 === 0);
+  u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+// ===== MH Step =====
+function mhStep() {
+  const xCur = chain[chain.length - 1];
+  const xProp = xCur + sigma * randn();
+  const pCur = pTilde(xCur);
+  const pProp = pTilde(xProp);
+  const alpha = Math.min(1, pProp / pCur);
+  const u = Math.random();
+  const wasAccepted = u < alpha;
+
+  if (wasAccepted) {
+    chain.push(xProp);
+    accepted++;
+  } else {
+    chain.push(xCur);
+    rejected++;
+  }
+
+  // Cross-mode jump detection: chain crosses x=1
+  const prevX = chain[chain.length - 2];
+  const newX = chain[chain.length - 1];
+  const crossedModeBoundary = (prevX - 1) * (newX - 1) < 0;
+  if (crossedModeBoundary) {
+    crossJumps++;
+  }
+
+  lastProposal = { xCur, xProp, pCur, pProp, alpha, u, wasAccepted, newX, crossedModeBoundary };
+  proposalHistory.push({
+    step: chain.length - 1,
+    xBefore: xCur,
+    proposal: xProp,
+    xAfter: newX,
+    pBefore: pCur,
+    pProposal: pProp,
+    alpha,
+    u,
+    accepted: wasAccepted,
+    sigma,
+    crossedModeBoundary
+  });
+  return lastProposal;
+}
+
+// ===== SVG Helpers =====
+const svgNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(svgNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function clearEl(parent) { while (parent.firstChild) parent.removeChild(parent.firstChild); }
+
+// ===== Coordinate transforms =====
+function xToPixTarget(x) {
+  return PAD.l + (x - X_MIN) / (X_MAX - X_MIN) * (PLOT_W - PAD.l - PAD.r);
+}
+function yToPixTarget(y, yMax) {
+  return TARGET_H - PAD.b - (y / yMax) * (TARGET_H - PAD.t - PAD.b);
+}
+
+// ===== Draw Target Distribution =====
+function drawTarget() {
+  const svg = document.getElementById('svgTarget');
+  clearEl(svg);
+
+  // Compute curve
+  const pts = [];
+  let yMax = 0;
+  for (let px = PAD.l; px <= PLOT_W - PAD.r; px += 1) {
+    const x = X_MIN + (px - PAD.l) / (PLOT_W - PAD.l - PAD.r) * (X_MAX - X_MIN);
+    const y = pTilde(x);
+    if (y > yMax) yMax = y;
+    pts.push({ px, x, y });
+  }
+  yMax *= 1.15;
+
+  // Grid lines
+  for (let i = 0; i <= 4; i++) {
+    const yVal = (yMax / 4) * i;
+    const py = yToPixTarget(yVal, yMax);
+    el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:py, y2:py, stroke:'#f1f5f9','stroke-width':1}, svg);
+  }
+
+  // Filled area
+  let pathD = `M ${pts[0].px} ${yToPixTarget(0, yMax)}`;
+  for (const p of pts) pathD += ` L ${p.px} ${yToPixTarget(p.y, yMax)}`;
+  pathD += ` L ${pts[pts.length-1].px} ${yToPixTarget(0, yMax)} Z`;
+  el('path', {d:pathD, fill:'#dbeafe', opacity:'0.6'}, svg);
+
+  // Stroke
+  let lineD = `M ${pts[0].px} ${yToPixTarget(pts[0].y, yMax)}`;
+  for (const p of pts) lineD += ` L ${p.px} ${yToPixTarget(p.y, yMax)}`;
+  el('path', {d:lineD, fill:'none', stroke:'#3b82f6','stroke-width':2}, svg);
+
+  // Axes
+  el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:TARGET_H-PAD.b, y2:TARGET_H-PAD.b, stroke:'#94a3b8','stroke-width':1}, svg);
+  el('line', {x1:PAD.l, x2:PAD.l, y1:PAD.t, y2:TARGET_H-PAD.b, stroke:'#94a3b8','stroke-width':1}, svg);
+
+  // X ticks
+  for (let x = -4; x <= 7; x++) {
+    const px = xToPixTarget(x);
+    el('line', {x1:px, x2:px, y1:TARGET_H-PAD.b, y2:TARGET_H-PAD.b+5, stroke:'#94a3b8','stroke-width':1}, svg);
+    const txt = el('text', {x:px, y:TARGET_H-PAD.b+18, 'text-anchor':'middle', 'font-size':'11', fill:'#64748b'}, svg);
+    txt.textContent = x;
+  }
+  // Y label
+  const yLbl = el('text', {x:14, y:TARGET_H/2, 'text-anchor':'middle', 'font-size':'11', fill:'#64748b', transform:`rotate(-90,14,${TARGET_H/2})`}, svg);
+  yLbl.textContent = 'p\u0303(x)';
+
+  // Peak labels
+  for (const [px0, label] of [[3, 'x=3'], [-1, 'x=−1']]) {
+    const px = xToPixTarget(px0);
+    const py = yToPixTarget(pTilde(px0), yMax);
+    el('line', {x1:px, x2:px, y1:py-6, y2:py-22, stroke:'#64748b','stroke-width':1, 'stroke-dasharray':'2,2'}, svg);
+    const t = el('text', {x:px, y:py-26, 'text-anchor':'middle', 'font-size':'11', 'font-weight':'600', fill:'#334155'}, svg);
+    t.textContent = label;
+  }
+
+  // Current position
+  const xCur = chain[chain.length - 1];
+  const pxCur = xToPixTarget(xCur);
+  const pyCur = yToPixTarget(pTilde(xCur), yMax);
+  el('line', {x1:pxCur, x2:pxCur, y1:pyCur, y2:TARGET_H-PAD.b, stroke:'#3b82f6','stroke-width':2, opacity:'0.6'}, svg);
+  el('circle', {cx:pxCur, cy:pyCur, r:5, fill:'#3b82f6', stroke:'#fff','stroke-width':2}, svg);
+  // Label
+  const curLbl = el('text', {x:pxCur, y:TARGET_H-PAD.b-6, 'text-anchor':'middle', 'font-size':'10', 'font-weight':'600', fill:'#3b82f6'}, svg);
+  curLbl.textContent = 'x=' + xCur.toFixed(2);
+
+  // Draw proposal distribution N(xCur, sigma^2) as orange curve
+  {
+    const proposalPeak = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    const visScale = yMax * 0.55 / Math.max(proposalPeak, 0.01);
+    let propD = '';
+    for (let pi = 0; pi <= 300; pi++) {
+      const xp = X_MIN + (X_MAX - X_MIN) * pi / 300;
+      const pdfV = Math.exp(-0.5 * ((xp - xCur) / sigma) ** 2) / (sigma * Math.sqrt(2 * Math.PI));
+      const py = yToPixTarget(pdfV * visScale, yMax);
+      propD += (pi === 0 ? 'M' : 'L') + xToPixTarget(xp).toFixed(1) + ' ' + py.toFixed(1);
+    }
+    // Filled area
+    let fillD = 'M' + xToPixTarget(X_MIN).toFixed(1) + ' ' + yToPixTarget(0, yMax).toFixed(1);
+    for (let pi = 0; pi <= 300; pi++) {
+      const xp = X_MIN + (X_MAX - X_MIN) * pi / 300;
+      const pdfV = Math.exp(-0.5 * ((xp - xCur) / sigma) ** 2) / (sigma * Math.sqrt(2 * Math.PI));
+      fillD += ' L' + xToPixTarget(xp).toFixed(1) + ' ' + yToPixTarget(pdfV * visScale, yMax).toFixed(1);
+    }
+    fillD += ' L' + xToPixTarget(X_MAX).toFixed(1) + ' ' + yToPixTarget(0, yMax).toFixed(1) + ' Z';
+    el('path', {d: fillD, fill: '#d97706', opacity: '0.08'}, svg);
+    el('path', {d: propD, fill: 'none', stroke: '#d97706', 'stroke-width': 2, 'stroke-dasharray': '6 3', opacity: '0.8'}, svg);
+    // Label
+    const qLabelX = xToPixTarget(xCur + sigma * 1.5);
+    const qLabelY = yToPixTarget(Math.exp(-0.5 * 1.5 * 1.5) / (sigma * Math.sqrt(2 * Math.PI)) * visScale, yMax);
+    if (qLabelX < PLOT_W - PAD.r - 10) {
+      const qlbl = el('text', {x: qLabelX, y: qLabelY - 6, 'font-size': '10', 'font-weight': '600', fill: '#d97706'}, svg);
+      qlbl.textContent = 'q(x\'|x)';
+    }
+  }
+
+  // Proposal position (if available)
+  if (lastProposal) {
+    const xProp = lastProposal.xProp;
+    const pxProp = xToPixTarget(xProp);
+    const pyProp = yToPixTarget(Math.max(pTilde(xProp), 0), yMax);
+    const color = lastProposal.wasAccepted ? '#22c55e' : '#ef4444';
+    el('line', {x1:pxProp, x2:pxProp, y1:pyProp, y2:TARGET_H-PAD.b, stroke:color,'stroke-width':2, 'stroke-dasharray':'5,4', opacity:'0.7'}, svg);
+    el('circle', {cx:pxProp, cy:pyProp, r:5, fill:'none', stroke:color,'stroke-width':2.5}, svg);
+    const propLbl = el('text', {x:pxProp, y:pyProp-12, 'text-anchor':'middle', 'font-size':'10', 'font-weight':'600', fill:color}, svg);
+    propLbl.textContent = (lastProposal.wasAccepted ? '✓' : '✗') + " x'=" + xProp.toFixed(2);
+  }
+}
+
+// ===== Draw Trace Plot =====
+function drawTrace() {
+  const svg = document.getElementById('svgTrace');
+  clearEl(svg);
+
+  const n = chain.length;
+  const startIdx = Math.max(0, n - MAX_TRACE_DISPLAY);
+  const displayChain = chain.slice(startIdx);
+  const dispN = displayChain.length;
+
+  const yMin = -4, yMax2 = 7;
+  const xScale = (PLOT_W - PAD.l - PAD.r) / Math.max(dispN - 1, 1);
+  const yScale = (TRACE_H - PAD.t - PAD.b) / (yMax2 - yMin);
+
+  function txPx(i) { return PAD.l + i * xScale; }
+  function tyPx(y) { return TRACE_H - PAD.b - (y - yMin) * yScale; }
+
+  // Grid
+  for (const y of [-3, -1, 0, 1, 3, 5, 7]) {
+    const py = tyPx(y);
+    if (py > PAD.t && py < TRACE_H - PAD.b) {
+      el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:py, y2:py, stroke:'#f1f5f9','stroke-width':1}, svg);
+    }
+  }
+
+  // Mode lines
+  for (const [yVal, label] of [[3, 'x=3'], [-1, 'x=−1']]) {
+    const py = tyPx(yVal);
+    el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:py, y2:py, stroke:'#94a3b8','stroke-width':1, 'stroke-dasharray':'6,4'}, svg);
+    const t = el('text', {x:PLOT_W-PAD.r+4, y:py+4, 'font-size':'10', fill:'#64748b'}, svg);
+    t.textContent = label;
+  }
+  // Midpoint line
+  const pyMid = tyPx(1);
+  el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:pyMid, y2:pyMid, stroke:'#f59e0b','stroke-width':1, 'stroke-dasharray':'2,3', opacity:'0.5'}, svg);
+
+  // Axes
+  el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:TRACE_H-PAD.b, y2:TRACE_H-PAD.b, stroke:'#94a3b8','stroke-width':1}, svg);
+  el('line', {x1:PAD.l, x2:PAD.l, y1:PAD.t, y2:TRACE_H-PAD.b, stroke:'#94a3b8','stroke-width':1}, svg);
+
+  // X-axis label
+  const xLbl = el('text', {x:(PAD.l + PLOT_W - PAD.r) / 2, y:TRACE_H - 4, 'text-anchor':'middle', 'font-size':'11', fill:'#64748b'}, svg);
+  xLbl.textContent = '迭代步数 (' + startIdx + '–' + (n-1) + ')';
+
+  // Y ticks
+  for (const y of [-3, -1, 1, 3, 5, 7]) {
+    const py = tyPx(y);
+    if (py > PAD.t && py < TRACE_H - PAD.b) {
+      const t = el('text', {x:PAD.l-8, y:py+4, 'text-anchor':'end', 'font-size':'10', fill:'#64748b'}, svg);
+      t.textContent = y;
+    }
+  }
+
+  if (dispN < 2) return;
+
+  // Chain line
+  let pathD = `M ${txPx(0)} ${tyPx(displayChain[0])}`;
+  for (let i = 1; i < dispN; i++) {
+    pathD += ` L ${txPx(i)} ${tyPx(displayChain[i])}`;
+  }
+  el('path', {d:pathD, fill:'none', stroke:'#3b82f6','stroke-width':1.2, opacity:'0.8'}, svg);
+
+  // Highlight cross-mode jumps
+  for (let i = 1; i < dispN; i++) {
+    const prev = displayChain[i - 1];
+    const cur = displayChain[i];
+    if ((prev - 1) * (cur - 1) < 0) {
+      const px = txPx(i);
+      const py = tyPx(cur);
+      // Gold star marker
+      el('circle', {cx:px, cy:py, r:5, fill:'#fef3c7', stroke:'#f59e0b','stroke-width':2}, svg);
+      // Star shape
+      const starPath = starSVG(px, py, 4, 7);
+      el('path', {d:starPath, fill:'#f59e0b', opacity:'0.9'}, svg);
+    }
+  }
+}
+
+function starSVG(cx, cy, ri, ro) {
+  let d = '';
+  for (let i = 0; i < 10; i++) {
+    const angle = Math.PI / 2 + (i * Math.PI) / 5;
+    const r = i % 2 === 0 ? ro : ri;
+    const x = cx + r * Math.cos(angle);
+    const y = cy - r * Math.sin(angle);
+    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+  }
+  return d + 'Z';
+}
+
+// ===== Draw Histogram =====
+function drawHist() {
+  const svg = document.getElementById('svgHist');
+  clearEl(svg);
+
+  const binW = (X_MAX - X_MIN) / NUM_BINS;
+  const bins = new Array(NUM_BINS).fill(0);
+  for (let i = 0; i < chain.length; i++) {
+    const idx = Math.floor((chain[i] - X_MIN) / binW);
+    if (idx >= 0 && idx < NUM_BINS) bins[idx]++;
+  }
+
+  // Normalize bins to density
+  const totalSamples = chain.length;
+  const binDensity = bins.map(c => c / (totalSamples * binW));
+
+  // Find max for scaling
+  let yMaxHist = 0;
+  for (const d of binDensity) if (d > yMaxHist) yMaxHist = d;
+  // Also consider the true density max
+  let yMaxTrue = 0;
+  for (let x = X_MIN; x <= X_MAX; x += 0.01) {
+    const p = pNormalized(x);
+    if (p > yMaxTrue) yMaxTrue = p;
+  }
+  const yMax = Math.max(yMaxHist, yMaxTrue) * 1.15;
+
+  const plotH = HIST_H - PAD.t - PAD.b;
+  const plotW = PLOT_W - PAD.l - PAD.r;
+
+  function hxPx(x) { return PAD.l + (x - X_MIN) / (X_MAX - X_MIN) * plotW; }
+  function hyPx(y) { return HIST_H - PAD.b - (y / yMax) * plotH; }
+
+  // Grid
+  for (let i = 0; i <= 4; i++) {
+    const yVal = (yMax / 4) * i;
+    const py = hyPx(yVal);
+    el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:py, y2:py, stroke:'#f1f5f9','stroke-width':1}, svg);
+  }
+
+  // Histogram bars
+  for (let i = 0; i < NUM_BINS; i++) {
+    if (binDensity[i] === 0) continue;
+    const x0 = X_MIN + i * binW;
+    const px = hxPx(x0);
+    const pw = hxPx(x0 + binW) - px;
+    const py = hyPx(binDensity[i]);
+    const ph = hyPx(0) - py;
+    el('rect', {x:px, y:py, width:Math.max(pw-1, 1), height:Math.max(ph, 0), fill:'#93c5fd', opacity:'0.6', rx:1}, svg);
+  }
+
+  // True density overlay
+  let trueD = `M ${hxPx(X_MIN)} ${hyPx(0)}`;
+  for (let px = PAD.l; px <= PLOT_W - PAD.r; px += 1) {
+    const x = X_MIN + (px - PAD.l) / plotW * (X_MAX - X_MIN);
+    trueD += ` L ${px} ${hyPx(pNormalized(x))}`;
+  }
+  trueD += ` L ${PLOT_W - PAD.r} ${hyPx(0)} Z`;
+  el('path', {d:trueD, fill:'#3b82f6', opacity:'0.1'}, svg);
+
+  let trueLine = '';
+  for (let px = PAD.l; px <= PLOT_W - PAD.r; px += 1) {
+    const x = X_MIN + (px - PAD.l) / plotW * (X_MAX - X_MIN);
+    trueLine += (px === PAD.l ? 'M' : 'L') + `${px} ${hyPx(pNormalized(x))}`;
+  }
+  el('path', {d:trueLine, fill:'none', stroke:'#1d4ed8','stroke-width':2, 'stroke-dasharray':'6,3'}, svg);
+
+  // Axes
+  el('line', {x1:PAD.l, x2:PLOT_W-PAD.r, y1:HIST_H-PAD.b, y2:HIST_H-PAD.b, stroke:'#94a3b8','stroke-width':1}, svg);
+  el('line', {x1:PAD.l, x2:PAD.l, y1:PAD.t, y2:HIST_H-PAD.b, stroke:'#94a3b8','stroke-width':1}, svg);
+
+  // X ticks
+  for (let x = -4; x <= 7; x++) {
+    const px = hxPx(x);
+    el('line', {x1:px, x2:px, y1:HIST_H-PAD.b, y2:HIST_H-PAD.b+5, stroke:'#94a3b8','stroke-width':1}, svg);
+    const txt = el('text', {x:px, y:HIST_H-PAD.b+17, 'text-anchor':'middle', 'font-size':'10', fill:'#64748b'}, svg);
+    txt.textContent = x;
+  }
+
+  // Legend
+  el('rect', {x:PLOT_W-PAD.r-140, y:PAD.t+4, width:12, height:12, fill:'#93c5fd', opacity:'0.6', rx:2}, svg);
+  const leg1 = el('text', {x:PLOT_W-PAD.r-124, y:PAD.t+14, 'font-size':'10', fill:'#64748b'}, svg);
+  leg1.textContent = '样本直方图';
+  el('line', {x1:PLOT_W-PAD.r-140, x2:PLOT_W-PAD.r-128, y1:PAD.t+26, y2:PAD.t+26, stroke:'#1d4ed8','stroke-width':2, 'stroke-dasharray':'4,2'}, svg);
+  const leg2 = el('text', {x:PLOT_W-PAD.r-124, y:PAD.t+30, 'font-size':'10', fill:'#64748b'}, svg);
+  leg2.textContent = '真实密度';
+}
+
+// ===== Update Step Detail =====
+function updateStepDetail() {
+  const el = document.getElementById('stepDetail');
+  if (!lastProposal) {
+    el.innerHTML = '<span class="label">点击"下一步"开始 MH 采样…</span>';
+    return;
+  }
+  const p = lastProposal;
+  const decClass = p.wasAccepted ? 'accept' : 'reject';
+  const decText = p.wasAccepted
+    ? `u < α → <span class="accept">接受!</span>`
+    : `u ≥ α → <span class="reject">拒绝</span>`;
+  const compOp = p.wasAccepted ? '<' : '≥';
+
+  el.innerHTML = `
+    <span class="label">当前位置：</span><span class="val">x = ${p.xCur.toFixed(3)}</span><br>
+    <span class="label">提议位置：</span><span class="val">x' = ${p.xProp.toFixed(3)}</span><br>
+    <span class="label">p&#x0303;(x) = ${p.pCur.toFixed(4)}</span>，
+    <span class="label">p&#x0303;(x') = ${p.pProp.toFixed(4)}</span><br>
+    <span class="label">接受概率：</span><span class="val">α = min(1, ${p.pProp.toFixed(4)}/${p.pCur.toFixed(4)}) = ${p.alpha.toFixed(4)}</span><br>
+    <span class="label">随机数：</span><span class="val">u = ${p.u.toFixed(4)}</span><br>
+    <span class="label">决策：</span>${decText}
+  `;
+}
+
+// ===== Update Stats =====
+function updateStats() {
+  const n = chain.length - 1; // number of steps (first element is init)
+  document.getElementById('statTotal').textContent = n;
+  document.getElementById('statAccept').textContent = accepted;
+  document.getElementById('statReject').textContent = rejected;
+  document.getElementById('statRate').textContent = n > 0 ? (accepted / n * 100).toFixed(1) + '%' : '—';
+  document.getElementById('statJumps').textContent = crossJumps;
+
+  if (n > 0) {
+    let sum = 0, sum2 = 0;
+    for (let i = 0; i < chain.length; i++) {
+      sum += chain[i];
+      sum2 += chain[i] * chain[i];
+    }
+    const mean = sum / chain.length;
+    const variance = sum2 / chain.length - mean * mean;
+    document.getElementById('statMean').textContent = mean.toFixed(3) + ' (' + THEORETICAL.mean.toFixed(2) + ')';
+    document.getElementById('statVar').textContent = variance.toFixed(2) + ' (' + THEORETICAL.variance.toFixed(2) + ')';
+  } else {
+    document.getElementById('statMean').textContent = '—';
+    document.getElementById('statVar').textContent = '—';
+  }
+}
+
+// ===== Render All =====
+function renderAll() {
+  drawTarget();
+  drawTrace();
+  drawHist();
+  updateStepDetail();
+  updateStats();
+}
+
+// ===== Actions =====
+function doStep() {
+  mhStep();
+  renderAll();
+}
+
+function run100() {
+  for (let i = 0; i < 100; i++) mhStep();
+  renderAll();
+}
+
+function run1000() {
+  for (let i = 0; i < 1000; i++) mhStep();
+  renderAll();
+}
+
+function exportCsv() {
+  const rows = [['step', 'x_before', 'proposal', 'x_after', 'accepted', 'alpha', 'u', 'sigma', 'p_before', 'p_proposal', 'crossed_mode_boundary']];
+  if (proposalHistory.length === 0) {
+    rows.push([0, chain[0].toFixed(8), '', chain[0].toFixed(8), '', '', '', sigma.toFixed(8), pTilde(chain[0]).toFixed(8), '', '']);
+  } else {
+    proposalHistory.forEach(r => {
+      rows.push([
+        r.step,
+        r.xBefore.toFixed(8),
+        r.proposal.toFixed(8),
+        r.xAfter.toFixed(8),
+        r.accepted ? 1 : 0,
+        r.alpha.toFixed(8),
+        r.u.toFixed(8),
+        r.sigma.toFixed(8),
+        r.pBefore.toFixed(8),
+        r.pProposal.toFixed(8),
+        r.crossedModeBoundary ? 1 : 0
+      ]);
+    });
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mh_bimodal_sigma_${sigma.toFixed(1)}_${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function toggleAuto() {
+  isAuto = !isAuto;
+  const btn = document.getElementById('btnAuto');
+  if (isAuto) {
+    btn.textContent = '暂停';
+    btn.className = 'btn-toggle-on';
+    autoRun();
+  } else {
+    btn.textContent = '自动运行';
+    btn.className = 'btn-secondary';
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+  }
+}
+
+function autoRun() {
+  if (!isAuto) return;
+  mhStep();
+  renderAll();
+  autoTimer = setTimeout(autoRun, autoDelay);
+}
+
+function resetChain() {
+  if (isAuto) toggleAuto();
+  chain = [0];
+  accepted = 0;
+  rejected = 0;
+  crossJumps = 0;
+  lastProposal = null;
+  proposalHistory = [];
+  renderAll();
+}
+
+// ===== Init =====
+renderAll();
+</script>
+</body>
+</html>

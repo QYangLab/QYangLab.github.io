@@ -1,0 +1,170 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ch10 Demo 2: Surprisal 与阅读时间</title><style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--soft:#dbeafe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.6}
+.page{max-width:1200px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+.kicker{font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:8px}
+h1{font-size:26px;line-height:1.25;margin:0 0 10px}
+.subtitle{color:var(--muted);max-width:900px}
+.formula{margin-top:14px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:12px 14px;color:#0f172a;font-size:15px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(15,23,42,.04)}
+h2{font-size:17px;margin:0 0 10px}
+.controls{display:grid;gap:12px}
+.control span{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.control input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn:hover{opacity:.85}
+.stage{min-height:300px}
+svg.viz{width:100%;border:1px solid #e2e8f0;border-radius:18px;background:#f8fafc}
+.intent{background:#f8fafc;border-left:4px solid var(--accent);margin-top:14px}
+.refs{font-size:13px;color:var(--muted);padding-left:18px}
+.obs{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px;font-size:14px;margin-top:8px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+</style></head><body><div class="page">
+<section class="hero"><div class="kicker">Chapter 10 · Demo 2 · HMM 与离散时序模型</div>
+<h1>Hale/Levy Surprisal 与阅读时间</h1>
+<div class="subtitle">人在阅读时，词越出乎意料，阅读时间越长。语言模型中的 surprisal 可以预测加工难度。</div>
+<div class="formula">核心公式：\(Surprisal(w_t)=-\log p(w_t|w_{1:t-1})\)</div></section>
+<div class="layout"><aside class="card"><h2>交互参数</h2><div class="controls">
+<div class="control"><span>句子选择</span>
+<select id="selSent" style="width:100%;padding:6px;border-radius:8px;border:1px solid var(--line)">
+<option value="0">猫 坐 在 垫子 上</option>
+<option value="1">猫 坐 在 飞机 上</option>
+<option value="2">学生 做 完 了 作业 然后 突然 跳舞</option>
+</select></div>
+</div></aside><main>
+<section class="card"><h2>逐词 Surprisal 与阅读时间</h2><div id="viz" class="stage"></div></section>
+<section class="card"><h2>观察提示</h2><div id="obs" class="obs"></div></section>
+<section class="card intent"><h2>文献与案例意图</h2><p>参考 Hale (2001) surprisal theory、Levy (2008) expectation-based processing、Smith & Levy (2013) reading time prediction。案例说明序列模型中的条件概率直接连接到心理语言学中的加工难度。</p>
+<ul class="refs"><li>BRML Ch24 Discrete-State Markov Models</li><li>Bishop PRML Ch13 Sequential Data</li></ul></section>
+</main></div></div>
+<script>
+const liteMathCss = `
+<style id="lite-math-style">
+.math-lite{font-family:"Times New Roman","STIX Two Text","Cambria Math",serif;color:#0f172a;font-size:1.04em;white-space:nowrap}
+.math-lite.display{display:block;white-space:normal;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+.math-lite sub{font-size:.72em;vertical-align:-.25em}.math-lite sup{font-size:.72em}.math-lite .frac{display:inline-grid;grid-template-rows:auto auto;text-align:center;vertical-align:middle;margin:0 .18em}.math-lite .frac .num{border-bottom:1px solid currentColor;padding:0 .22em .08em}.math-lite .frac .den{padding:.08em .22em 0}.math-lite .sqrt{border-top:1px solid currentColor;padding-left:.1em}.math-lite .op{font-family:"Times New Roman",serif}.math-lite .kw{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:.9em}
+</style>`;
+
+function latexToHtml(src) {
+  let s = src.trim();
+  const esc = x => x.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  function convertFrac(t) {
+    return t.replace(/\\(?:dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, (_, a, b) => `<span class="frac"><span class="num">${latexToHtml(a)}</span><span class="den">${latexToHtml(b)}</span></span>`);
+  }
+  s = esc(s);
+  s = convertFrac(s);
+  const map = [
+    [/\\qquad/g,'  '],[/\\quad/g,' '],[/\\;/g,' '],[/\\,/g,' '],[/\\!/g,''],[/\\\|/g,'‖'],[/\\bigl/g,''],[/\\bigr/g,''],[/\\Bigl/g,''],[/\\Bigr/g,''],
+    [/\\leftarrow/g,'←'],[/\\rightarrow/g,'→'],[/\\Rightarrow/g,'⇒'],[/\\to/g,'→'],
+    [/\\leq/g,'≤'],[/\\geq/g,'≥'],[/\\neq/g,'≠'],[/\\times/g,'×'],[/\\cdot/g,'·'],[/\\odot/g,'⊙'],
+    [/\\mid/g,'|'],[/\\neg/g,'¬'],[/\\setminus/g,'∖'],[/\\in/g,'∈'],[/\\notin/g,'∉'],[/\\propto/g,'∝'],[/\\approx/g,'≈'],[/\\sim/g,'∼'],[/\\left/g,''],[/\\right/g,''],[/\\\{/g,'{'],[/\\\}/g,'}'],[/\\pm/g,'±'],[/\\ldots/g,'…'],[/\\cdots/g,'⋯'],
+    [/\\alpha/g,'α'],[/\\beta/g,'β'],[/\\gamma/g,'γ'],[/\\Gamma/g,'Γ'],[/\\theta/g,'θ'],[/\\Theta/g,'Θ'],[/\\mu/g,'μ'],[/\\sigma/g,'σ'],[/\\Sigma/g,'Σ'],[/\\pi/g,'π'],[/\\rho/g,'ρ'],[/\\lambda/g,'λ'],[/\\Lambda/g,'Λ'],[/\\Delta/g,'Δ'],[/\\epsilon/g,'ε'],[/\\varepsilon/g,'ε'],
+    [/\\mathcal\{N\}/g,'𝒩'],[/\\mathcal\s*\{?L\}?/g,'𝓛'],[/\\mathcal\s*\{?N\}?/g,'𝒩'],[/\\mathbb\s*\{?E\}?/g,'𝔼'],[/\\mathbb\s*\{?H\}?/g,'ℍ'],[/\\mathrm\{Var\}/g,'Var'],[/\\mathrm\{Cov\}/g,'Cov'],[/\\mathrm\{KL\}/g,'KL'],[/\\mathrm\{Beta\}/g,'Beta'],[/\\mathbf\{1\}/g,'1']
+  ];
+  map.forEach(([r,v]) => { s = s.replace(r,v); });
+  s = s.replace(/\\text\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\mathcal\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathbb\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathrm\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\operatorname\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\exp/g,'exp').replace(/\\log/g,'log').replace(/\\min/g,'min').replace(/\\max/g,'max').replace(/\\tanh/g,'tanh').replace(/\\argmax/g,'argmax').replace(/\\argmin/g,'argmin').replace(/\\partial/g,'∂').replace(/\\sum/g,'∑').replace(/\\prod/g,'∏').replace(/\\int/g,'∫');
+  s = s.replace(/\\dot\s*\{([^{}]*)\}/g,'$1̇').replace(/\\dot\s+([A-Za-z])/g,'$1̇');
+  s = s.replace(/\\sqrt\{([^{}]*)\}/g,'√<span class="sqrt">$1</span>');
+  s = s.replace(/\^\{([^{}]*)\}/g,'<sup>$1</sup>').replace(/_\{([^{}]*)\}/g,'<sub>$1</sub>');
+  s = s.replace(/\^([A-Za-z0-9*+\-])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9*+\-])/g,'<sub>$1</sub>');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));
+  s = s.replace(/\s+/g,' ');
+  return s;
+}
+
+function renderLiteMath(root) {
+  if (!root || root.__liteMathRendering) return;
+  root.__liteMathRendering = true;
+  try {
+    const doc = root.nodeType === 9 ? root : root.ownerDocument;
+    if (doc && doc.head && !doc.getElementById('lite-math-style')) doc.head.insertAdjacentHTML('beforeend', liteMathCss);
+    const walker = doc.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('script,style,textarea,pre,code,.math-lite')) return NodeFilter.FILTER_REJECT;
+        return /\\\(|\\\[|\$/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const text = node.nodeValue;
+      const parts = [];
+      let i = 0;
+      const re = /\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$([\s\S]*?)\$\$|\$([^$\n]{1,240})\$/g;
+      let m;
+      while ((m = re.exec(text))) {
+        if (m.index > i) parts.push(doc.createTextNode(text.slice(i, m.index)));
+        const raw = m[1] ?? m[2] ?? m[3] ?? m[4] ?? '';
+        const span = doc.createElement('span');
+        span.className = 'math-lite' + ((m[1] || m[3]) ? ' display' : '');
+        span.innerHTML = latexToHtml(raw);
+        parts.push(span);
+        i = m.index + m[0].length;
+      }
+      if (!parts.length) return;
+      if (i < text.length) parts.push(doc.createTextNode(text.slice(i)));
+      node.replaceWith(...parts);
+    });
+  } finally {
+    root.__liteMathRendering = false;
+  }
+}
+const sentences=[
+  {words:['猫','坐','在','垫子','上'],probs:[0.05,0.3,0.6,0.4,0.8],rt:[320,280,240,290,220]},
+  {words:['猫','坐','在','飞机','上'],probs:[0.05,0.3,0.6,0.02,0.7],rt:[320,280,240,480,250]},
+  {words:['学生','做','完','了','作业','然后','突然','跳舞'],probs:[0.04,0.25,0.35,0.7,0.3,0.2,0.05,0.01],rt:[340,290,260,230,280,300,420,520]},
+];
+function render(){
+  const idx=parseInt(document.getElementById('selSent').value);
+  const s=sentences[idx];
+  const surp=s.probs.map(p=>-Math.log2(p));
+  const W=Math.max(560,s.words.length*70+80),H=340,pad=50;
+  let svg=`<svg class="viz" viewBox="0 0 ${W} ${H}">`;
+  // x axis
+  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#94a3b8"/>`;
+  // Two y axes
+  const maxS=Math.max(...surp)*1.2, maxRT=Math.max(...s.rt)*1.15;
+  function xPos(i){return pad+i*(W-2*pad)/(s.words.length-1||1);}
+  function yS(v){return H-pad-v/maxS*(H-2*pad);}
+  function yRT(v){return H-pad-v/maxRT*(H-2*pad);}
+  // Surprisal bars
+  surp.forEach((v,i)=>{
+    const x=xPos(i),y=yS(v),h2=H-pad-y;
+    svg+=`<rect x="${x-12}" y="${y}" width="24" height="${h2}" rx="4" fill="#2563eb" opacity="0.4"/>`;
+  });
+  // Surprisal curve
+  let pts=surp.map((v,i)=>`${xPos(i)},${yS(v)}`).join(' ');
+  svg+=`<polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2.5"/>`;
+  surp.forEach((v,i)=>{svg+=`<circle cx="${xPos(i)}" cy="${yS(v)}" r="4" fill="#2563eb"/>`;});
+  // RT curve
+  pts=s.rt.map((v,i)=>`${xPos(i)},${yRT(v)}`).join(' ');
+  svg+=`<polyline points="${pts}" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6,3"/>`;
+  s.rt.forEach((v,i)=>{svg+=`<circle cx="${xPos(i)}" cy="${yRT(v)}" r="4" fill="#dc2626"/>`;});
+  // Word labels
+  s.words.forEach((w,i)=>{
+    const x=xPos(i);
+    const highSurp=surp[i]>Math.max(...surp)*0.7;
+    svg+=`<text x="${x}" y="${H-pad+18}" text-anchor="middle" font-size="13" fill="${highSurp?'#dc2626':'#334155'}" font-weight="${highSurp?'700':'400'}">${w}</text>`;
+  });
+  // Legend
+  svg+=`<text x="${pad+10}" y="22" font-size="11"><tspan fill="#2563eb">■</tspan> Surprisal (bits) <tspan fill="#dc2626">- -</tspan> 阅读时间 (ms)</text>`;
+  svg+='</svg>';
+  document.getElementById('viz').innerHTML=svg;
+  const maxWord=s.words[surp.indexOf(Math.max(...surp))];
+  document.getElementById('obs').innerHTML=`"${maxWord}" 的 surprisal 最高 (${Math.max(...surp).toFixed(1)} bits)，对应阅读时间最长。Surprisal 衡量"这个词有多出乎意料"，与阅读时间高度相关。`;
+  renderLiteMath(document);
+}
+document.getElementById('selSent').addEventListener('change',render);
+render();
+</script></body></html>

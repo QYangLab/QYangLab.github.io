@@ -1,0 +1,185 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ch11 Demo 4: 动态学习率 Volatile</title><style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--soft:#dbeafe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.6}
+.page{max-width:1200px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+.kicker{font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:8px}
+h1{font-size:26px;line-height:1.25;margin:0 0 10px}
+.subtitle{color:var(--muted);max-width:900px}
+.formula{margin-top:14px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:12px 14px;color:#0f172a;font-size:15px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(15,23,42,.04)}
+h2{font-size:17px;margin:0 0 10px}
+.controls{display:grid;gap:12px}
+.control span{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.control input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn:hover{opacity:.85}
+.stage{min-height:300px}
+svg.viz{width:100%;border:1px solid #e2e8f0;border-radius:18px;background:#f8fafc}
+.intent{background:#f8fafc;border-left:4px solid var(--accent);margin-top:14px}
+.refs{font-size:13px;color:var(--muted);padding-left:18px}
+.obs{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px;font-size:14px;margin-top:8px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+</style></head><body><div class="page">
+<section class="hero"><div class="kicker">Chapter 11 · Demo 4 · 连续时序模型</div>
+<h1>Behrens / Nassar Volatile Learning Rate</h1>
+<div class="subtitle">环境 reward 概率突然改变时，人类临时提高学习率。Kalman 模型中 process noise 增大 → gain 增大。</div>
+<div class="formula">核心公式：\(\alpha_t\approx K_t=\frac{P_t^-}{P_t^-+R}\)</div></section>
+<div class="layout"><aside class="card"><h2>交互参数</h2><div class="controls">
+<div class="control"><span>环境波动性 <b id="vVol"></b></span><input type="range" id="sVol" min="0.01" max="0.5" step="0.01" value="0.1"></div>
+<div class="control"><span>观测噪声 <b id="vON"></b></span><input type="range" id="sON" min="0.05" max="0.5" step="0.01" value="0.15"></div>
+<div class="control"><span>Changepoint 时刻 <b id="vCP"></b></span><input type="range" id="sCP" min="10" max="70" step="1" value="40"></div>
+<button class="btn primary" id="btnVolRun">重新模拟</button>
+</div></aside><main>
+<section class="card"><h2>Reward 概率、Belief 与 Learning Rate</h2><div id="viz" class="stage"></div></section>
+<section class="card"><h2>观察提示</h2><div id="obs" class="obs"></div></section>
+<section class="card intent"><h2>文献与案例意图</h2><p>参考 Behrens et al. (2007) volatile learning、Nassar et al. (2010) changepoint detection、Piray & Daw (2024) flexible learning。案例说明最优学习率不是常数，而是对环境稳定性的推断结果。</p>
+<ul class="refs"><li>BRML Ch25</li><li>PML2 Ch8 Gaussian filtering</li></ul></section>
+</main></div></div>
+<script>
+const liteMathCss = `
+<style id="lite-math-style">
+.math-lite{font-family:"Times New Roman","STIX Two Text","Cambria Math",serif;color:#0f172a;font-size:1.04em;white-space:nowrap}
+.math-lite.display{display:block;white-space:normal;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+.math-lite sub{font-size:.72em;vertical-align:-.25em}.math-lite sup{font-size:.72em}.math-lite .frac{display:inline-grid;grid-template-rows:auto auto;text-align:center;vertical-align:middle;margin:0 .18em}.math-lite .frac .num{border-bottom:1px solid currentColor;padding:0 .22em .08em}.math-lite .frac .den{padding:.08em .22em 0}.math-lite .sqrt{border-top:1px solid currentColor;padding-left:.1em}.math-lite .op{font-family:"Times New Roman",serif}.math-lite .kw{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:.9em}
+</style>`;
+
+function latexToHtml(src) {
+  let s = src.trim();
+  const esc = x => x.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  function convertFrac(t) {
+    return t.replace(/\\(?:dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, (_, a, b) => `<span class="frac"><span class="num">${latexToHtml(a)}</span><span class="den">${latexToHtml(b)}</span></span>`);
+  }
+  s = esc(s);
+  s = convertFrac(s);
+  const map = [
+    [/\\qquad/g,'  '],[/\\quad/g,' '],[/\\;/g,' '],[/\\,/g,' '],[/\\!/g,''],[/\\\|/g,'‖'],[/\\bigl/g,''],[/\\bigr/g,''],[/\\Bigl/g,''],[/\\Bigr/g,''],
+    [/\\leftarrow/g,'←'],[/\\rightarrow/g,'→'],[/\\Rightarrow/g,'⇒'],[/\\to/g,'→'],
+    [/\\leq/g,'≤'],[/\\geq/g,'≥'],[/\\neq/g,'≠'],[/\\times/g,'×'],[/\\cdot/g,'·'],[/\\odot/g,'⊙'],
+    [/\\mid/g,'|'],[/\\neg/g,'¬'],[/\\setminus/g,'∖'],[/\\in/g,'∈'],[/\\notin/g,'∉'],[/\\propto/g,'∝'],[/\\approx/g,'≈'],[/\\sim/g,'∼'],[/\\left/g,''],[/\\right/g,''],[/\\\{/g,'{'],[/\\\}/g,'}'],[/\\pm/g,'±'],[/\\ldots/g,'…'],[/\\cdots/g,'⋯'],
+    [/\\alpha/g,'α'],[/\\beta/g,'β'],[/\\gamma/g,'γ'],[/\\Gamma/g,'Γ'],[/\\theta/g,'θ'],[/\\Theta/g,'Θ'],[/\\mu/g,'μ'],[/\\sigma/g,'σ'],[/\\Sigma/g,'Σ'],[/\\pi/g,'π'],[/\\rho/g,'ρ'],[/\\lambda/g,'λ'],[/\\Lambda/g,'Λ'],[/\\Delta/g,'Δ'],[/\\epsilon/g,'ε'],[/\\varepsilon/g,'ε'],
+    [/\\mathcal\{N\}/g,'𝒩'],[/\\mathcal\s*\{?L\}?/g,'𝓛'],[/\\mathcal\s*\{?N\}?/g,'𝒩'],[/\\mathbb\s*\{?E\}?/g,'𝔼'],[/\\mathbb\s*\{?H\}?/g,'ℍ'],[/\\mathrm\{Var\}/g,'Var'],[/\\mathrm\{Cov\}/g,'Cov'],[/\\mathrm\{KL\}/g,'KL'],[/\\mathrm\{Beta\}/g,'Beta'],[/\\mathbf\{1\}/g,'1']
+  ];
+  map.forEach(([r,v]) => { s = s.replace(r,v); });
+  s = s.replace(/\\text\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\mathcal\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathbb\{([^{}]*)\}/g,'$1');
+  s = s.replace(/\\mathrm\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\operatorname\{([^{}]*)\}/g,'<span class="kw">$1</span>');
+  s = s.replace(/\\exp/g,'exp').replace(/\\log/g,'log').replace(/\\min/g,'min').replace(/\\max/g,'max').replace(/\\tanh/g,'tanh').replace(/\\argmax/g,'argmax').replace(/\\argmin/g,'argmin').replace(/\\partial/g,'∂').replace(/\\sum/g,'∑').replace(/\\prod/g,'∏').replace(/\\int/g,'∫');
+  s = s.replace(/\\dot\s*\{([^{}]*)\}/g,'$1̇').replace(/\\dot\s+([A-Za-z])/g,'$1̇');
+  s = s.replace(/\\sqrt\{([^{}]*)\}/g,'√<span class="sqrt">$1</span>');
+  s = s.replace(/\^\{([^{}]*)\}/g,'<sup>$1</sup>').replace(/_\{([^{}]*)\}/g,'<sub>$1</sub>');
+  s = s.replace(/\^([A-Za-z0-9*+\-])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9*+\-])/g,'<sub>$1</sub>');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));
+  s = s.replace(/\s+/g,' ');
+  return s;
+}
+
+function renderLiteMath(root) {
+  if (!root || root.__liteMathRendering) return;
+  root.__liteMathRendering = true;
+  try {
+    const doc = root.nodeType === 9 ? root : root.ownerDocument;
+    if (doc && doc.head && !doc.getElementById('lite-math-style')) doc.head.insertAdjacentHTML('beforeend', liteMathCss);
+    const walker = doc.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('script,style,textarea,pre,code,.math-lite')) return NodeFilter.FILTER_REJECT;
+        return /\\\(|\\\[|\$/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const text = node.nodeValue;
+      const parts = [];
+      let i = 0;
+      const re = /\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$([\s\S]*?)\$\$|\$([^$\n]{1,240})\$/g;
+      let m;
+      while ((m = re.exec(text))) {
+        if (m.index > i) parts.push(doc.createTextNode(text.slice(i, m.index)));
+        const raw = m[1] ?? m[2] ?? m[3] ?? m[4] ?? '';
+        const span = doc.createElement('span');
+        span.className = 'math-lite' + ((m[1] || m[3]) ? ' display' : '');
+        span.innerHTML = latexToHtml(raw);
+        parts.push(span);
+        i = m.index + m[0].length;
+      }
+      if (!parts.length) return;
+      if (i < text.length) parts.push(doc.createTextNode(text.slice(i)));
+      node.replaceWith(...parts);
+    });
+  } finally {
+    root.__liteMathRendering = false;
+  }
+}
+const NT3=80;
+function simVolatile(){
+  const vol=parseFloat(document.getElementById('sVol').value);
+  const obsN=parseFloat(document.getElementById('sON').value);
+  const cp=parseInt(document.getElementById('sCP').value);
+  // true reward prob
+  const trueP=Array.from({length:NT3},(_,t)=>t<cp?0.7:0.3);
+  // outcomes
+  const outcomes=trueP.map(p=>Math.random()<p?1:0);
+  // Kalman filter
+  let mu=0.5, P=0.25;
+  const mus=[mu],Ps=[P],Ks=[];
+  for(let t=0;t<NT3;t++){
+    // predict (random walk with volatility)
+    P=P+vol*vol;
+    // update
+    const K=P/(P+obsN*obsN);
+    mu=mu+K*(outcomes[t]-mu);
+    P=(1-K)*P;
+    mus.push(mu);Ps.push(P);Ks.push(K);
+  }
+  return {trueP,outcomes,mus,Ks};
+}
+function render(){
+  ['Vol','ON','CP'].forEach(k=>{document.getElementById('v'+k).textContent=document.getElementById('s'+k).value;});
+  const d=simVolatile();
+  const W=560,H=340,pad=50;
+  const cp=parseInt(document.getElementById('sCP').value);
+  function tx(t){return pad+t*(W-2*pad)/(NT3-1);}
+  let svg=`<svg class="viz" viewBox="0 0 ${W} ${H}">`;
+  // changepoint marker
+  svg+=`<line x1="${tx(cp)}" y1="10" x2="${tx(cp)}" y2="${H-10}" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="6,3"/>`;
+  svg+=`<text x="${tx(cp)+4}" y="20" font-size="10" fill="#dc2626">changepoint</text>`;
+  // Top panel: true prob + belief
+  const p1Top=30, p1H=100;
+  svg+=`<text x="10" y="${p1Top-4}" font-size="11" fill="#475569">Reward 概率与 Belief</text>`;
+  svg+=`<line x1="${pad}" y1="${p1Top+p1H}" x2="${W-pad}" y2="${p1Top+p1H}" stroke="#94a3b8"/>`;
+  // true prob
+  let pts=d.trueP.map((v,t)=>`${tx(t)},${p1Top+p1H-v*p1H}`).join(' ');
+  svg+=`<polyline points="${pts}" fill="none" stroke="#0f172a" stroke-width="2"/>`;
+  // belief
+  pts=d.mus.slice(0,NT3).map((v,t)=>`${tx(t)},${p1Top+p1H-v*p1H}`).join(' ');
+  svg+=`<polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2.5"/>`;
+  // outcomes
+  d.outcomes.forEach((o,t)=>{svg+=`<circle cx="${tx(t)}" cy="${p1Top+p1H-o*p1H}" r="2" fill="${o?'#16a34a':'#f97316'}" opacity="0.5"/>`;});
+  svg+=`<text x="${W-160}" y="${p1Top+14}" font-size="10"><tspan fill="#0f172a">—</tspan> true <tspan fill="#2563eb">—</tspan> belief <tspan fill="#16a34a">●</tspan>/<tspan fill="#f97316">●</tspan> outcomes</text>`;
+  // Bottom panel: learning rate
+  const p2Top=p1Top+p1H+40, p2H=80;
+  svg+=`<text x="10" y="${p2Top-4}" font-size="11" fill="#475569">Adaptive Learning Rate (Kalman gain)</text>`;
+  svg+=`<line x1="${pad}" y1="${p2Top+p2H}" x2="${W-pad}" y2="${p2Top+p2H}" stroke="#94a3b8"/>`;
+  const maxK=Math.max(...d.Ks)*1.2;
+  pts=d.Ks.map((v,t)=>`${tx(t)},${p2Top+p2H-v/maxK*p2H}`).join(' ');
+  svg+=`<polyline points="${pts}" fill="none" stroke="#8b5cf6" stroke-width="2.5"/>`;
+  d.Ks.forEach((v,t)=>{if(t%5===0)svg+=`<circle cx="${tx(t)}" cy="${p2Top+p2H-v/maxK*p2H}" r="2.5" fill="#8b5cf6"/>`;});
+  svg+=`<text x="${W-100}" y="${p2Top+14}" font-size="10" fill="#8b5cf6">K_t = learning rate</text>`;
+  svg+='</svg>';
+  document.getElementById('viz').innerHTML=svg;
+  const kAtCP=d.Ks[cp]||0;
+  document.getElementById('obs').innerHTML=`Changepoint 前 belief 稳定在 ≈${d.trueP[0]}，learning rate 逐渐下降。Changepoint 后，连续的 surprise 让 P⁻ 快速上升，Kalman gain 也跟着上升到 ${kAtCP.toFixed(3)}，使 belief 快速追踪新的环境概率。这解释了为什么人类在不确定环境中会临时"加速学习"。`;
+  renderLiteMath(document);
+}
+['sVol','sON','sCP'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+document.getElementById('btnVolRun').addEventListener('click',render);
+render();
+</script></body></html>

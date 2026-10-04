@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 7-2：Xu & Tenenbaum 强抽样概念学习</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#cbd5e1;--accent:#2563eb;--accent-soft:#dbeafe}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+main{max-width:960px;margin:0 auto;padding:32px 24px 72px}
+h1{font-size:1.5em;margin-bottom:6px}h2{font-size:1.1em;margin-bottom:10px}
+p{color:var(--muted);margin-bottom:12px;font-size:15px}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05);padding:24px;margin-bottom:20px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+button.primary{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600}
+button.primary:hover{opacity:.85}
+button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13px}
+button.secondary:hover{background:#f1f5f9}
+.toggle-group{display:flex;gap:0;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.toggle-group button{border:none;padding:8px 16px;background:#fff;cursor:pointer;font-size:13px;color:var(--text)}
+.toggle-group button.active{background:var(--accent);color:#fff}
+.insight{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 18px;font-size:14px;color:#166534;margin-top:12px}
+.ref{background:#fefce8;border:1px solid #fef08a;border-radius:14px;padding:14px 18px;font-size:13px;color:#854d0e}
+svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <h1>Demo 7-2：Xu & Tenenbaum 强抽样概念学习</h1>
+    <p>儿童看到新词标注的几个样本，推断词义范围——是窄类别还是宽类别？Strong sampling 假设样本是从概念范围内均匀抽取的：概念越小，每个样本的 likelihood 越高（"size principle"）。</p>
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#2563eb"></span>假设 \(h\)：概念节点</span>
+      <span class="badge"><span class="dot" style="background:#16a34a"></span>数据 \(D\)：标注样本</span>
+    </div>
+    <p style="margin-top:14px;font-size:14px">
+      \[p(h \mid D) \propto p(D \mid h) \cdot p(h), \qquad p(D \mid h) = |h|^{-n} \quad \text{(strong sampling)}\]
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>操作</h2>
+    <div class="controls">
+      <div class="toggle-group" id="sampling-toggle">
+        <button class="active" data-mode="strong">强抽样 (Strong)</button>
+        <button data-mode="weak">弱抽样 (Weak)</button>
+      </div>
+      <button class="primary" id="btn-reset">重置样本</button>
+      <p style="margin:0;font-size:13px;color:var(--muted)">点击树中叶子节点添加样本</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>概念层级树与后验</h2>
+    <svg id="svg-tree" width="100%" viewBox="0 0 860 500" style="display:block;cursor:pointer"></svg>
+  </div>
+
+  <div class="card">
+    <h2>各假设后验概率</h2>
+    <svg id="svg-bar" width="100%" viewBox="0 0 860 180" style="display:block"></svg>
+  </div>
+
+  <div class="card insight">
+    <strong>观察提示：</strong>在 Strong sampling 下，如果所有样本都来自同一个窄子类（如"金毛犬"），后验会强烈偏向该窄类而非宽类"狗"。切换到 Weak sampling 后，size principle 消失，宽类相对更可能。这就是为什么少量样本也能支持强泛化。
+  </div>
+
+  <div class="card ref">
+    <strong>文献与案例意图</strong><br>
+    Strong sampling 是 Bayesian concept learning 的核心机制：学习者假设样本是从概念范围内"有意"抽取的。参考：Xu & Tenenbaum (2007); Tenenbaum & Griffiths (2001).
+  </div>
+</main>
+
+<script>
+// Concept hierarchy: Animal > {Dog, Cat, Bird} > {sub-breeds}
+const tree = {
+  id:'动物', children:[
+    {id:'狗', children:[
+      {id:'金毛',children:[]},{id:'柯基',children:[]},{id:'哈士奇',children:[]}
+    ]},
+    {id:'猫', children:[
+      {id:'英短',children:[]},{id:'暹罗',children:[]},{id:'布偶',children:[]}
+    ]},
+    {id:'鸟', children:[
+      {id:'鹦鹉',children:[]},{id:'麻雀',children:[]},{id:'老鹰',children:[]}
+    ]}
+  ]
+};
+
+// Flatten: each node is a hypothesis
+function getLeaves(node){
+  if(node.children.length===0)return [node.id];
+  return node.children.flatMap(c=>getLeaves(c));
+}
+function allNodes(node){
+  let res=[{id:node.id,leaves:getLeaves(node)}];
+  node.children.forEach(c=>{res=res.concat(allNodes(c))});
+  return res;
+}
+const hypotheses=allNodes(tree);
+let samples=[];
+let samplingMode='strong';
+
+function computePosterior(){
+  const n=samples.length;
+  const priors=hypotheses.map(h=>{
+    // simple prior: leaves=1, mid=0.5, root=0.3
+    if(h.leaves.length===1)return 1;
+    if(h.leaves.length<=3)return 0.5;
+    return 0.3;
+  });
+  const pSum=priors.reduce((a,b)=>a+b,0);
+  const normalizedPrior=priors.map(p=>p/pSum);
+
+  const posteriors=hypotheses.map((h,i)=>{
+    // check if all samples are within this hypothesis
+    const allIn=samples.every(s=>h.leaves.includes(s));
+    if(!allIn)return 0;
+    let lik;
+    if(samplingMode==='strong'){
+      lik=Math.pow(1/h.leaves.length, n); // size principle
+    } else {
+      lik=1; // weak: flat likelihood for any containing hypothesis
+    }
+    return lik*normalizedPrior[i];
+  });
+  const Z=posteriors.reduce((a,b)=>a+b,0)||1;
+  return posteriors.map(p=>p/Z);
+}
+
+// Layout
+const nodePositions={};
+function layoutTree(){
+  // Leaves
+  const leaves=getLeaves(tree);
+  const leafY=400, topY=60, midY=230;
+  const startX=100, gapX=80;
+  leaves.forEach((l,i)=>{nodePositions[l]={x:startX+i*gapX,y:leafY}});
+  // Mid-level
+  tree.children.forEach((mid,i)=>{
+    const cx=mid.children.reduce((s,c)=>s+nodePositions[c.id].x,0)/mid.children.length;
+    nodePositions[mid.id]={x:cx,y:midY};
+  });
+  // Root
+  nodePositions[tree.id]={x:430,y:topY};
+}
+layoutTree();
+
+function draw(){
+  const post=computePosterior();
+  drawTree(post);
+  drawBar(post);
+}
+
+function drawTree(post){
+  const svg=document.getElementById('svg-tree');
+  let html='';
+
+  // Edges
+  function drawEdges(node){
+    node.children.forEach(c=>{
+      const p=nodePositions[node.id], q=nodePositions[c.id];
+      html+=`<line x1="${p.x}" y1="${p.y+18}" x2="${q.x}" y2="${q.y-18}" stroke="#cbd5e1" stroke-width="2"/>`;
+      drawEdges(c);
+    });
+  }
+  drawEdges(tree);
+
+  // Nodes with posterior intensity
+  hypotheses.forEach((h,i)=>{
+    const pos=nodePositions[h.id];
+    if(!pos)return;
+    const p=post[i];
+    const isLeaf=h.leaves.length===1;
+    const r=isLeaf?22:28;
+    const intensity=Math.min(1,p*3);
+    const fill=`rgba(37,99,235,${0.08+intensity*0.8})`;
+    const textCol=intensity>0.4?'#fff':'#0f172a';
+    html+=`<circle cx="${pos.x}" cy="${pos.y}" r="${r}" fill="${fill}" stroke="#2563eb" stroke-width="${p>0.05?2.5:1}" data-leaf="${isLeaf?h.id:''}"/>`;
+    html+=`<text x="${pos.x}" y="${pos.y+4}" text-anchor="middle" font-size="${isLeaf?12:14}" fill="${textCol}" font-weight="${p>0.1?700:400}" pointer-events="none">${h.id}</text>`;
+    if(p>0.01){
+      html+=`<text x="${pos.x}" y="${pos.y+r+14}" text-anchor="middle" font-size="11" fill="#2563eb" pointer-events="none">${(p*100).toFixed(1)}%</text>`;
+    }
+  });
+
+  // Sample markers
+  samples.forEach(s=>{
+    const pos=nodePositions[s];
+    if(pos){
+      html+=`<circle cx="${pos.x}" cy="${pos.y-30}" r="6" fill="#16a34a" stroke="#fff" stroke-width="2"/>`;
+    }
+  });
+
+  // Click hint
+  html+=`<text x="430" y="490" text-anchor="middle" font-size="13" fill="#94a3b8">点击底部叶子节点添加样本（绿色圆点）</text>`;
+  svg.innerHTML=html;
+}
+
+function drawBar(post){
+  const svg=document.getElementById('svg-bar');
+  const W2=860,H2=180,pad={l:60,r:20,t:10,b:50};
+  const pw=W2-pad.l-pad.r, ph=H2-pad.t-pad.b;
+  const filteredIdx=hypotheses.map((h,i)=>i).filter(i=>post[i]>0.001||hypotheses[i].leaves.length<=3);
+  const n=filteredIdx.length;
+  const barW=Math.min(60,pw/n*.7);
+  let html='';
+  html+=`<line x1="${pad.l}" y1="${H2-pad.b}" x2="${W2-pad.r}" y2="${H2-pad.b}" stroke="#cbd5e1" stroke-width="1"/>`;
+  filteredIdx.forEach((idx,j)=>{
+    const x=pad.l+(j+.5)*(pw/n);
+    const h=post[idx]*ph;
+    const col=post[idx]>0.1?'#2563eb':'#93c5fd';
+    html+=`<rect x="${x-barW/2}" y="${H2-pad.b-h}" width="${barW}" height="${h}" fill="${col}" rx="4"/>`;
+    html+=`<text x="${x}" y="${H2-pad.b+16}" text-anchor="middle" font-size="11" fill="#475569">${hypotheses[idx].id}</text>`;
+    html+=`<text x="${x}" y="${H2-pad.b+30}" text-anchor="middle" font-size="10" fill="#94a3b8">(${hypotheses[idx].leaves.length})</text>`;
+    if(post[idx]>0.02){
+      html+=`<text x="${x}" y="${H2-pad.b-h-4}" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="600">${(post[idx]*100).toFixed(1)}%</text>`;
+    }
+  });
+  svg.innerHTML=html;
+}
+
+// Click handler for adding samples
+document.getElementById('svg-tree').addEventListener('click',e=>{
+  const el=e.target;
+  if(el.tagName==='circle'&&el.dataset.leaf){
+    samples.push(el.dataset.leaf);
+    draw();
+  }
+});
+
+// Sampling mode toggle
+document.getElementById('sampling-toggle').addEventListener('click',e=>{
+  if(e.target.dataset.mode){
+    samplingMode=e.target.dataset.mode;
+    document.querySelectorAll('#sampling-toggle button').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    draw();
+  }
+});
+
+document.getElementById('btn-reset').addEventListener('click',()=>{samples=[];draw()});
+draw();
+</script>
+</body>
+</html>
